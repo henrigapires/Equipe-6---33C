@@ -1,0 +1,1 @@
+print('equipe6')
