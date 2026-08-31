@@ -1,1 +1,1 @@
-print('equipe6')
+
