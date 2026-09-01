@@ -1,4 +1,16 @@
+def calcula_potenciacao(x, y):
+    return x ** y
 
+def calcula_radiciacao(x, y):
+    if y == 0:
+        return None
+    elif x < 0 and y % 2 == 0:
+        print("Não existe raiz real de número negativo para índices pares.")
+        return None
+    else:
+        if x < 0:
+            return -((-x) ** (1 / y))
+        return x ** (1 / y)
 
 #fazer as funções acima (com os nomes de acordo com o BP lá embaixo)
 
