@@ -1,3 +1,6 @@
+def calcula_divisao_inteira(x, y):
+    return x//y
+
 def calcula_potenciacao(x, y):
     return x ** y
 
@@ -11,9 +14,6 @@ def calcula_radiciacao(x, y):
         if x < 0:
             return -((-x) ** (1 / y))
         return x ** (1 / y)
-
-def calcula_divisao_inteira(x, y):
-    return x//y
 
 #fazer as funções acima (com os nomes de acordo com o BP lá embaixo)
 
