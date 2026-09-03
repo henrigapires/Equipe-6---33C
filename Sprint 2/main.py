@@ -1,6 +1,3 @@
-def calcula_divisao_inteira(x, y):
-    return x//y
-
 def calcula_potenciacao(x, y):
     return x ** y
 
@@ -14,6 +11,16 @@ def calcula_radiciacao(x, y):
         if x < 0:
             return -((-x) ** (1 / y))
         return x ** (1 / y)
+
+def calcula_divisao_inteira(x, y):
+    return x//y
+
+def calcula_resto(x, y):
+    return x % y
+
+def calcula_percentual(x, y):
+    return (x/100)*y
+
 
 #fazer as funções acima (com os nomes de acordo com o BP lá embaixo)
 
@@ -61,8 +68,8 @@ while cod_operacao != 0:
         b=float(input("Digite o divisor: "))
         print(f' {a} // {b} = {calcula_divisao_inteira(a, b)}')
     elif cod_operacao == 8:
-        a=float(input("Digite o primeiro dividendo: "))
-        b=float(input("Digite o segundo divisor: "))
+        a=float(input("Digite o dividendo: "))
+        b=float(input("Digite o divisor: "))
         print(f' Resto da divisão de{a} por {b} = {calcula_resto(a, b)}')
     elif cod_operacao == 9:
         a=float(input("Digite o número: "))
@@ -72,7 +79,6 @@ while cod_operacao != 0:
         print("Saindo do programa...")
     else:
         print("Opção inválida, digite um número de 0 a 9.")
-
 
 
 
