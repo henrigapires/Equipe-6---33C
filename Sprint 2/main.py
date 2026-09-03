@@ -15,6 +15,12 @@ def calcula_radiciacao(x, y):
             return -((-x) ** (1 / y))
         return x ** (1 / y)
 
+def calcula_adicao(x,y):
+    return x + y
+
+def calcula_multiplicacao(x,y): 
+    return x * y
+
 #fazer as funções acima (com os nomes de acordo com o BP lá embaixo)
 
 while cod_operacao != 0:
@@ -43,7 +49,7 @@ while cod_operacao != 0:
     elif cod_operacao == 3:
         a=float(input("Digite o primeiro fator: "))
         b=float(input("Digite o segundo fator: "))
-        print(f' {a} * {b} = {calcula_multiplicação(a, b)}')
+        print(f' {a} * {b} = {calcula_multiplicacao(a, b)}')
     elif cod_operacao == 4:
         a=float(input("Digite o dividendo: "))
         b=float(input("Digite o divisor: "))
