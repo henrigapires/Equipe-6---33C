@@ -3,6 +3,7 @@ def calcula_potenciacao(x, y):
 
 def calcula_radiciacao(x, y):
     if y == 0:
+        print("Não é possível calcular a raiz de índice zero.")
         return None
     elif x < 0 and y % 2 == 0:
         print("Não existe raiz real de número negativo para índices pares.")
@@ -62,7 +63,7 @@ while cod_operacao != 0:
     elif cod_operacao == 6:
         a=float(input("Digite o radicando: "))
         b=float(input("Digite o índice: "))
-        print(f' √{a} = {calcula_radiciacao(a, b)}')
+        print(f' ({b})√{a} = {calcula_radiciacao(a, b)}')
     elif cod_operacao == 7:
         a=float(input("Digite o dividendo: "))
         b=float(input("Digite o divisor: "))
