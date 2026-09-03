@@ -1,3 +1,11 @@
+def calcula_subtracao(x,y):
+    return x-y
+
+def calcula_divisao(x,y):
+    if y == 0:
+        return None
+    return x/y 
+
 def calcula_divisao_inteira(x, y):
     return x//y
 
