@@ -1,5 +1,11 @@
+def calcula_adicao (x,y): 
+    return x + y
+
 def calcula_subtracao(x,y):
     return x-y
+ 
+def calcula_multiplicacao (x,y):
+    return x*y
 
 def calcula_divisao(x,y):
     if y == 0:
@@ -22,13 +28,6 @@ def calcula_radiciacao(x, y):
             return -((-x) ** (1 / y))
         return x ** (1 / y)
 
-def calcula_adicao(x,y):
-    return x + y
-
-def calcula_multiplicacao(x,y): 
-    return x * y
-
-#fazer as funções acima (com os nomes de acordo com o BP lá embaixo)
 def calcula_divisao_inteira(x, y):
     return x//y
 
