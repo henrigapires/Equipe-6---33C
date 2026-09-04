@@ -1,3 +1,12 @@
+def calcula_subtracao(x,y):
+    return x-y
+
+def calcula_divisao(x,y):
+    if y == 0:
+        print("Não é possível dividir por zero.")
+        return None
+    return x/y 
+  
 def calcula_potenciacao(x, y):
     return x ** y
 
