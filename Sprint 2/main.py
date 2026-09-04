@@ -13,6 +13,12 @@ def calcula_radiciacao(x, y):
             return -((-x) ** (1 / y))
         return x ** (1 / y)
 
+def calcula_adicao (x,y): 
+    return x + y
+
+def calcula_multiplicacao (x,y):
+    return x*y
+
 def calcula_divisao_inteira(x, y):
     return x//y
 
