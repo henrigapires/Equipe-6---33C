@@ -1,0 +1,105 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Page-1" id="RePvMjI8jl8eiFARWKNR">
+    <mxGraphModel grid="1" page="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-136" edge="1" parent="1" source="oSR7Gx6pNtsvwp7zh61o-37" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;endArrow=none;endFill=0;" target="oSR7Gx6pNtsvwp7zh61o-42">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-137" connectable="0" parent="oSR7Gx6pNtsvwp7zh61o-136" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;span style=&quot;font-size: 18px;&quot;&gt;Já cursou&lt;/span&gt;" vertex="1">
+          <mxGeometry relative="1" x="0.0655" y="3" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <UserObject label="&lt;div style=&quot;font-weight:bold; font-size:14px; text-transform:uppercase; text-align:center;&quot;&gt;ALUNO&lt;/div&gt;&lt;div style=&quot;font-weight:bold; font-size:14px; text-transform:uppercase; text-align:center;&quot;&gt;&lt;br&gt;&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;- Matrícula Puc-Rio&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;- Senha Puc-Rio&lt;/div&gt;" Caixa="O Aluno" Itens="- Nome e Matrícula&lt;br&gt;- Matérias já aprovadas" ConectaCom="" Acao="" placeholders="1" id="oSR7Gx6pNtsvwp7zh61o-37">
+          <mxCell parent="1" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;rounded=0;fontFamily=Arial;fontColor=#000000;" vertex="1">
+            <mxGeometry height="100" width="210" x="-190" y="490" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="&lt;div style=&quot;font-weight:bold; font-size:14px; text-transform:uppercase; text-align:center;&quot;&gt;ROTINA E PREFERÊNCIAS&lt;/div&gt;&lt;div style=&quot;font-weight:bold; font-size:14px; text-transform:uppercase; text-align:center;&quot;&gt;&lt;br&gt;&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;- Horários de trabalho/estágio&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;- Distribuição das aulas&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;- Horários (manhã/tarde/noite)&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;- Modalidade (on-line ou presencial)&lt;/div&gt;" Caixa="Rotina e Preferências" Itens="- Horários de trabalho/estágio&lt;br&gt;- Manhã, tarde ou noite&lt;br&gt;- Presencial ou online" ConectaCom="1" Acao="Define" placeholders="1" id="oSR7Gx6pNtsvwp7zh61o-38">
+          <mxCell parent="1" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;rounded=0;fontFamily=Arial;fontColor=#000000;" vertex="1">
+            <mxGeometry height="115" width="210" x="-190" y="720" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="&lt;div style=&quot;font-weight:bold; font-size:14px; text-transform:uppercase; text-align:center;&quot;&gt;GRADE&lt;/div&gt;&lt;div style=&quot;font-weight:bold; font-size:14px; text-transform:uppercase; text-align:center;&quot;&gt;&lt;br&gt;&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;- Grade montada de acordo com preferências&lt;/div&gt;" Caixa="A Grade Final" Itens="- Calendário pronto&lt;br&gt;- Nenhuma aula encavalada" ConectaCom="1" Acao="Recebe" placeholders="1" id="oSR7Gx6pNtsvwp7zh61o-39">
+          <mxCell parent="1" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;rounded=0;fontFamily=Arial;fontColor=#000000;" vertex="1">
+            <mxGeometry height="115" width="230" x="440" y="482.5" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="&lt;div style=&quot;font-weight:bold; font-size:14px; text-transform:uppercase; text-align:center;&quot;&gt;TURMAS&lt;/div&gt;&lt;div style=&quot;font-weight:bold; font-size:14px; text-transform:uppercase; text-align:center;&quot;&gt;&lt;br&gt;&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;- Dias e horários&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;- Vagas&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;- Sala&lt;/div&gt;" Caixa="Turmas Abertas" Itens="- Dias e horários&lt;br&gt;- Vagas que sobraram&lt;br&gt;- Qual é a sala" ConectaCom="3" Acao="Preenchem" placeholders="1" id="oSR7Gx6pNtsvwp7zh61o-40">
+          <mxCell parent="1" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;rounded=0;fontFamily=Arial;fontColor=#000000;" vertex="1">
+            <mxGeometry height="115" width="210" x="190" y="240" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="&lt;div style=&quot;font-weight:bold; font-size:14px; text-transform:uppercase; text-align:center;&quot;&gt;PROFESSOR&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;&lt;br&gt;&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;- Nome&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;- Avaliações&lt;/div&gt;" Caixa="Professor" Itens="- Nome&lt;br&gt;- Avaliação de outros alunos" ConectaCom="4" Acao="Dá aula nas" placeholders="1" id="oSR7Gx6pNtsvwp7zh61o-41">
+          <mxCell parent="1" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;rounded=0;fontFamily=Arial;fontColor=#000000;" vertex="1">
+            <mxGeometry height="90" width="210" x="190" y="-10" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="&lt;div style=&quot;font-weight:bold; font-size:14px; text-transform:uppercase; text-align:center;&quot;&gt;DISCIPLINA&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;&lt;br&gt;&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;- Código da disciplina&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;- Nome da disciplina&lt;/div&gt;&lt;div style=&quot;text-align:left; font-size:13px;&quot;&gt;- Pré-requisitos&lt;/div&gt;" Caixa="Matéria" Itens="- Nome da matéria&lt;br&gt;- O que precisa ter feito antes" ConectaCom="4" Acao="É dividida em" placeholders="1" id="oSR7Gx6pNtsvwp7zh61o-42">
+          <mxCell parent="1" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;rounded=0;fontFamily=Arial;fontColor=#000000;" vertex="1">
+            <mxGeometry height="100" width="210" x="-190" y="250" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-43" edge="1" parent="1" source="oSR7Gx6pNtsvwp7zh61o-38" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;strokeWidth=2;endArrow=none;fontSize=18;fontColor=#000000;labelBackgroundColor=#ffffff;" target="oSR7Gx6pNtsvwp7zh61o-37" value="Define">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-84.94" y="640" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-44" edge="1" parent="1" source="oSR7Gx6pNtsvwp7zh61o-39" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;strokeWidth=2;endArrow=none;fontSize=18;fontColor=#000000;labelBackgroundColor=#ffffff;" target="oSR7Gx6pNtsvwp7zh61o-37" value="Monta">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-45" edge="1" parent="1" source="oSR7Gx6pNtsvwp7zh61o-40" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;strokeWidth=2;endArrow=none;fontSize=18;fontColor=#000000;labelBackgroundColor=#ffffff;" target="oSR7Gx6pNtsvwp7zh61o-39" value="Formam">
+          <mxGeometry relative="1" x="0.0039" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-46" edge="1" parent="1" source="oSR7Gx6pNtsvwp7zh61o-41" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;strokeWidth=2;endArrow=none;fontSize=18;fontColor=#000000;labelBackgroundColor=#ffffff;" target="oSR7Gx6pNtsvwp7zh61o-40" value="Ministra Aula(s)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-47" edge="1" parent="1" source="oSR7Gx6pNtsvwp7zh61o-42" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;strokeWidth=2;endArrow=none;fontSize=18;fontColor=#000000;labelBackgroundColor=#ffffff;" target="oSR7Gx6pNtsvwp7zh61o-40" value="Oferece">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-49" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="0..*" vertex="1">
+          <mxGeometry height="30" width="60" x="280" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-50" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="1" vertex="1">
+          <mxGeometry height="30" width="60" x="10" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-51" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="1..*" vertex="1">
+          <mxGeometry height="30" width="60" x="140" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-57" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="1" vertex="1">
+          <mxGeometry height="30" width="60" x="10" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-139" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="0..*" vertex="1">
+          <mxGeometry height="30" width="60" x="-90" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-140" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="0.,*" vertex="1">
+          <mxGeometry height="30" width="60" x="-130" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-141" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="1" vertex="1">
+          <mxGeometry height="30" width="60" x="-100" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-143" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="1" vertex="1">
+          <mxGeometry height="30" width="60" x="-130" y="690" as="geometry" />
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-145" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="1" vertex="1">
+          <mxGeometry height="30" width="60" x="280" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-146" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="1..*" vertex="1">
+          <mxGeometry height="30" width="60" x="395" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-147" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="0..*" vertex="1">
+          <mxGeometry height="30" width="60" x="550" y="452.5" as="geometry" />
+        </mxCell>
+        <mxCell id="oSR7Gx6pNtsvwp7zh61o-148" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="0..*" vertex="1">
+          <mxGeometry height="30" width="60" x="390" y="540" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
