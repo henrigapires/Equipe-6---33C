@@ -1,0 +1,2 @@
+import type { ReactNode } from "react";
+export function PageTitle({title,description,action}:{title:string;description:string;action?:ReactNode}){return <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-start"><div><h1 className="font-display text-3xl font-semibold text-primary md:text-4xl">{title}</h1><p className="mt-1 max-w-3xl text-muted-foreground">{description}</p></div>{action}</div>}
