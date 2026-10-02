@@ -7,7 +7,7 @@
 
     <title>Resumo da Grade | Grade.puc</title>
 
-    <link rel="stylesheet" href="../Static/css/resumo_da_grade.css">
+    <link rel="stylesheet" href="../Static/resumo_da_grade.css">
 </head>
 
 <body>
@@ -17,10 +17,10 @@
         </div>
 
         <nav class="menu">
-            <a href="#" class="ativo">Minha grade</a>
-            <a href="#">Grades sugeridas</a>
-            <a href="#">Questionário</a>
-            <a href="#">Ajuda</a>
+            <a href="resumo_da_grade.html" class="ativo">Minha grade</a>
+            <a href="grades-sugeridas.html">Grades sugeridas</a>
+            <a href="questionario.html">Questionário</a>
+            <a href="ajuda.html">Ajuda</a>
         </nav>
 
         <div class="perfil">
@@ -168,17 +168,17 @@
 
             <div class="botoes">
 
-                <button>
+                <button type="button">
                     📅
                     Exportar Calendário
                 </button>
 
-                <button>
+                <button type="button" onclick="window.location.href='grades-sugeridas.html'">
                     ✎
                     Editar Grade
                 </button>
 
-                <button>
+                <button type="button" onclick="window.open('https://www.puc-rio.br/ensinopesq/academicas/', '_blank')">
                     ↗
                     Portal SAU PUC
                 </button>

@@ -4,22 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ajuda - grade.puc</title>
-    <link rel="stylesheet" href="ajuda.css">
+    <link rel="stylesheet" href="../Static/ajuda.css">
 </head>
 <body>
 
     <div class="navbar"> 
         <div class="logo">
             <!-- Puxando a logo que você colocou na pasta -->
-            <img src="logo.png" width="120px">
+            <img src="../Static/logo.png" width="120px">
         </div>
         
         <nav>
           <ul>
-            <li><a href="#">Minha grade</a></li>
-            <li><a href="#">Grades sugeridas</a></li>
-            <li><a href="#">Questionário</a></li>
-            <li><a href="#" class="ativo">Ajuda</a></li>
+            <li><a href="resumo_da_grade.html">Minha grade</a></li>
+            <li><a href="grades-sugeridas.html">Grades sugeridas</a></li>
+            <li><a href="questionario.html">Questionário</a></li>
+            <li><a href="ajuda.html" class="ativo">Ajuda</a></li>
           </ul>
         </nav>
         
@@ -53,12 +53,12 @@
 
         </div>
 
-        <button class="botao-voltar">Voltar para minha grade</button>
+        <button type="button" class="botao-voltar" onclick="window.location.href='resumo_da_grade.html'">Voltar para minha grade</button>
     </div>
 
     <div class="rodape">
         <!-- Puxando a logo novamente pro rodapé -->
-        <img src="logo.png" width="80px">
+        <img src="../Static/logo.png" width="80px">
         <span class="texto-rodape">Planejamento hoje. Mais conquistas amanhã.</span>
         <span class="texto-rodape">PUC-Rio</span>
     </div>

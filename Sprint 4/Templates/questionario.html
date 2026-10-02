@@ -4,20 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Questionário - grade.puc</title>
-    <link rel="stylesheet" href="questionario.css">
+    <link rel="stylesheet" href="../Static/questionario.css">
 </head>
 <body>
 
     <!-- A mesma Navbar de antes, mas o "ativo" agora está no Questionário -->
     <div class="navbar"> 
         <div class="logo">
-            <img src="logo.png" width="120px">
+            <img src="../Static/logo.png" width="120px">
         </div>
         <nav>
           <ul>
-            <li><a href="#">Minha grade</a></li>
-            <li><a href="#">Grades sugeridas</a></li>
-            <li><a href="#" class="ativo">Questionário</a></li>
+            <li><a href="resumo_da_grade.html">Minha grade</a></li>
+            <li><a href="grades-sugeridas.html">Grades sugeridas</a></li>
+            <li><a href="questionario.html" class="ativo">Questionário</a></li>
             <li><a href="ajuda.html">Ajuda</a></li>
           </ul>
         </nav>
@@ -88,10 +88,10 @@
 
         <!-- Botões de navegação no fundo -->
         <div class="botoes-rodape">
-            <button class="btn-voltar">← Voltar</button>
+            <button type="button" class="btn-voltar" onclick="history.back()">← Voltar</button>
             <div class="lado-direito">
-                <button class="btn-proximo">Próximo →</button>
-                <a href="#" class="link-pulei">Já respondi o questionário</a>
+                <button type="button" class="btn-proximo" onclick="window.location.href='grades-sugeridas.html'">Próximo →</button>
+                <a href="grades-sugeridas.html" class="link-pulei">Já respondi o questionário</a>
             </div>
         </div>
 

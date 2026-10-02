@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Eletivas sugeridas</title>
-    <link rel="stylesheet" href="../Static/css/eletivas.css">
+    <link rel="stylesheet" href="../Static/eletivas.css">
 </head>
 
 <body>
@@ -13,15 +13,15 @@
     <div class="navbar">
 
         <div class="logo">
-            <img src="../Static/img/logo.png" width="210px">
+            <img src="../Static/logo.png" width="210px">
         </div>
 
         <nav>
             <ul>
-                <li><a href="#">Minha grade</a></li>
-                <li><a href="#" class="selecionado">Grades sugeridas</a></li>
-                <li><a href="#">Questionário</a></li>
-                <li><a href="#">Ajuda</a></li>
+                <li><a href="resumo_da_grade.html">Minha grade</a></li>
+                <li><a href="grades-sugeridas.html" class="selecionado">Grades sugeridas</a></li>
+                <li><a href="questionario.html">Questionário</a></li>
+                <li><a href="ajuda.html">Ajuda</a></li>
             </ul>
         </nav>
 
@@ -42,7 +42,7 @@
             </div>
 
             <div class="busca">
-                <button>Filtros</button>
+                <button type="button">Filtros</button>
                 <input type="text" placeholder="Buscar disciplina...">
             </div>
         </div>
@@ -72,7 +72,7 @@
                     <p><b>Vagas disponíveis</b> <span>12 de 30</span></p>
                 </div>
 
-                <button class="botao-disciplina">Ver disciplina →</button>
+                <button type="button" class="botao-disciplina" onclick="window.location.href='pre_requisitos.html'">Ver disciplina →</button>
 
             </div>
 
@@ -99,7 +99,7 @@
                     <p><b>Vagas disponíveis</b> <span>8 de 25</span></p>
                 </div>
 
-                <button class="botao-disciplina">Ver disciplina →</button>
+                <button type="button" class="botao-disciplina" onclick="window.location.href='pre_requisitos.html'">Ver disciplina →</button>
 
             </div>
 
@@ -126,7 +126,7 @@
                     <p><b>Vagas disponíveis</b> <span>3 de 30</span></p>
                 </div>
 
-                <button class="botao-disciplina">Ver disciplina →</button>
+                <button type="button" class="botao-disciplina" onclick="window.location.href='pre_requisitos.html'">Ver disciplina →</button>
 
             </div>
 
@@ -140,7 +140,7 @@
                 <p>Você pode ajustar suas preferências no seu perfil para receber recomendações mais precisas.</p>
             </div>
 
-            <button>Editar preferências</button>
+            <button type="button" onclick="window.location.href='questionario.html'">Editar preferências</button>
 
         </div>
 
