@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Questionário - grade.puc</title>
+    <link rel="stylesheet" href="questionario.css">
+</head>
+<body>
+
+    <!-- A mesma Navbar de antes, mas o "ativo" agora está no Questionário -->
+    <div class="navbar"> 
+        <div class="logo">
+            <img src="logo.png" width="120px">
+        </div>
+        <nav>
+          <ul>
+            <li><a href="#">Minha grade</a></li>
+            <li><a href="#">Grades sugeridas</a></li>
+            <li><a href="#" class="ativo">Questionário</a></li>
+            <li><a href="ajuda.html">Ajuda</a></li>
+          </ul>
+        </nav>
+        <div class="perfil">
+            <div class="bolinha-perfil"></div>
+            <span>Olá, Maria</span>
+        </div>
+    </div>
+
+    <!-- Conteúdo da página -->
+    <div class="conteudo-centro">
+        
+        <div class="cabecalho-questionario">
+            <h2>📝 Questionário</h2>
+            <p>Responda o questionário com as suas preferências:</p>
+        </div>
+
+        <!-- Barrinha de progresso manual -->
+        <div class="barra-cinza">
+            <div class="barra-marrom"></div>
+        </div>
+        <span class="texto-etapa">2 de 7</span>
+
+        <h1 class="titulo-pergunta">Qual é o seu turno preferido?</h1>
+        <p class="subtitulo-pergunta">Você pode selecionar apenas uma opção.</p>
+
+        <!-- Container com as opções de resposta -->
+        <div class="caixa-opcoes">
+            
+            <div class="opcao">
+                <span class="icone">☀️</span>
+                <div class="texto-opcao">
+                    <strong>Manhã</strong>
+                    <p>Prefiro ter aulas no período da manhã.</p>
+                </div>
+                <input type="radio" name="turno">
+            </div>
+
+            <!-- Essa opção tem a classe "selecionada" para ficar laranjinha -->
+            <div class="opcao selecionada">
+                <span class="icone">🌤️</span>
+                <div class="texto-opcao">
+                    <strong>Tarde</strong>
+                    <p>Prefiro ter aulas no período da tarde.</p>
+                </div>
+                <input type="radio" name="turno" checked>
+            </div>
+
+            <div class="opcao">
+                <span class="icone">🌙</span>
+                <div class="texto-opcao">
+                    <strong>Noite</strong>
+                    <p>Prefiro ter aulas no período da noite.</p>
+                </div>
+                <input type="radio" name="turno">
+            </div>
+
+            <div class="opcao">
+                <span class="icone">📅</span>
+                <div class="texto-opcao">
+                    <strong>Sem preferência</strong>
+                    <p>Estou aberto a qualquer turno.</p>
+                </div>
+                <input type="radio" name="turno">
+            </div>
+
+        </div>
+
+        <!-- Botões de navegação no fundo -->
+        <div class="botoes-rodape">
+            <button class="btn-voltar">← Voltar</button>
+            <div class="lado-direito">
+                <button class="btn-proximo">Próximo →</button>
+                <a href="#" class="link-pulei">Já respondi o questionário</a>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
