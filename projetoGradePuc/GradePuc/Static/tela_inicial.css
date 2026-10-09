@@ -1,0 +1,251 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+    background-color: #f5f2eb;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.pagina-login{
+    width: 95%;
+    min-height: 95vh;
+
+    display: flex;
+
+    border-radius: 20px;
+    overflow: hidden;
+
+    background-color: white;
+}
+
+.lado-esquerdo {
+    flex: 0.8;
+    position: relative;
+    overflow: hidden;
+}
+
+.imagem-puc {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: brightness(65%);
+}
+
+.conteudo-esquerdo {
+    position: absolute;
+    bottom: 60px;
+    left: 60px;
+
+    color: white;
+    z-index: 2;
+}
+
+.conteudo-esquerdo h1 {
+    font-size: 55px;
+    line-height:1.05;
+    margin-bottom: 18px;
+}
+
+.conteudo-esquerdo h1 span {
+    color: #f4c542;
+}
+
+.conteudo-esquerdo > p {
+    font-size: 20px;
+    line-height: 1.5;
+    margin-bottom: 35px;
+}
+
+.vantagens {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.vantagem {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.vantagem span {
+    font-size: 25px;
+}
+
+.vantagem p {
+    font-size: 18px;
+}
+
+.lado-direito {
+    flex: 1;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 50px;
+}
+
+.formulario {
+    width: 100%;
+    max-width: 500px;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.logo {
+    margin-bottom: 45px;
+}
+
+
+.logo img {
+    font-size: 350px;
+    max-width: 100%;
+    height: auto;
+}
+
+
+.titulo-login {
+    margin-bottom: 35px;
+}
+
+.titulo-login h1 {
+    font-size: 36px;
+    margin-bottom: 8px;
+}
+
+.titulo-login p {
+    color: #766b66;
+    font-size: 17px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+.campo {
+    display: flex;
+    flex-direction: column;
+
+    margin-bottom: 20px;
+}
+
+.campo label {
+    font-weight: bold;
+    margin: 8px;
+}
+
+.campo input {
+    height: 58px;
+
+    border: 1px solid #c8beb6;
+    border-radius: 10px;
+
+    padding: 0 18px;
+
+    font-size: 16px;
+
+    outline: none;
+}
+
+.campo input:focus {
+    border: 2px solid #8f2d05
+}
+
+.esqueci-senha {
+    align-self: flex-end;
+
+    color: #a52a00;
+
+    margin-bottom: 25px;
+}
+
+.botao-login {
+    height: 58px;
+
+    border: none;
+    border-radius: 10px;
+
+    background-color: #8c2b05;
+    color: white;
+
+    font-size: 18px;
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+.botao-login:hover {
+    background-color: #6f2103;
+}
+
+.separador {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    margin: 25px 0;
+}
+
+
+.separador div {
+    flex: 1;
+
+    height: 1px;
+    background-color: #d8d0c8;
+}
+
+
+.separador span {
+    color: #756b65;
+}
+
+.botao-google {
+    height: 58px;
+
+    background-color: white;
+
+    border: 1px solid #c8beb6;
+    border-radius: 10px;
+
+    font-size: 17px;
+    font-weight: bold;
+
+    cursor: pointer;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+
+.google {
+    font-size: 25px;
+    color: #4285f4;
+}
+
+.cadastro {
+    text-align: center;
+
+    margin-top: 50px;
+
+    color: #665b55;
+}
+
+
+.cadastro a {
+    color: #a52a00;
+}
