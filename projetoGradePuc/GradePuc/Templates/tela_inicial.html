@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade.puc</title>
+
+    <link rel="stylesheet" href="../Static/tela_inicial.css">
+</head>
+
+<body>
+
+    <main class="pagina-login">
+        <section class="lado-esquerdo">
+            <img src="https://www.puc-rio.br/sobrepuc/campus/imagens/img_campus_banner_index.jpg" class="imagem-puc">
+            <div class="conteudo-esquerdo">
+                <h1>
+                    Seu futuro,<br>
+                    <span>mais organizado.</span>
+                </h1>
+
+                <p>
+                    Monte sua grade, explore possibilidades<br>
+                    e aproveite ao máximo sua jornada na PUC-Rio.
+                </p>
+
+                <div class="vantagens">
+
+                    <div class="vantagem">
+                        <span>📅</span>
+                        <p>Planeje sua grade</p>
+                    </div>
+
+                    <div class="vantagem">
+                        <span>💡</span>
+                        <p>Descubra novas combinações</p>
+                    </div>
+
+                    <div class="vantagem">
+                        <span>📊</span>
+                        <p>Conquiste seus objetivos</p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="lado-direito">
+
+            <div class="formulario">
+                <div class="logo">
+                    <img src="../Static/logo.png" alt="Logo Grade PUC">
+                </div>
+
+                <div class="titulo-login">
+                    <h1>Bem-vindo(a) de volta!</h1>
+                    <p>Acesse sua conta para continuar montando sua grade.</p>
+                </div>
+
+                <form action="../Templates/questionario.html" novalidate>
+
+                    <div class="campo">
+                        <label for="usuario">Usuário</label>
+                        <input
+                            type="text"
+                            id="usuario"
+                            placeholder="Digite seu usuário"
+                        >
+                    </div>
+
+                    <div class="campo">
+                        <label for="email">Email</label>
+                        <input
+                            type="email"
+                            id="email"
+                            placeholder="Digite seu email"
+                        >
+                    </div>
+
+                    <a href="#" class="esqueci-senha">
+                        Esqueci a senha
+                    </a>
+
+                    <button class="botao-login" type="submit">
+                        Log in
+                    </button>
+
+                </form>
+
+                <div class="separador">
+                    <div></div>
+                    <span>ou</span>
+                    <div></div>
+                </div>
+
+                <button class="botao-google">
+                    <span class="google">G</span>
+                    Entrar com Google
+                </button>
+
+                <p class="cadastro">
+                    Ainda não tem  conta?
+                    <a href="#">Cadastre-se</a>
+                </p>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</body>
+</html>

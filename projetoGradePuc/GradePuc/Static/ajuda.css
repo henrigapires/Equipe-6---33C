@@ -1,0 +1,137 @@
+body {
+    background-color: #f7ede4;
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+}
+
+.navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Empurra logo pra esquerda e perfil pra direita */
+    padding: 20px 40px;
+    border-bottom: 1px solid #d3c9c1;
+    background-color: #f7ede4;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    width: 200px; /* Largura fixa para manter o menu centralizado */
+}
+
+nav {
+    flex: 1;
+    text-align: center; 
+}
+
+nav ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+nav ul li {
+    display: inline-block;
+    margin-right: 30px;
+}
+
+a {
+    text-decoration: none;
+    color: rgb(83, 74, 71);
+    font-weight: bold;
+}
+
+.ativo {
+    color: #9c4b2f;
+    border-bottom: 2px solid #9c4b2f;
+    padding-bottom: 5px;
+}
+
+.perfil {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; /* Encosta o perfil na direita */
+    gap: 10px;
+    font-weight: bold;
+    width: 200px; /* Mesma largura da logo para equilibrar a barra */
+}
+
+/* Bolinha que substitui a foto de perfil */
+.bolinha-perfil {
+    width: 35px;
+    height: 35px;
+    background-color: transparent;
+    border: 2px solid #9c4b2f; /* Bordinha marrom igual a da foto original */
+    border-radius: 50%;
+}
+
+.conteudo {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 40px 100px;
+}
+
+.titulo-cor {
+    color: #9c4b2f;
+    margin-bottom: 5px;
+}
+
+h1.titulo-cor {
+    font-size: 40px;
+}
+
+.subtitulo {
+    color: rgb(83, 74, 71);
+    font-size: 18px;
+    margin-top: 0;
+    margin-bottom: 40px;
+}
+
+#caixas-perguntas {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.caixa {
+    width: 300px;
+    min-height: 150px;
+    background-color: #fcf9f5;
+    border: 1px solid #d3c9c1;
+    border-radius: 15px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.caixa p {
+    color: rgb(83, 74, 71);
+    line-height: 1.5;
+}
+
+.botao-voltar {
+    background-color: #9c4b2f;
+    color: white;
+    font-weight: bold;
+    border: none;
+    border-radius: 20px;
+    padding: 15px 30px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 40px;
+    border-top: 1px solid #d3c9c1;
+    background-color: #f7ede4;
+    margin-top: 50px;
+}
+
+.texto-rodape {
+    color: rgb(83, 74, 71);
+    font-size: 14px;
+}
