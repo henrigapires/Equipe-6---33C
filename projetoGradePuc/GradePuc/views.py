@@ -6,3 +6,6 @@ def home(request):
 
 def ajuda(request):
     return render(request, "ajuda.html")
+
+def pre_requisitos(request):
+    return render(request, "pre_requisitos.html")
