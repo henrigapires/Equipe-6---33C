@@ -6,3 +6,6 @@ def home(request):
 
 def ajuda(request):
     return render(request, "ajuda.html")
+
+def resumo_da_grade(request):
+    return render(request, "resumo_da_grade.html")

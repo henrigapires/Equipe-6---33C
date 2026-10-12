@@ -22,4 +22,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', home),
     path('ajuda/', ajuda),
+    path('resumodagrade', resumo_da_grade),
 ]
