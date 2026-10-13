@@ -9,3 +9,9 @@ def ajuda(request):
 
 def resumo_da_grade(request):
     return render(request, "resumo_da_grade.html")
+
+def eletiva(request):
+    return render(request, "eletivas.html")
+
+def questionario(request):
+    return render(request, "questionario.html")
