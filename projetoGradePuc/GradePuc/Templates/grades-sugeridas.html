@@ -1,22 +1,23 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <title>Grades sugeridas</title>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;700&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../static/css/grades_sugeridas.css">
+  <link rel="stylesheet" href="{% static 'css/grades_sugeridas.css' %}">
 </head>
 <body>
 
 <div class="navbar">
   <div class="logo">
-    <img src="../static/img/logo.png" width="60px">
+    <img src="{% static 'img/logo.png' %}" width="60px">
   </div>
   <nav>
-    <a href="" class="link-menu">Minha grade</a>
-    <a href="" class="link-menu ativo">Grades sugeridas</a>
+    <a href="/" class="link-menu">Minha grade</a>
+    <a href="/grades-sugeridas/" class="link-menu ativo">Grades sugeridas</a>
     <a href="" class="link-menu">Questionário</a>
-    <a href="" class="link-menu">Ajuda</a>
+    <a href="/ajuda/" class="link-menu">Ajuda</a>
   </nav>
   <span class="usuario">Olá, Maria</span>
 </div>
