@@ -25,4 +25,5 @@ urlpatterns = [
     path('resumodagrade/', resumo_da_grade),
     path('eletivas/', eletiva),
     path('questionario/', questionario),
+    path('grades-sugeridas/', gradessugeridas),
 ]

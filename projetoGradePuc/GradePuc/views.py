@@ -15,3 +15,6 @@ def eletiva(request):
 
 def questionario(request):
     return render(request, "questionario.html")
+  
+def gradessugeridas(request):
+    return render(request, "grades-sugeridas.html")
