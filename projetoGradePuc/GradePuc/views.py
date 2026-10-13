@@ -9,3 +9,15 @@ def ajuda(request):
 
 def pre_requisitos(request):
     return render(request, "pre_requisitos.html")
+  
+def resumo_da_grade(request):
+    return render(request, "resumo_da_grade.html")
+
+def eletiva(request):
+    return render(request, "eletivas.html")
+
+def questionario(request):
+    return render(request, "questionario.html")
+  
+def gradessugeridas(request):
+    return render(request, "grades-sugeridas.html")

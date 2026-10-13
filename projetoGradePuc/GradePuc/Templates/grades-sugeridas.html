@@ -1,88 +1,564 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <title>Grades sugeridas</title>
-  <link rel="stylesheet" href="../Static/gradessugeridascss.css">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;700&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'gradessugeridascss.css' %}">
 </head>
 <body>
 
 <div class="navbar">
   <div class="logo">
-    <img src="../Static/logo.png" width="40px">
+    <img src="{% static 'logo.png' %}" width="60px">
   </div>
   <nav>
-    <ul>
-      <li><a href="../Templates/resumo_da_grade.html" class="link-menu">Minha grade</a></li>
-      <li><a href="../Templates/grades-sugeridas.html" class="color">Grades sugeridas</a></li>
-      <li><a href="../Templates/questionario.html" class="link-menu">Questionário</a></li>
-      <li><a href="../Templates/ajuda.html" class="link-menu">Ajuda</a></li>
-      <li><span class="link-menu">Olá, Maria</span></li>
-    </ul>
+    <a href="/" class="link-menu">Minha grade</a>
+    <a href="/grades-sugeridas/" class="link-menu ativo">Grades sugeridas</a>
+    <a href="" class="link-menu">Questionário</a>
+    <a href="/ajuda/" class="link-menu">Ajuda</a>
   </nav>
+  <span class="usuario">Olá, Maria</span>
 </div>
 
 <div class="conteudo">
-  <h2 class="color">Grades sugeridas</h2>
-  <span class="subtitulo">Com base nas suas preferências, geramos sugestões de grade que podem funcionar para você. <a href="questionario.html" class="color">Refazer questionário</a></span>
+  <div>
+    <h1>Grades sugeridas</h1>
+    <p class="subtitulo">Com base nas suas preferências, geramos sugestões de grade que podem funcionar para você.</p>
+  </div>
+  <a href="#" class="botao-borda">Refazer questionário</a>
 </div>
 
 <div class="grades">
-  <div class="caixa">
-    <div class="topo-caixa">
-      <span class="etiqueta">Opção 1</span>
-      <h3 class="color">Equilíbrio entre teoria e prática</h3>
-    </div>
-    <span>Carga horária: 20 créditos</span>
-    <a href="resumo_da_grade.html" class="botao">Usar esta grade</a>
-    <table>
-      <tr><th>Segunda</th><th>Terça</th><th>Quarta</th><th>Quinta</th><th>Sexta</th></tr>
-      <tr><td>8h-10h Cálculo I<br>10h-12h Filosofia<br>14h-16h Algoritmos</td><td>9h-11h Introdução à Economia<br>16h-18h Inglês Acadêmico</td><td>8h-10h Cálculo I<br>10h-12h Filosofia<br>14h-16h Algoritmos</td><td>9h-11h Introdução à Economia<br>13h-15h Inglês Acadêmico</td><td>-</td></tr>
-    </table>
-    <span><b>Por que sugerimos?</b> Esta combinação respeita seu turno e distribui bem as disciplinas durante a semana. <a href="#">Ver detalhes</a></span>
-  </div>
 
   <div class="caixa">
     <div class="topo-caixa">
-      <span class="etiqueta">Opção 2</span>
-      <h3 class="color">Mais aulas pela manhã</h3>
+      <div class="titulo-opcao">
+        <span class="etiqueta musgo">Opção 1</span>
+        <h3>Equilíbrio entre teoria e prática</h3>
+      </div>
+      <div class="acoes">
+        <span class="creditos">Carga horária: 20 créditos</span>
+        <a href="#" class="botao musgo">Usar esta grade</a>
+      </div>
     </div>
-    <span>Carga horária: 20 créditos</span>
-    <a href="resumo_da_grade.html" class="botao">Usar esta grade</a>
-    <table>
-      <tr><th>Segunda</th><th>Terça</th><th>Quarta</th><th>Quinta</th><th>Sexta</th></tr>
-      <tr><td>8h-9h Cálculo I<br>9h-10h Empreendedorismo<br>10h-12h Filosofia</td><td>9h-11h Introdução à Economia</td><td>8h-10h Cálculo I<br>10h-12h Filosofia<br>15h-17h Inteligência Artificial</td><td>9h-11h Introdução à Economia</td><td>-</td></tr>
-    </table>
-    <span><b>Por que sugerimos?</b> Esta combinação respeita seu turno e distribui bem as disciplinas durante a semana. <a href="#">Ver detalhes</a></span>
-  </div>
 
+      <table>
+        <tr>
+          <th>Horários</th>
+          <th>Segunda</th>
+          <th>Terça</th>
+          <th>Quarta</th>
+          <th>Quinta</th>
+          <th>Sexta</th>
+        </tr>
+        <tr>
+          <td class="hora">08:00 - 09:00</td>
+          <td class="aula" rowspan="2">Cálculo I</td>
+          <td></td>
+          <td class="aula" rowspan="2">Cálculo I</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">09:00 - 10:00</td>
+          <td class="aula" rowspan="2">Introdução à Economia</td>
+          <td class="aula" rowspan="2">Introdução à Economia</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">10:00 - 11:00</td>
+          <td class="aula" rowspan="2">Filosofia</td>
+          <td class="aula" rowspan="2">Filosofia</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">11:00 - 12:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">12:00 - 13:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">13:00 - 14:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td class="aula" rowspan="2">Inglês Acadêmico</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">14:00 - 15:00</td>
+          <td class="aula" rowspan="2">Algoritmos</td>
+          <td></td>
+          <td class="aula" rowspan="2">Algoritmos</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">15:00 - 16:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">16:00 - 17:00</td>
+          <td></td>
+          <td class="aula" rowspan="2">Inglês Acadêmico</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">17:00 - 18:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">18:00 - 19:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">19:00 - 20:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">20:00 - 21:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">21:00 - 22:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+      </table>
+
+    <div class="motivo">
+      <p><b>Por que sugerimos?</b> Esta combinação respeita seu turno e distribui bem as disciplinas durante a semana.</p>
+      <a href="#" class="botao-borda">Ver detalhes</a>
+    </div>
+  </div>
   <div class="caixa">
     <div class="topo-caixa">
-      <span class="etiqueta">Opção 3</span>
-      <h3 class="color">Com disciplinas eletivas</h3>
+      <div class="titulo-opcao">
+        <span class="etiqueta terracota">Opção 2</span>
+        <h3>Mais aulas pela manhã</h3>
+      </div>
+      <div class="acoes">
+        <span class="creditos">Carga horária: 20 créditos</span>
+        <a href="#" class="botao terracota">Usar esta grade</a>
+      </div>
     </div>
-    <span>Carga horária: 20 créditos</span>
-    <a href="resumo_da_grade.html" class="botao">Usar esta grade</a>
-    <table>
-      <tr><th>Segunda</th><th>Terça</th><th>Quarta</th><th>Quinta</th><th>Sexta</th></tr>
-      <tr><td>8h-10h Cálculo I</td><td>9h-11h Introdução à Economia<br>13h-15h Sociologia<br>16h-18h Inglês Acadêmico</td><td>8h-10h Cálculo I<br>18h-20h Sociologia</td><td>9h-11h Introdução à Economia<br>13h-15h Inglês Acadêmico</td><td>-</td></tr>
-    </table>
-    <span><b>Por que sugerimos?</b> Esta combinação respeita seu turno e distribui bem as disciplinas durante a semana. <a href="#">Ver detalhes</a></span>
-  </div>
 
+      <table>
+        <tr>
+          <th>Horários</th>
+          <th>Segunda</th>
+          <th>Terça</th>
+          <th>Quarta</th>
+          <th>Quinta</th>
+          <th>Sexta</th>
+        </tr>
+        <tr>
+          <td class="hora">08:00 - 09:00</td>
+          <td class="aula">Cálculo I</td>
+          <td></td>
+          <td class="aula" rowspan="2">Cálculo I</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">09:00 - 10:00</td>
+          <td class="aula">Empreendedorismo</td>
+          <td class="aula" rowspan="2">Introdução à Economia</td>
+          <td class="aula" rowspan="2">Introdução à Economia</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">10:00 - 11:00</td>
+          <td class="aula" rowspan="2">Filosofia</td>
+          <td class="aula" rowspan="2">Filosofia</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">11:00 - 12:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">12:00 - 13:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">13:00 - 14:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">14:00 - 15:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">15:00 - 16:00</td>
+          <td></td>
+          <td></td>
+          <td class="aula" rowspan="2">Inteligência Artificial</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">16:00 - 17:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">17:00 - 18:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">18:00 - 19:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">19:00 - 20:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">20:00 - 21:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">21:00 - 22:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+      </table>
+
+    <div class="motivo">
+      <p><b>Por que sugerimos?</b> Esta combinação respeita seu turno e distribui bem as disciplinas durante a semana.</p>
+      <a href="#" class="botao-borda">Ver detalhes</a>
+    </div>
+  </div>
   <div class="caixa">
     <div class="topo-caixa">
-      <span class="etiqueta">Opção 4</span>
-      <h3 class="color">Menos dias na semana</h3>
+      <div class="titulo-opcao">
+        <span class="etiqueta musgo">Opção 3</span>
+        <h3>Com disciplinas eletivas</h3>
+      </div>
+      <div class="acoes">
+        <span class="creditos">Carga horária: 20 créditos</span>
+        <a href="#" class="botao musgo">Usar esta grade</a>
+      </div>
     </div>
-    <span>Carga horária: 20 créditos</span>
-    <a href="resumo_da_grade.html" class="botao">Usar esta grade</a>
-    <table>
-      <tr><th>Segunda</th><th>Terça</th><th>Quarta</th><th>Quinta</th><th>Sexta</th></tr>
-      <tr><td>8h-10h Cálculo I<br>10h-12h Filosofia<br>14h-16h Algoritmos</td><td>9h-11h Introdução à Economia<br>13h-15h Sociologia</td><td>8h-10h Cálculo I<br>10h-12h Filosofia<br>14h-16h Algoritmos<br>18h-20h Sociologia</td><td>9h-11h Introdução à Economia</td><td>-</td></tr>
-    </table>
-    <span><b>Por que sugerimos?</b> Esta combinação respeita seu turno e distribui bem as disciplinas durante a semana. <a href="#">Ver detalhes</a></span>
+
+      <table>
+        <tr>
+          <th>Horários</th>
+          <th>Segunda</th>
+          <th>Terça</th>
+          <th>Quarta</th>
+          <th>Quinta</th>
+          <th>Sexta</th>
+        </tr>
+        <tr>
+          <td class="hora">08:00 - 09:00</td>
+          <td class="aula" rowspan="2">Cálculo I</td>
+          <td></td>
+          <td class="aula" rowspan="2">Cálculo I</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">09:00 - 10:00</td>
+          <td class="aula" rowspan="2">Introdução à Economia</td>
+          <td class="aula" rowspan="2">Introdução à Economia</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">10:00 - 11:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">11:00 - 12:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">12:00 - 13:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">13:00 - 14:00</td>
+          <td></td>
+          <td class="aula" rowspan="2">Sociologia</td>
+          <td></td>
+          <td class="aula" rowspan="2">Inglês Acadêmico</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">14:00 - 15:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">15:00 - 16:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">16:00 - 17:00</td>
+          <td></td>
+          <td class="aula" rowspan="2">Inglês Acadêmico</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">17:00 - 18:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">18:00 - 19:00</td>
+          <td></td>
+          <td></td>
+          <td class="aula" rowspan="2">Sociologia</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">19:00 - 20:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">20:00 - 21:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">21:00 - 22:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+      </table>
+
+    <div class="motivo">
+      <p><b>Por que sugerimos?</b> Esta combinação respeita seu turno e distribui bem as disciplinas durante a semana.</p>
+      <a href="#" class="botao-borda">Ver detalhes</a>
+    </div>
   </div>
+  <div class="caixa">
+    <div class="topo-caixa">
+      <div class="titulo-opcao">
+        <span class="etiqueta terracota">Opção 4</span>
+        <h3>Menos dias na semana</h3>
+      </div>
+      <div class="acoes">
+        <span class="creditos">Carga horária: 20 créditos</span>
+        <a href="#" class="botao terracota">Usar esta grade</a>
+      </div>
+    </div>
+
+      <table>
+        <tr>
+          <th>Horários</th>
+          <th>Segunda</th>
+          <th>Terça</th>
+          <th>Quarta</th>
+          <th>Quinta</th>
+          <th>Sexta</th>
+        </tr>
+        <tr>
+          <td class="hora">08:00 - 09:00</td>
+          <td class="aula" rowspan="2">Cálculo I</td>
+          <td></td>
+          <td class="aula" rowspan="2">Cálculo I</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">09:00 - 10:00</td>
+          <td class="aula" rowspan="2">Introdução à Economia</td>
+          <td class="aula" rowspan="2">Introdução à Economia</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">10:00 - 11:00</td>
+          <td class="aula" rowspan="2">Filosofia</td>
+          <td class="aula" rowspan="2">Filosofia</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">11:00 - 12:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">12:00 - 13:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">13:00 - 14:00</td>
+          <td></td>
+          <td class="aula" rowspan="2">Sociologia</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">14:00 - 15:00</td>
+          <td class="aula" rowspan="2">Algoritmos</td>
+          <td class="aula" rowspan="2">Algoritmos</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">15:00 - 16:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">16:00 - 17:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">17:00 - 18:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">18:00 - 19:00</td>
+          <td></td>
+          <td></td>
+          <td class="aula" rowspan="2">Sociologia</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">19:00 - 20:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">20:00 - 21:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="hora">21:00 - 22:00</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+      </table>
+
+    <div class="motivo">
+      <p><b>Por que sugerimos?</b> Esta combinação respeita seu turno e distribui bem as disciplinas durante a semana.</p>
+      <a href="#" class="botao-borda">Ver detalhes</a>
+    </div>
+  </div>
+
 </div>
 
 </body>

@@ -23,4 +23,8 @@ urlpatterns = [
     path('', home),
     path('ajuda/', ajuda),
     path('pre-requisitos/', pre_requisitos),
+    path('resumodagrade/', resumo_da_grade),
+    path('eletivas/', eletiva),
+    path('questionario/', questionario),
+    path('grades-sugeridas/', gradessugeridas),
 ]
