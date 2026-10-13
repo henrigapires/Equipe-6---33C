@@ -34,7 +34,17 @@ body {
 nav { flex: 1; text-align: center; }
 nav ul { list-style-type: none; margin: 0; padding: 0; }
 nav ul li { display: inline-block; margin-right: 30px; }
-a { text-decoration: none; color: rgb(83, 74, 71); font-weight: bold; }
+
+a { 
+    text-decoration: none; 
+    color: rgb(83, 74, 71); 
+    font-weight: bold; 
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #9c4b2f;
+}
 
 .ativo {
     color: #9c4b2f;
@@ -109,6 +119,14 @@ a { text-decoration: none; color: rgb(83, 74, 71); font-weight: bold; }
     border: 1px solid #d3c9c1;
     border-radius: 10px;
     padding: 15px 20px;
+    cursor: pointer; 
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.opcao:hover:not(.selecionada) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    background-color: #f7eee8;
 }
 
 .selecionada {
@@ -137,7 +155,6 @@ a { text-decoration: none; color: rgb(83, 74, 71); font-weight: bold; }
     margin-bottom: 0;
 }
 
-
 .botoes-rodape {
     display: flex;
     justify-content: space-between; 
@@ -154,6 +171,12 @@ a { text-decoration: none; color: rgb(83, 74, 71); font-weight: bold; }
     border-radius: 8px;
     cursor: pointer;
     height: 45px;
+    transition: all 0.3s ease;
+}
+
+.btn-voltar:hover {
+    background-color: #e6dcd3;
+    transform: scale(1.05);
 }
 
 .lado-direito {
@@ -172,6 +195,12 @@ a { text-decoration: none; color: rgb(83, 74, 71); font-weight: bold; }
     border-radius: 8px;
     cursor: pointer;
     height: 45px;
+    transition: all 0.3s ease;
+}
+
+.btn-proximo:hover {
+    background-color: #7a3a24;
+    transform: scale(1.05);
 }
 
 .link-pulei {
@@ -179,4 +208,9 @@ a { text-decoration: none; color: rgb(83, 74, 71); font-weight: bold; }
     color: #d46b38;
     text-decoration: underline;
     font-weight: normal;
+    transition: color 0.3s ease;
+}
+
+.link-pulei:hover {
+    color: #9c4b2f;
 }

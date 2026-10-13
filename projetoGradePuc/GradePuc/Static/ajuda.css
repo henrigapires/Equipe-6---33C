@@ -7,7 +7,7 @@ body {
 .navbar {
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Empurra logo pra esquerda e perfil pra direita */
+    justify-content: space-between;
     padding: 20px 40px;
     border-bottom: 1px solid #d3c9c1;
     background-color: #f7ede4;
@@ -16,7 +16,7 @@ body {
 .logo {
     display: flex;
     align-items: center;
-    width: 200px; /* Largura fixa para manter o menu centralizado */
+    width: 200px;
 }
 
 nav {
@@ -39,6 +39,11 @@ a {
     text-decoration: none;
     color: rgb(83, 74, 71);
     font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #9c4b2f;
 }
 
 .ativo {
@@ -50,26 +55,29 @@ a {
 .perfil {
     display: flex;
     align-items: center;
-    justify-content: flex-end; /* Encosta o perfil na direita */
+    justify-content: flex-end;
     gap: 10px;
     font-weight: bold;
-    width: 200px; /* Mesma largura da logo para equilibrar a barra */
+    width: 200px;
 }
 
-/* Bolinha que substitui a foto de perfil */
 .bolinha-perfil {
     width: 35px;
     height: 35px;
     background-color: transparent;
-    border: 2px solid #9c4b2f; /* Bordinha marrom igual a da foto original */
+    border: 2px solid #9c4b2f;
     border-radius: 50%;
 }
 
+/* --- CONTEÚDO CENTRALIZADO --- */
 .conteudo {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    padding: 40px 100px;
+    align-items: center;      /* Centraliza títulos, bloco de caixas e botão */
+    max-width: 1000px;        /* Garante que o conteúdo não espalhe demais em telas grandes */
+    margin: 0 auto;           /* Centraliza a seção inteira na tela */
+    padding: 40px 20px;
+    text-align: center;       /* Centraliza os textos do título e subtítulo */
 }
 
 .titulo-cor {
@@ -92,17 +100,27 @@ h1.titulo-cor {
     display: flex;
     gap: 20px;
     margin-bottom: 40px;
+    flex-wrap: wrap;
+    justify-content: center;  /* Centraliza as 3 caixinhas lado a lado */
 }
 
 .caixa {
     width: 300px;
     min-height: 150px;
     background-color: #fcf9f5;
-    border: 1px solid #d3c9c1;
+    border: 1px solid #e8ddd3;
     border-radius: 15px;
     padding: 20px;
     display: flex;
     flex-direction: column;
+    text-align: left;         /* Mantém o texto interno das caixas alinhado à esquerda para facilitar a leitura */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.caixa:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
 }
 
 .caixa p {
@@ -119,6 +137,12 @@ h1.titulo-cor {
     padding: 15px 30px;
     cursor: pointer;
     font-size: 16px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.botao-voltar:hover {
+    background-color: #7a3a24;
+    transform: scale(1.05);
 }
 
 .rodape {
