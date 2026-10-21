@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="../Static/questionario.css">
 </head>
 <body>
-
+    
     <div class="navbar"> 
         <div class="logo">
             <img src="../Static/logo.png" width="120px">
@@ -38,58 +38,43 @@
         </div>
         <span class="texto-etapa">2 de 7</span>
 
-        <h1 class="titulo-pergunta">Qual é o seu turno preferido?</h1>
-        <p class="subtitulo-pergunta">Você pode selecionar apenas uma opção.</p>
+        <form method="post">
+            {% csrf_token %}
 
-        <div class="caixa-opcoes">
-            
-            <div class="opcao">
-                <span class="icone">☀️</span>
-                <div class="texto-opcao">
-                    <strong>Manhã</strong>
-                    <p>Prefiro ter aulas no período da manhã.</p>
+            <h1 class="titulo-pergunta">Qual é o seu turno preferido?</h1>
+            <p class="subtitulo-pergunta">Você pode selecionar apenas uma opção.</p>
+
+            <div class="caixa-opcoes">
+                {% for op in opcoes_turno %}
+                <label class="opcao">
+                    <span class="icone">{{ op.icone }}</span>
+                    <div class="texto-opcao">
+                        <strong>{{ op.nome }}</strong>
+                        <p>{{ op.descricao }}</p>
+                    </div>
+                    <input type="radio" name="turno" value="{{ op.valor }}">
+                </label>
+                {% endfor %}
+            </div>
+
+            <p class="subtitulo-pergunta" style="margin-top: 30px;">Qual modalidade você prefere?</p>
+
+            <select name="modalidade">
+                {% for m in opcoes_modalidade %}
+                <option value="{{ m.valor }}">{{ m.nome }}</option>
+                {% endfor %}
+            </select>
+
+            {{ form.errors }}
+
+            <div class="botoes-rodape">
+                <button type="button" class="btn-voltar" onclick="history.back()">← Voltar</button>
+                <div class="lado-direito">
+                    <button type="submit" class="btn-proximo">Próximo →</button>
+                    <a href="/grades-sugeridas/" class="link-pulei">Já respondi o questionário</a>
                 </div>
-                <input type="radio" name="turno">
             </div>
-
-            <div class="opcao selecionada">
-                <span class="icone">🌤️</span>
-                <div class="texto-opcao">
-                    <strong>Tarde</strong>
-                    <p>Prefiro ter aulas no período da tarde.</p>
-                </div>
-                <input type="radio" name="turno">
-            </div>
-
-            <div class="opcao">
-                <span class="icone">🌙</span>
-                <div class="texto-opcao">
-                    <strong>Noite</strong>
-                    <p>Prefiro ter aulas no período da noite.</p>
-                </div>
-                <input type="radio" name="turno">
-            </div>
-
-            <div class="opcao">
-                <span class="icone">📅</span>
-                <div class="texto-opcao">
-                    <strong>Sem preferência</strong>
-                    <p>Estou aberto a qualquer turno.</p>
-                </div>
-                <input type="radio" name="turno">
-            </div>
-
-        </div>
-
-        <div class="botoes-rodape">
-            <button type="button" class="btn-voltar" onclick="history.back()">← Voltar</button>
-            <div class="lado-direito">
-                <button type="button" class="btn-proximo" onclick="window.location.href='grades-sugeridas.html'">Próximo →</button>
-                <a href="grades-sugeridas.html" class="link-pulei">Já respondi o questionário</a>
-            </div>
-        </div>
-
+        </form>
     </div>
-
 </body>
 </html>

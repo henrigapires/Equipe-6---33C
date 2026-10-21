@@ -214,3 +214,14 @@ a:hover {
 .link-pulei:hover {
     color: #9c4b2f;
 }
+
+.opcao:has(input:checked) {
+    background-color: #fbeee6;
+    border: 2px solid #d46b38;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
