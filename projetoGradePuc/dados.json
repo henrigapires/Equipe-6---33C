@@ -1,0 +1,263 @@
+[
+{
+  "model": "GradePuc.professor",
+  "pk": 1,
+  "fields": {
+    "nome": "Rafael Menezes",
+    "avaliacoes": 4.5
+  }
+},
+{
+  "model": "GradePuc.professor",
+  "pk": 2,
+  "fields": {
+    "nome": "Paulo Nunes",
+    "avaliacoes": 4.2
+  }
+},
+{
+  "model": "GradePuc.professor",
+  "pk": 3,
+  "fields": {
+    "nome": "Carlos Pereira",
+    "avaliacoes": 4.0
+  }
+},
+{
+  "model": "GradePuc.professor",
+  "pk": 4,
+  "fields": {
+    "nome": "Mariana Costa",
+    "avaliacoes": 4.7
+  }
+},
+{
+  "model": "GradePuc.professor",
+  "pk": 5,
+  "fields": {
+    "nome": "Beatriz Dias",
+    "avaliacoes": 4.3
+  }
+},
+{
+  "model": "GradePuc.disciplina",
+  "pk": 3,
+  "fields": {
+    "codigo": "MAT1101",
+    "nome": "Cálculo I",
+    "pre_requisitos": []
+  }
+},
+{
+  "model": "GradePuc.disciplina",
+  "pk": 5,
+  "fields": {
+    "codigo": "MAT1102",
+    "nome": "Cálculo II",
+    "pre_requisitos": [
+      3
+    ]
+  }
+},
+{
+  "model": "GradePuc.disciplina",
+  "pk": 6,
+  "fields": {
+    "codigo": "MAT1103",
+    "nome": "Cálculo III",
+    "pre_requisitos": [
+      5
+    ]
+  }
+},
+{
+  "model": "GradePuc.disciplina",
+  "pk": 7,
+  "fields": {
+    "codigo": "ECO1101",
+    "nome": "Introdução à Economia",
+    "pre_requisitos": []
+  }
+},
+{
+  "model": "GradePuc.disciplina",
+  "pk": 8,
+  "fields": {
+    "codigo": "ECO1201",
+    "nome": "Microeconomia",
+    "pre_requisitos": [
+      7
+    ]
+  }
+},
+{
+  "model": "GradePuc.disciplina",
+  "pk": 9,
+  "fields": {
+    "codigo": "ECO1301",
+    "nome": "Economia Brasileira",
+    "pre_requisitos": [
+      8
+    ]
+  }
+},
+{
+  "model": "GradePuc.disciplina",
+  "pk": 10,
+  "fields": {
+    "codigo": "ECO1401",
+    "nome": "Economia Internacional",
+    "pre_requisitos": [
+      9
+    ]
+  }
+},
+{
+  "model": "GradePuc.disciplina",
+  "pk": 11,
+  "fields": {
+    "codigo": "INF1005",
+    "nome": "Algoritmos",
+    "pre_requisitos": []
+  }
+},
+{
+  "model": "GradePuc.disciplina",
+  "pk": 12,
+  "fields": {
+    "codigo": "INF1006",
+    "nome": "Estruturas de Dados",
+    "pre_requisitos": [
+      11
+    ]
+  }
+},
+{
+  "model": "GradePuc.disciplina",
+  "pk": 13,
+  "fields": {
+    "codigo": "INF1007",
+    "nome": "Algoritmos Avançados",
+    "pre_requisitos": [
+      12
+    ]
+  }
+},
+{
+  "model": "GradePuc.disciplina",
+  "pk": 14,
+  "fields": {
+    "codigo": "INF1771",
+    "nome": "Inteligência Artificial",
+    "pre_requisitos": [
+      13
+    ]
+  }
+},
+{
+  "model": "GradePuc.disciplina",
+  "pk": 15,
+  "fields": {
+    "codigo": "ADM1710",
+    "nome": "Empreendedorismo",
+    "pre_requisitos": []
+  }
+},
+{
+  "model": "GradePuc.disciplina",
+  "pk": 16,
+  "fields": {
+    "codigo": "AMB1103",
+    "nome": "Sustentabilidade e Sociedade",
+    "pre_requisitos": []
+  }
+},
+{
+  "model": "GradePuc.disciplina",
+  "pk": 17,
+  "fields": {
+    "codigo": "HIS2001",
+    "nome": "Arte e Cultura",
+    "pre_requisitos": []
+  }
+},
+{
+  "model": "GradePuc.turma",
+  "pk": 1,
+  "fields": {
+    "disciplina": 14,
+    "professor": 1,
+    "dias_horarios": "Qua 15:00-17:00",
+    "vagas": 3,
+    "sala": "L402"
+  }
+},
+{
+  "model": "GradePuc.turma",
+  "pk": 2,
+  "fields": {
+    "disciplina": 9,
+    "professor": 2,
+    "dias_horarios": "Seg 13:00-15:00",
+    "vagas": 13,
+    "sala": "L210"
+  }
+},
+{
+  "model": "GradePuc.turma",
+  "pk": 3,
+  "fields": {
+    "disciplina": 10,
+    "professor": 3,
+    "dias_horarios": "Qui 18:00-20:00",
+    "vagas": 8,
+    "sala": "L305"
+  }
+},
+{
+  "model": "GradePuc.turma",
+  "pk": 4,
+  "fields": {
+    "disciplina": 15,
+    "professor": 3,
+    "dias_horarios": "Seg 09:00-11:00",
+    "vagas": 12,
+    "sala": "L110"
+  }
+},
+{
+  "model": "GradePuc.turma",
+  "pk": 5,
+  "fields": {
+    "disciplina": 16,
+    "professor": 4,
+    "dias_horarios": "Ter 13:00-15:00",
+    "vagas": 8,
+    "sala": "L220"
+  }
+},
+{
+  "model": "GradePuc.turma",
+  "pk": 6,
+  "fields": {
+    "disciplina": 17,
+    "professor": 5,
+    "dias_horarios": "Ter 16:00-18:00",
+    "vagas": 9,
+    "sala": "L301"
+  }
+},
+{
+  "model": "GradePuc.aluno",
+  "pk": 1,
+  "fields": {
+    "matricula": "2410001",
+    "senha": "123456",
+    "disciplinas_cursadas": [
+      3,
+      7,
+      8
+    ]
+  }
+}
+]
