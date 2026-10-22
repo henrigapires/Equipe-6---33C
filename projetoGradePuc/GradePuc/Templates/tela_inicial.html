@@ -57,8 +57,18 @@
                 </div>
 
                 <div class="titulo-login">
-                    <h1>Bem-vindo(a) de volta!</h1>
-                    <p>Acesse sua conta para continuar montando sua grade.</p>
+                    {% if aluno %}
+                        <h1>Bem-vindo(a) de volta!</h1>
+                        <p> Aluno de matrícula {{ aluno.matricula }},
+                            acesse sua conta para continuar montando sua grade.
+                        </p>
+                    {% else %}
+                        <h1>Bem-vindo(a) ao Grade.puc!</h1>
+                        <p>
+                            Monte sua grade, explore possibilidades
+                            e aproveite ao máximo sua jornada na PUC-Rio
+                        </p>
+                    {% endif %}
                 </div>
 
                 <form action="{% url 'home' %}" method="post">
