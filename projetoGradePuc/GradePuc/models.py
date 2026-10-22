@@ -44,3 +44,13 @@ class Grade(models.Model):
 
     def __str__(self):
         return "Grade de " + str(self.aluno)
+class Pergunta(models.Model):
+    pergunta = models.CharField(max_length=200)
+    resposta = models.TextField()
+    ordem = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['ordem']
+
+    def __str__(self):
+        return self.pergunta

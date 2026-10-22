@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from .forms import *
-from .models import Professor, Disciplina, Turma, Aluno, RotinaPreferencias, Grade
+from .models import Professor, Disciplina, Turma, Aluno, RotinaPreferencias, Grade, Pergunta
 
 OPCOES_TURNO = [
     {'valor': 'manha', 'nome': 'Manhã', 'icone': '☀️', 'descricao': 'Prefiro ter aulas no período da manhã.'},
@@ -19,7 +19,8 @@ def home(request):
     return render(request, "tela_inicial.html")
 
 def ajuda(request):
-    return render(request, "ajuda.html")
+    perguntas = Pergunta.objects.all()
+    return render(request, "ajuda.html", {'perguntas': perguntas})
 
 def pre_requisitos(request):
     return render(request, "pre_requisitos.html")
@@ -28,7 +29,51 @@ def resumo_da_grade(request):
     return render(request, "resumo_da_grade.html")
 
 def eletiva(request):
-    return render(request, "eletivas.html")
+    aluno = Aluno.objects.first()
+    turmas = Turma.objects.all()
+    if aluno != None:
+        turmas = turmas.exclude(disciplina__in=aluno.disciplinas_cursadas.all())
+
+    form = EletivasForm(request.GET)
+    busca = ''
+    filtro = 'todas'
+    if form.is_valid():
+        busca = form.cleaned_data['busca']
+        if form.cleaned_data['filtro'] != '':
+            filtro = form.cleaned_data['filtro']
+
+    lista = []
+    for turma in turmas:
+        if turma.vagas <= 5:
+            tipo = 'alta_demanda'
+            etiqueta = 'Alta demanda'
+        elif turma.professor.avaliacoes >= 4.5:
+            tipo = 'popular'
+            etiqueta = 'Popular'
+        else:
+            tipo = 'recomendado'
+            etiqueta = 'Recomendado'
+
+        if filtro != 'todas' and filtro != tipo:
+            mostrar = False
+        else:
+            mostrar = True
+
+        if mostrar and busca != '':
+            nome = turma.disciplina.nome.lower()
+            codigo = turma.disciplina.codigo.lower()
+            if busca.lower() not in nome and busca.lower() not in codigo:
+                mostrar = False
+
+        if mostrar:
+            lista.append({'turma': turma, 'etiqueta': etiqueta})
+
+    return render(request, "eletivas.html", {
+        'eletivas': lista,
+        'busca': busca,
+        'filtro': filtro,
+        'filtros': FILTROS_ELETIVAS,
+    })
 
 def questionario(request):
     aluno = Aluno.objects.first()
