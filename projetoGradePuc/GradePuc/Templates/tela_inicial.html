@@ -61,25 +61,38 @@
                     <p>Acesse sua conta para continuar montando sua grade.</p>
                 </div>
 
-                <form action="../Templates/questionario.html" novalidate>
+                <form action="{% url 'home' %}" method="post">
+                    {% csrf_token %}
 
                     <div class="campo">
-                        <label for="usuario">Usuário</label>
-                        <input
-                            type="text"
-                            id="usuario"
-                            placeholder="Digite seu usuário"
-                        >
+                        <label for="{{form.usuario.id_for_label }}">
+                            {{ form.usuario.label }}
+                        </label>
+
+                        {{ form. usuario }}
+
+                        {% for erro in form.usuario.errors %}
+                            <p class="erro-formulario">{{ erro}}</p>
+                        {% endfor %}
                     </div>
 
                     <div class="campo">
-                        <label for="email">Email</label>
-                        <input
-                            type="email"
-                            id="email"
-                            placeholder="Digite seu email"
-                        >
+                        <label for="{{ form.email.id_for_label }}">
+                            {{ form.email.label }}
+                        </label>
+
+                        {{ form.email }}
+
+                        {% for erro in form.email.errors %}
+                            <p class="erro-formulario">{{ erro }}</p>
+                        {% endfor %}
                     </div>
+
+                    {% if form.non_field_errors %}
+                        <div class="erro-formulario">
+                            {{ form.non_field_errors}}
+                        </div>
+                    {% endif %}
 
                     <a href="#" class="esqueci-senha">
                         Esqueci a senha
