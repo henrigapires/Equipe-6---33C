@@ -16,7 +16,18 @@ OPCOES_MODALIDADE = [
 ]
 
 def home(request):
-    return render(request, "tela_inicial.html")
+    if request.method == 'POST':
+        form = TelaInicialForm(request.POST)
+
+        if form.is_valid():
+            return redirect('/questionario/')
+
+    else:
+        form = TelaInicialForm()
+
+    return render(request, "tela_inicial.html", {
+        'form': form,
+    })
 
 def ajuda(request):
     perguntas = Pergunta.objects.all()

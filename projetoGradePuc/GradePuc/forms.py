@@ -35,3 +35,23 @@ class RotinaPreferenciasForm(forms.ModelForm):
     class Meta:
         model = RotinaPreferencias
         fields = ['turno', 'modalidade']
+
+class TelaInicialForm(forms.Form):
+    usuario = forms.CharField(
+        label='Usuário',
+        max_lenght=100,
+        widget=forms.TextInput(attrs={
+            'placeholder': 'Digite seu usuário',
+            'class': 'campo-input',
+            'id': 'usuario',
+        })
+    )
+
+    email = forms.EmailField(
+        label='Email',
+        widget=forms.EmailInput(attrs={
+            'placeholder': 'Digite seu email',
+            'class': 'campo-input',
+            'id': 'email',
+        })
+    )
