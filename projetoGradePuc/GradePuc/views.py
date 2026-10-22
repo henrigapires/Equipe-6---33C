@@ -16,6 +16,9 @@ OPCOES_MODALIDADE = [
 ]
 
 def home(request):
+
+    aluno = Aluno.objects.first()
+
     if request.method == 'POST':
         form = TelaInicialForm(request.POST)
 
@@ -27,6 +30,7 @@ def home(request):
 
     return render(request, "tela_inicial.html", {
         'form': form,
+        'aluno': aluno,
     })
 
 def ajuda(request):
