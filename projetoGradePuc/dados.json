@@ -44,7 +44,7 @@
   "pk": 3,
   "fields": {
     "codigo": "MAT1101",
-    "nome": "Cálculo I",
+    "nome": "CÃ¡lculo I",
     "pre_requisitos": []
   }
 },
@@ -53,7 +53,7 @@
   "pk": 5,
   "fields": {
     "codigo": "MAT1102",
-    "nome": "Cálculo II",
+    "nome": "CÃ¡lculo II",
     "pre_requisitos": [
       3
     ]
@@ -64,7 +64,7 @@
   "pk": 6,
   "fields": {
     "codigo": "MAT1103",
-    "nome": "Cálculo III",
+    "nome": "CÃ¡lculo III",
     "pre_requisitos": [
       5
     ]
@@ -75,7 +75,7 @@
   "pk": 7,
   "fields": {
     "codigo": "ECO1101",
-    "nome": "Introdução à Economia",
+    "nome": "IntroduÃ§Ã£o Ã  Economia",
     "pre_requisitos": []
   }
 },
@@ -137,7 +137,7 @@
   "pk": 13,
   "fields": {
     "codigo": "INF1007",
-    "nome": "Algoritmos Avançados",
+    "nome": "Algoritmos AvanÃ§ados",
     "pre_requisitos": [
       12
     ]
@@ -148,7 +148,7 @@
   "pk": 14,
   "fields": {
     "codigo": "INF1771",
-    "nome": "Inteligência Artificial",
+    "nome": "InteligÃªncia Artificial",
     "pre_requisitos": [
       13
     ]
@@ -258,6 +258,17 @@
       7,
       8
     ]
+  }
+},
+{
+  "model": "GradePuc.rotinapreferencias",
+  "pk": 1,
+  "fields": {
+    "aluno": 1,
+    "horarios_trabalho": "",
+    "distribuicao_aulas": "",
+    "turno": "manha",
+    "modalidade": "presencial"
   }
 }
 ]
