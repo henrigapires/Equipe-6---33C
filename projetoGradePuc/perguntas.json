@@ -1,0 +1,29 @@
+[
+{
+  "model": "GradePuc.pergunta",
+  "pk": 1,
+  "fields": {
+    "pergunta": "Como montar minha grade?",
+    "resposta": "Adicione disciplinas pelo catálogo. Conflitos de horário são bloqueados automaticamente.",
+    "ordem": 1
+  }
+},
+{
+  "model": "GradePuc.pergunta",
+  "pk": 2,
+  "fields": {
+    "pergunta": "Como usar uma sugestão?",
+    "resposta": "Abra Grades sugeridas, compare as opções e clique em Usar esta grade.",
+    "ordem": 2
+  }
+},
+{
+  "model": "GradePuc.pergunta",
+  "pk": 3,
+  "fields": {
+    "pergunta": "Onde faço a matrícula?",
+    "resposta": "O grade.puc ajuda no planejamento. A matrícula oficial continua sendo feita no Portal SAU.",
+    "ordem": 3
+  }
+}
+]

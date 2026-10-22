@@ -172,3 +172,11 @@ footer {
 footer b {
   color: #9c4526;
 }
+
+.busca button {
+  padding: 8px 16px;
+  border: 1px solid #9c4526;
+  background-color: white;
+  color: #9c4526;
+  font-weight: bold;
+}

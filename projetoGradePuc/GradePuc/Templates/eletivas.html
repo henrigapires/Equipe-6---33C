@@ -14,9 +14,9 @@
     <img src="{% static 'logo.png' %}" width="60px">
   </div>
   <nav>
-    <a href="/" class="link-menu">Minha grade</a>
-    <a href="/grades-sugeridas/" class="link-menu ativo">Grades sugeridas</a>
-    <a href="#" class="link-menu">Questionário</a>
+    <a href="/resumodagrade/" class="link-menu">Minha grade</a>
+    <a href="/grades-sugeridas/" class="link-menu">Grades sugeridas</a>
+    <a href="/questionario/" class="link-menu">Questionário</a>
     <a href="/ajuda/" class="link-menu">Ajuda</a>
   </nav>
   <span class="usuario">Olá, Maria</span>
@@ -27,126 +27,44 @@
     <h1>Eletivas sugeridas</h1>
     <p class="subtitulo">Com base no seu perfil e na sua grade atual, selecionamos disciplinas que podem te interessar.</p>
   </div>
-  <div class="busca">
-    <input type="text" placeholder="Buscar disciplina...">
-    <select>
-      <option>Todas</option>
-      <option>Recomendado</option>
-      <option>Popular</option>
-      <option>Alta demanda</option>
+  <form method="get" class="busca">
+    <input type="text" name="busca" value="{{ busca }}" placeholder="Buscar disciplina...">
+    <select name="filtro">
+      {% for valor, nome in filtros %}
+      <option value="{{ valor }}" {% if valor == filtro %}selected{% endif %}>{{ nome }}</option>
+      {% endfor %}
     </select>
-  </div>
+    <button type="submit">Buscar</button>
+  </form>
 </div>
 
 <div class="eletivas">
 
+  {% for item in eletivas %}
   <div class="caixa">
     <div class="topo-caixa">
-      <span class="etiqueta">Recomendado</span>
+      <span class="etiqueta">{{ item.etiqueta }}</span>
       <span class="tipo">Eletiva</span>
     </div>
-    <h3>Inteligência Artificial</h3>
-    <p class="codigo">INF1771</p>
-    <p class="descricao">Conceitos e aplicações de inteligência artificial em problemas reais.</p>
+    <h3>{{ item.turma.disciplina.nome }}</h3>
+    <p class="codigo">{{ item.turma.disciplina.codigo }}</p>
     <div class="info">
-      <p><span>Créditos</span> <span>4 créditos</span></p>
-      <p><span>Horário</span> <span>Qua 15:00-17:00</span></p>
-      <p><span>Professor</span> <span>Rafael Menezes</span></p>
-      <p><span>Vagas disponíveis</span> <span>3 de 30</span></p>
+      <p><span>Horário</span> <span>{{ item.turma.dias_horarios }}</span></p>
+      <p><span>Professor</span> <span>{{ item.turma.professor.nome }}</span></p>
+      <p><span>Sala</span> <span>{{ item.turma.sala }}</span></p>
+      <p><span>Vagas disponíveis</span> <span>{{ item.turma.vagas }}</span></p>
     </div>
     <a href="#" class="botao-borda">Ver disciplina →</a>
   </div>
-
-  <div class="caixa">
-    <div class="topo-caixa">
-      <span class="etiqueta">Popular</span>
-      <span class="tipo">Eletiva</span>
-    </div>
-    <h3>Economia Brasileira</h3>
-    <p class="codigo">ECO1301</p>
-    <p class="descricao">Uma disciplina para ampliar sua formação e conectar diferentes áreas do conhecimento.</p>
-    <div class="info">
-      <p><span>Créditos</span> <span>4 créditos</span></p>
-      <p><span>Horário</span> <span>Seg 13:00-15:00</span></p>
-      <p><span>Professor</span> <span>Paulo Nunes</span></p>
-      <p><span>Vagas disponíveis</span> <span>13 de 25</span></p>
-    </div>
-    <a href="#" class="botao-borda">Ver disciplina →</a>
-  </div>
-
-  <div class="caixa">
-    <div class="topo-caixa">
-      <span class="etiqueta">Alta demanda</span>
-      <span class="tipo">Eletiva</span>
-    </div>
-    <h3>Economia Internacional</h3>
-    <p class="codigo">ECO1401</p>
-    <p class="descricao">Uma disciplina para ampliar sua formação e conectar diferentes áreas do conhecimento.</p>
-    <div class="info">
-      <p><span>Créditos</span> <span>4 créditos</span></p>
-      <p><span>Horário</span> <span>Qui 18:00-20:00</span></p>
-      <p><span>Professor</span> <span>Carlos Alberto Pereira</span></p>
-      <p><span>Vagas disponíveis</span> <span>8 de 20</span></p>
-    </div>
-    <a href="#" class="botao-borda">Ver disciplina →</a>
-  </div>
-
-  <div class="caixa">
-    <div class="topo-caixa">
-      <span class="etiqueta">Recomendado</span>
-      <span class="tipo">Eletiva</span>
-    </div>
-    <h3>Empreendedorismo</h3>
-    <p class="codigo">ADM1710</p>
-    <p class="descricao">Desenvolve competências empreendedoras e a capacidade de identificar oportunidades.</p>
-    <div class="info">
-      <p><span>Créditos</span> <span>4 créditos</span></p>
-      <p><span>Horário</span> <span>Seg 09:00-11:00</span></p>
-      <p><span>Professor</span> <span>Carlos Alberto Pereira</span></p>
-      <p><span>Vagas disponíveis</span> <span>12 de 30</span></p>
-    </div>
-    <a href="#" class="botao-borda">Ver disciplina →</a>
-  </div>
-
-  <div class="caixa">
-    <div class="topo-caixa">
-      <span class="etiqueta">Popular</span>
-      <span class="tipo">Eletiva</span>
-    </div>
-    <h3>Sustentabilidade e Sociedade</h3>
-    <p class="codigo">AMB1103</p>
-    <p class="descricao">Discute desafios socioambientais e suas relações com economia e gestão.</p>
-    <div class="info">
-      <p><span>Créditos</span> <span>4 créditos</span></p>
-      <p><span>Horário</span> <span>Ter 13:00-15:00</span></p>
-      <p><span>Professor</span> <span>Mariana Costa</span></p>
-      <p><span>Vagas disponíveis</span> <span>8 de 25</span></p>
-    </div>
-    <a href="#" class="botao-borda">Ver disciplina →</a>
-  </div>
-
-  <div class="caixa">
-    <div class="topo-caixa">
-      <span class="etiqueta">Alta demanda</span>
-      <span class="tipo">Eletiva</span>
-    </div>
-    <h3>Arte e Cultura</h3>
-    <p class="codigo">HIS2001</p>
-    <p class="descricao">Uma disciplina para ampliar sua formação e conectar diferentes áreas do conhecimento.</p>
-    <div class="info">
-      <p><span>Créditos</span> <span>4 créditos</span></p>
-      <p><span>Horário</span> <span>Ter 16:00-18:00</span></p>
-      <p><span>Professor</span> <span>Beatriz Dias</span></p>
-      <p><span>Vagas disponíveis</span> <span>9 de 25</span></p>
-    </div>
-    <a href="#" class="botao-borda">Ver disciplina →</a>
-  </div>
+  {% empty %}
+  <p>Nenhuma eletiva encontrada.</p>
+  {% endfor %}
 
 </div>
 
 <div class="aviso">
   <p><b>Sugestões personalizadas</b><br>Baseadas no seu histórico acadêmico, interesses e disponibilidade de horários.</p>
-  <a href="#" class="botao-borda">Editar preferências</a>
+  <a href="/questionario/" class="botao-borda">Editar preferências</a>
 </div>
 
 <footer>
