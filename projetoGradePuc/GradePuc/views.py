@@ -41,7 +41,27 @@ def pre_requisitos(request):
     return render(request, "pre_requisitos.html")
 
 def resumo_da_grade(request):
-    return render(request, "resumo_da_grade.html")
+    aluno = Aluno.objects.first()
+    grade = Grade.objects.filter(aluno=aluno).last()
+    turmas = grade.turmas.select_related('disciplina') if grade else []
+
+    form = BuscaDisciplinaForm(request.GET)
+
+    if grade and form.is_valid() and form.cleaned_data['busca']:
+        turmas = turmas.filter(
+            disciplina__nome__icontains=form.cleaned_data['busca']
+        )
+
+    cursadas = set(aluno.disciplinas_cursadas.all())
+
+    for t in turmas:
+        pre = set(t.disciplina.pre_requisitos.all())
+        t.pendente = not pre.issubset(cursadas)
+
+    return render(request, 'resumo_da_grade.html', {
+        'form': form,
+        'turmas': turmas,
+    })
 
 def eletiva(request):
     aluno = Aluno.objects.first()
