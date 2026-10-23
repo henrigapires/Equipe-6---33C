@@ -39,7 +39,7 @@ class RotinaPreferenciasForm(forms.ModelForm):
 class TelaInicialForm(forms.Form):
     usuario = forms.CharField(
         label='Usuário',
-        max_lenght=100,
+        max_length=100,
         widget=forms.TextInput(attrs={
             'placeholder': 'Digite seu usuário',
             'class': 'campo-input',
@@ -55,3 +55,12 @@ class TelaInicialForm(forms.Form):
             'id': 'email',
         })
     )
+    
+class UsarGradeForm(forms.Form):
+    OPCOES = [
+        ('1', 'Opção 1'),
+        ('2', 'Opção 2'),
+        ('3', 'Opção 3'),
+        ('4', 'Opção 4'),
+    ]
+    opcao = forms.ChoiceField(choices=OPCOES)
