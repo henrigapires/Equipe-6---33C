@@ -56,7 +56,11 @@ def ajuda(request):
     return render(request, 'ajuda.html', {'perguntas': perguntas})
 
 def pre_requisitos(request):
-    return render(request, "pre_requisitos.html")
+    disciplinas = Disciplina.objects.prefetch_related('pre_requisitos').all()
+
+    return render(request, "pre_requisitos.html", {
+        'disciplinas': disciplinas,
+    })
 
 def resumo_da_grade(request):
     return render(request, "resumo_da_grade.html")
