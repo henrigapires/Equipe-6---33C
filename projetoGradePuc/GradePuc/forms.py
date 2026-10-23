@@ -55,3 +55,8 @@ class TelaInicialForm(forms.Form):
             'id': 'email',
         })
     )
+    class BuscaDisciplinaForm(forms.Form):
+    busca = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'Buscar disciplina...'}),
+    )
