@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resumo da Grade | Grade.puc</title>
-    <link rel="stylesheet" href="../Static/resumo_da_grade.css">
+    <title>Resumo da Grade | Grade.PUC</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'resumo_da_grade.css' %}">
 </head>
 
 <body>
     <header class="cabecalho">
         <div class="logo">
-            <img src="../Static/Logo escolhida GRADE.PUC.png" alt="Logo Grade PUC">
+            <img src="{% static 'Logo escolhida GRADE.PUC.png' %}" alt="Logo Grade PUC">
         </div>
 
         <nav class="menu">
-            <a href="resumo_da_grade.html" class="ativo">Minha grade</a>
+            <a href="{% url 'resumo_da_grade' %}" class="ativo">Minha grade</a>
             <a href="grades-sugeridas.html">Grades sugeridas</a>
             <a href="questionario.html">Questionário</a>
             <a href="ajuda.html">Ajuda</a>
@@ -22,7 +23,7 @@
 
         <div class="perfil">
             <span class="icone-perfil">●</span>
-            <span>Olá, Mariana</span>
+            <span>Minha conta</span>
             <span>⌄</span>
         </div>
     </header>
@@ -31,7 +32,7 @@
         <section class="titulo">
             <div>
                 <h1>Minha grade</h1>
-                <p>Confira seus horários e as disciplinas selecionadas.</p>
+                <p>Confira as turmas e disciplinas selecionadas.</p>
             </div>
             <div class="situacao">Grade confirmada</div>
         </section>
@@ -52,133 +53,85 @@
                                 <th>Sexta</th>
                             </tr>
                         </thead>
+
                         <tbody>
-                            <tr>
-                                <td>7:00 - 9:00</td>
-                                <td><div class="disciplina verde">Disciplina A</div></td>
-                                <td><div class="disciplina verde">Disciplina A</div></td>
-                                <td><div class="disciplina verde">Disciplina A</div></td>
-                                <td></td><td></td>
-                            </tr>
-                            <tr>
-                                <td>9:00 - 11:00</td>
-                                <td><div class="disciplina amarelo">Disciplina B</div></td>
-                                <td><div class="disciplina amarelo">Disciplina B</div></td>
-                                <td><div class="disciplina amarelo">Disciplina E</div></td>
-                                <td><div class="disciplina amarelo">Disciplina F</div></td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td>11:00 - 13:00</td>
-                                <td><div class="disciplina verde">Disciplina C</div></td>
-                                <td></td>
-                                <td><div class="disciplina verde">Disciplina C</div></td>
-                                <td><div class="disciplina amarelo">Disciplina G</div></td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td>13:00 - 15:00</td>
-                                <td></td>
-                                <td><div class="disciplina amarelo">Disciplina D</div></td>
-                                <td></td><td></td><td></td>
-                            </tr>
-                            <tr>
-                                <td>15:00 - 17:00</td>
-                                <td></td><td></td><td></td><td></td><td></td>
-                            </tr>
-                            <tr>
-                                <td>17:00 - 19:00</td>
-                                <td></td><td></td><td></td><td></td><td></td>
-                            </tr>
+                            {% for turma in turmas %}
+                                <tr>
+                                    <td>{{ turma.dias_horarios }}</td>
+                                    <td colspan="5">
+                                        <div class="disciplina verde">
+                                            <strong>{{ turma.disciplina.nome }}</strong><br>
+                                            {{ turma.disciplina.codigo }} — {{ turma.professor.nome }}
+                                            <br>
+                                            Sala: {{ turma.sala }}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="6">
+                                        Nenhuma turma foi encontrada na sua grade.
+                                    </td>
+                                </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
 
                 <div class="informacoes">
-                    <p>Quantidade de disciplinas: <strong>7</strong></p>
-                    <p>Total de créditos: <strong>22</strong></p>
+                    <p>Quantidade de disciplinas:
+                        <strong>{{ turmas|length }}</strong>
+                    </p>
                 </div>
             </section>
 
             <aside class="painel-disciplinas">
-                <input type="text" placeholder="⌕  Buscar disciplina...">
+                <form method="get" action="{% url 'resumo_da_grade' %}">
+                    {{ form.busca }}
+                    <button type="submit">Buscar</button>
+                </form>
 
                 <h2>Disciplinas</h2>
-                <p class="descricao">Confira a situação das disciplinas da sua grade.</p>
+                <p class="descricao">
+                    Confira as disciplinas incluídas na sua grade.
+                </p>
 
-                <div class="cartao cursada">
-                    <div>
-                        <strong>Disciplina A</strong>
-                        <p>4 créditos</p>
-                        <small>✓ Incluída na grade</small>
-                    </div>
-                    <span class="estado">✓</span>
-                </div>
+                {% for turma in turmas %}
+                    <div class="cartao {% if turma.pendente %}pendente{% else %}cursada{% endif %}">
+                        <div>
+                            <strong>{{ turma.disciplina.nome }}</strong>
+                            <p>{{ turma.disciplina.codigo }}</p>
+                            <small>{{ turma.dias_horarios }}</small>
+                            <br>
+                            <small>Professor: {{ turma.professor.nome }}</small>
+                            <br>
+                            <small>Sala: {{ turma.sala }}</small>
 
-                <div class="cartao cursada">
-                    <div>
-                        <strong>Disciplina B</strong>
-                        <p>4 créditos</p>
-                        <small>✓ Incluída na grade</small>
-                    </div>
-                    <span class="estado">✓</span>
-                </div>
+                            {% if turma.pendente %}
+                                <small>Pré-requisito pendente</small>
+                            {% else %}
+                                <small>Incluída na grade</small>
+                            {% endif %}
+                        </div>
 
-                <div class="cartao cursada">
-                    <div>
-                        <strong>Disciplina C</strong>
-                        <p>4 créditos</p>
-                        <small>✓ Incluída na grade</small>
+                        <span class="estado">
+                            {% if turma.pendente %}!{% else %}✓{% endif %}
+                        </span>
                     </div>
-                    <span class="estado">✓</span>
-                </div>
-
-                <div class="cartao">
-                    <div>
-                        <strong>Disciplina D</strong>
-                        <p>4 créditos</p>
-                        <small>Incluída na grade</small>
-                    </div>
-                    <span class="estado">✓</span>
-                </div>
-
-                <div class="cartao pendente">
-                    <div>
-                        <strong>Disciplina E</strong>
-                        <p>2 créditos</p>
-                        <small>Pré-requisito pendente</small>
-                    </div>
-                    <span class="estado">⌑</span>
-                </div>
-
-                <div class="cartao">
-                    <div>
-                        <strong>Disciplina F</strong>
-                        <p>2 créditos</p>
-                        <small>Incluída na grade</small>
-                    </div>
-                    <span class="estado">✓</span>
-                </div>
-
-                <div class="cartao pendente">
-                    <div>
-                        <strong>Disciplina G</strong>
-                        <p>2 créditos</p>
-                        <small>Pré-requisito pendente</small>
-                    </div>
-                    <span class="estado">⌑</span>
-                </div>
+                {% empty %}
+                    <p>Nenhuma disciplina encontrada.</p>
+                {% endfor %}
             </aside>
         </div>
 
         <section class="atalhos">
             <a href="eletivas.html">
-                <strong>▤ &nbsp; Ver eletivas</strong>
+                <strong>Ver eletivas</strong>
                 <span>Explore as disciplinas eletivas disponíveis.</span>
             </a>
 
             <a href="pre_requisitos.html">
-                <strong>⌘ &nbsp; Ver fluxograma</strong>
+                <strong>Ver fluxograma</strong>
                 <span>Consulte o fluxo do curso e os pré-requisitos.</span>
             </a>
         </section>

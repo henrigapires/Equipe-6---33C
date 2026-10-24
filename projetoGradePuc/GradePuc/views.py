@@ -15,6 +15,17 @@ OPCOES_MODALIDADE = [
     {'valor': 'hibrido', 'nome': 'Híbrido'},
 ]
 
+OPCOES_GRADE = [
+    {'numero': '1', 'titulo': 'Equilíbrio entre teoria e prática', 
+     'codigos': ['ECO1301', 'AMB1103', 'INF1771']},
+    {'numero': '2', 'titulo': 'Mais aulas pela manhã', 
+     'codigos': ['ADM1710', 'ECO1301']},
+    {'numero': '3', 'titulo': 'Com disciplinas eletivas', 
+     'codigos': ['HIS2001', 'AMB1103', 'ECO1401']},
+    {'numero': '4', 'titulo': 'Menos dias na semana', 
+     'codigos': ['ECO1301', 'ADM1710']},
+]
+
 def home(request):
 
     aluno = Aluno.objects.first()
@@ -34,14 +45,45 @@ def home(request):
     })
 
 def ajuda(request):
-    perguntas = Pergunta.objects.all()
-    return render(request, "ajuda.html", {'perguntas': perguntas})
+    perguntas = [
+        {'titulo': 'Como montar minha grade?', 
+         'texto': 'Adicione disciplinas pelo catálogo. Conflitos de horário são bloqueados automaticamente.'},
+        {'titulo': 'Como usar uma sugestão?', 
+         'texto': 'Abra Grades sugeridas, compare as opções e clique em Usar esta grade.'},
+        {'titulo': 'Onde faço a matrícula?', 
+         'texto': 'O grade.puc ajuda no planejamento. A matrícula oficial continua sendo feita no Portal SAU.'},
+    ]
+    return render(request, 'ajuda.html', {'perguntas': perguntas})
 
 def pre_requisitos(request):
-    return render(request, "pre_requisitos.html")
+    disciplinas = Disciplina.objects.prefetch_related('pre_requisitos').all()
+
+    return render(request, "pre_requisitos.html", {
+        'disciplinas': disciplinas,
+    })
 
 def resumo_da_grade(request):
-    return render(request, "resumo_da_grade.html")
+    aluno = Aluno.objects.first()
+    grade = Grade.objects.filter(aluno=aluno).last()
+    turmas = grade.turmas.select_related('disciplina') if grade else []
+
+    form = BuscaDisciplinaForm(request.GET)
+
+    if grade and form.is_valid() and form.cleaned_data['busca']:
+        turmas = turmas.filter(
+            disciplina__nome__icontains=form.cleaned_data['busca']
+        )
+
+    cursadas = set(aluno.disciplinas_cursadas.all())
+
+    for t in turmas:
+        pre = set(t.disciplina.pre_requisitos.all())
+        t.pendente = not pre.issubset(cursadas)
+
+    return render(request, 'resumo_da_grade.html', {
+        'form': form,
+        'turmas': turmas,
+    })
 
 def eletiva(request):
     aluno = Aluno.objects.first()
@@ -111,4 +153,27 @@ def questionario(request):
     })
 
 def gradessugeridas(request):
-    return render(request, "grades-sugeridas.html")
+    aluno = Aluno.objects.first() # provisório, igual ao questionário
+    
+    if request.method == 'POST':
+        form = UsarGradeForm(request.POST)
+        if form.is_valid():
+            numero = form.cleaned_data['opcao']
+            opcao = [o for o in OPCOES_GRADE if o['numero'] == numero][0]
+            
+            grade = Grade.objects.create(aluno=aluno, descricao=opcao['titulo'])
+            grade.turmas.set(
+                Turma.objects.filter(disciplina__codigo__in=opcao['codigos'])
+            )
+            return redirect('/resumodagrade/')
+            
+    opcoes = []
+    for o in OPCOES_GRADE:
+        turmas = Turma.objects.filter(disciplina__codigo__in=o['codigos'])
+        opcoes.append({
+            'numero': o['numero'],
+            'titulo': o['titulo'],
+            'turmas': turmas.select_related('disciplina', 'professor')
+        })
+        
+    return render(request, 'grades-sugeridas.html', {'opcoes': opcoes})

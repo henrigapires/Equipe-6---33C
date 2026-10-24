@@ -56,122 +56,37 @@
 
             <div class="fluxogramas">
 
+                {% for trilha in trilhas %}
                 <div class="trilha">
 
                     <div class="nome-trilha">
-                        Fundamentos de Matemática
+                        {{ trilha.nome }}
                     </div>
 
-                    <div class="disciplina concluida">
-                        <h3>Cálculo I</h3>
-                        <p>MAT 1101</p>
-                        <span class="status">Concluída</span>
-                        <span class="simbolo">✓</span>
+                    {% for d in trilha.disciplinas %}
+                    <div class="disciplina {{ d.status }}">
+                        <h3>{{ d.nome }}</h3>
+                        <p>{{ d.codigo }}</p>
+
+                        {% if d.status == 'concluida' %}
+                            <span class="status">Concluída</span>
+                            <span class="simbolo">&#10003;</span>
+                        {% elif d.status == 'disponivel' %}
+                            <span class="status">Disponível</span>
+                            <span class="simbolo">&#9654;</span>
+                        {% else %}
+                            <span class="status">Bloqueada</span>
+                            <span class="simbolo">&#128274;</span>
+                        {% endif %}
                     </div>
 
-                    <div class="seta">↓</div>
-
-                    <div class="disciplina disponivel">
-                        <h3>Cálculo II</h3>
-                        <p>MAT 1102</p>
-                        <span class="status">Disponível</span>
-                        <span class="simbolo">▶</span>
-                    </div>
-
-                    <div class="seta">↓</div>
-
-                    <div class="disciplina bloqueada">
-                        <h3>Cálculo III</h3>
-                        <p>MAT 1103</p>
-                        <span class="status">Bloqueada</span>
-                        <span class="simbolo">🔒</span>
-                    </div>
+                    {% if not forloop.last %}
+                        <div class="seta">&darr;</div>
+                    {% endif %}
+                    {% endfor %}
 
                 </div>
-
-                <div class="trilha">
-
-                    <div class="nome-trilha">
-                        Economia
-                    </div>
-
-                    <div class="disciplina concluida">
-                        <h3>Introdução à Economia</h3>
-                        <p>ECO 1101</p>
-                        <span class="status">Concluída</span>
-                        <span class="simbolo">✓</span>
-                    </div>
-
-                    <div class="seta">↓</div>
-
-                    <div class="disciplina concluida">
-                        <h3>Microeconomia</h3>
-                        <p>ECO 1201</p>
-                        <span class="status">Concluída</span>
-                        <span class="simbolo">✓</span>
-                    </div>
-
-                    <div class="seta">↓</div>
-
-                    <div class="disciplina disponivel">
-                        <h3>Economia Brasileira</h3>
-                        <p>ECO 1301</p>
-                        <span class="status">Disponível</span>
-                        <span class="simbolo">▶</span>
-                    </div>
-
-                    <div class="seta">↓</div>
-
-                    <div class="disciplina bloqueada">
-                        <h3>Economia Internacional</h3>
-                        <p>ECO 1401</p>
-                        <span class="status">Bloqueada</span>
-                        <span class="simbolo">🔒</span>
-                    </div>
-
-                </div>
-
-                <div class="trilha">
-
-                    <div class="nome-trilha">
-                        Ciência de Dados
-                    </div>
-
-                    <div class="disciplina disponivel">
-                        <h3>Algoritmos</h3>
-                        <p>INF 1005</p>
-                        <span class="status">Disponível</span>
-                        <span class="simbolo">▶</span>
-                    </div>
-
-                    <div class="seta">↓</div>
-
-                    <div class="disciplina bloqueada">
-                        <h3>Estruturas de Dados</h3>
-                        <p>INF 1006</p>
-                        <span class="status">Bloqueada</span>
-                        <span class="simbolo">🔒</span>
-                    </div>
-
-                    <div class="seta">↓</div>
-
-                    <div class="disciplina bloqueada">
-                        <h3>Algoritmos Avançados</h3>
-                        <p>INF 1007</p>
-                        <span class="status">Bloqueada</span>
-                        <span class="simbolo">🔒</span>
-                    </div>
-
-                    <div class="seta">↓</div>
-
-                    <div class="disciplina bloqueada">
-                        <h3>Inteligência Artificial</h3>
-                        <p>INF 1771</p>
-                        <span class="status">Bloqueada</span>
-                        <span class="simbolo">🔒</span>
-                    </div>
-
-                </div>
+                {% endfor %}
 
             </div>
 
