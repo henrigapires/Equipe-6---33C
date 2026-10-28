@@ -37,8 +37,8 @@
             
             {% for p in perguntas %}
             <div class="caixa">
-                <h3 class="titulo-cor">{{ p.pergunta }}</h3>
-                <p>{{ p.resposta }}</p>
+                <h3 class="titulo-cor">{{ p.titulo }}</h3>
+                <p>{{ p.texto }}</p>
             </div>
             {% empty %}
             <p>Nenhuma pergunta cadastrada ainda.</p>
