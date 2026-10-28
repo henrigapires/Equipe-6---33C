@@ -78,7 +78,7 @@ a:hover {
 }
 
 .barra-marrom {
-    width: 80px; 
+    width: 20%;
     height: 8px;
     background-color: #9c4b2f;
     border-radius: 5px;
@@ -224,4 +224,12 @@ form {
     display: flex;
     flex-direction: column;
     align-items: center;
+}
+
+.erro {
+    text-align: center;
+    font-size: 14px;
+    color: #9c4b2f;
+    margin-top: 20px;
+    margin-bottom: 0;
 }

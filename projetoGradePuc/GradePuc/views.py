@@ -10,9 +10,28 @@ OPCOES_TURNO = [
 ]
 
 OPCOES_MODALIDADE = [
-    {'valor': 'presencial', 'nome': 'Presencial'},
-    {'valor': 'online', 'nome': 'Online'},
-    {'valor': 'hibrido', 'nome': 'Híbrido'},
+    {'valor': 'presencial', 'nome': 'Presencial', 'icone': '🏫', 'descricao': 'Aulas na universidade'},
+    {'valor': 'online', 'nome': 'Online', 'icone': '💻', 'descricao': 'Aulas à distância'},
+    {'valor': 'hibrido', 'nome': 'Híbrido', 'icone': '🔄', 'descricao': 'Parte presencial, parte online'},
+]
+
+OPCOES_DISTRIBUICAO = [
+    {'valor': 'equilibrado', 'nome': 'Equilibrado pela semana', 'icone': '⚖️', 'descricao': 'Aulas espalhadas de forma parecida em todos os dias'},
+    {'valor': 'dia_leve', 'nome': 'Acumular para ter um dia mais leve', 'icone': '🍃', 'descricao': 'Mais aulas em alguns dias para sobrar um dia com poucas aulas'},
+    {'valor': 'dia_livre', 'nome': 'Acumular para ter um dia livre', 'icone': '🏖️', 'descricao': 'Aulas concentradas para deixar um dia da semana sem aula'},
+    {'valor': 'tanto_faz', 'nome': 'Tanto faz', 'icone': '🤷', 'descricao': 'Não tenho preferência'},
+]
+
+OPCOES_JANELAS = [
+    {'valor': 'sem_janelas', 'nome': 'Sem janelas', 'icone': '⏩', 'descricao': 'Aulas seguidas, sem horários vagos entre elas'},
+    {'valor': 'janelas_curtas', 'nome': 'Aceito janelas curtas', 'icone': '☕', 'descricao': 'Intervalos de até 1 hora entre as aulas'},
+    {'valor': 'tanto_faz', 'nome': 'Tanto faz', 'icone': '🤷', 'descricao': 'Não tenho preferência'},
+]
+
+OPCOES_CARGA = [
+    {'valor': 'leve', 'nome': 'Leve', 'icone': '📗', 'descricao': '3 a 4 disciplinas'},
+    {'valor': 'media', 'nome': 'Média', 'icone': '📚', 'descricao': '5 a 6 disciplinas'},
+    {'valor': 'pesada', 'nome': 'Pesada', 'icone': '🏋️', 'descricao': '7 ou mais disciplinas'},
 ]
 
 OPCOES_GRADE = [
@@ -137,19 +156,94 @@ def questionario(request):
     rotina = RotinaPreferencias.objects.filter(aluno=aluno).first()
 
     if request.method == 'POST':
-        form = RotinaPreferenciasForm(request.POST, instance=rotina)
+        form = TurnoForm(request.POST, instance=rotina)
+        if form.is_valid():
+            preferencias = form.save(commit=False)
+            preferencias.aluno = aluno
+            preferencias.save()
+            return redirect('/questionario/modalidade/')
+    else:
+        form = TurnoForm(instance=rotina)
+
+    return render(request, 'questionario.html', {
+        'form': form,
+        'opcoes_turno': OPCOES_TURNO,
+    })
+
+def questionario_modalidade(request):
+    aluno = Aluno.objects.first()
+    rotina = RotinaPreferencias.objects.filter(aluno=aluno).first()
+
+    if request.method == 'POST':
+        form = ModalidadeForm(request.POST, instance=rotina)
+        if form.is_valid():
+            preferencias = form.save(commit=False)
+            preferencias.aluno = aluno
+            preferencias.save()
+            return redirect('/questionario/distribuicao/')
+    else:
+        form = ModalidadeForm(instance=rotina)
+
+    return render(request, 'questionario_modalidade.html', {
+        'form': form,
+        'opcoes_modalidade': OPCOES_MODALIDADE,
+    })
+
+def questionario_distribuicao(request):
+    aluno = Aluno.objects.first()
+    rotina = RotinaPreferencias.objects.filter(aluno=aluno).first()
+
+    if request.method == 'POST':
+        form = DistribuicaoForm(request.POST, instance=rotina)
+        if form.is_valid():
+            preferencias = form.save(commit=False)
+            preferencias.aluno = aluno
+            preferencias.save()
+            return redirect('/questionario/janelas/')
+    else:
+        form = DistribuicaoForm(instance=rotina)
+
+    return render(request, 'questionario_distribuicao.html', {
+        'form': form,
+        'opcoes_distribuicao': OPCOES_DISTRIBUICAO,
+    })
+
+def questionario_janelas(request):
+    aluno = Aluno.objects.first()
+    rotina = RotinaPreferencias.objects.filter(aluno=aluno).first()
+
+    if request.method == 'POST':
+        form = JanelasForm(request.POST, instance=rotina)
+        if form.is_valid():
+            preferencias = form.save(commit=False)
+            preferencias.aluno = aluno
+            preferencias.save()
+            return redirect('/questionario/carga/')
+    else:
+        form = JanelasForm(instance=rotina)
+
+    return render(request, 'questionario_janelas.html', {
+        'form': form,
+        'opcoes_janelas': OPCOES_JANELAS,
+    })
+
+def questionario_carga(request):
+    aluno = Aluno.objects.first()
+    rotina = RotinaPreferencias.objects.filter(aluno=aluno).first()
+
+    if request.method == 'POST':
+        form = CargaForm(request.POST, instance=rotina)
         if form.is_valid():
             preferencias = form.save(commit=False)
             preferencias.aluno = aluno
             preferencias.save()
             return redirect('/grades-sugeridas/')
     else:
-        form = RotinaPreferenciasForm(instance=rotina)
+        form = CargaForm(instance=rotina)
 
-    return render(request, 'questionario.html', {
+    return render(request, 'questionario_carga.html', {
         'form': form,
-        'opcoes_turno': OPCOES_TURNO,
-        'opcoes_modalidade': OPCOES_MODALIDADE,
+        'opcoes_carga': OPCOES_CARGA,
     })
 
 def gradessugeridas(request):
