@@ -1,28 +1,13 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Eletivas sugeridas</title>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;700&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'eletivas.css' %}">
-</head>
-<body>
 
-<div class="navbar">
-  <div class="logo">
-    <img src="{% static 'logo.png' %}" width="60px">
-  </div>
-  <nav>
-    <a href="{% url 'resumo_da_grade' %}" class="link-menu">Minha grade</a>
-    <a href="{% url 'grades_sugeridas' %}" class="link-menu">Grades sugeridas</a>
-    <a href="{% url 'questionario' %}" class="link-menu">Questionário</a>
-    <a href="{% url 'ajuda' %}" class="link-menu">Ajuda</a>
-  </nav>
-  <span class="usuario">Olá, {{ user.first_name|default:user.username }}</span>
-</div>
+{% block title %}Eletivas sugeridas{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'eletivas.css' %}">
+{% endblock %}
+
+{% block content %}
 <div class="conteudo">
   <div>
     <h1>Eletivas sugeridas</h1>
@@ -67,12 +52,4 @@
   <p><b>Sugestões personalizadas</b><br>Baseadas no seu histórico acadêmico, interesses e disponibilidade de horários.</p>
   <a href="{% url 'questionario' %}" class="botao-borda">Editar preferências</a>
 </div>
-
-<footer>
-  <b>grade.puc</b>
-  <span>Planejamento hoje. Mais conquistas amanhã.</span>
-  <b>PUC-Rio</b>
-</footer>
-
-</body>
-</html>
+{% endblock %}

@@ -1,38 +1,13 @@
+{% extends 'base.html' %}
+{% load static %}
 
-<!DOCTYPE html>
-<html lang="pt-BR">
+{% block title %}Pré-requisitos{% endblock %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pré-requisitos</title>
-    <link rel="stylesheet" href="../Static/pre_requisitos.css">
-</head>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'pre_requisitos.css' %}">
+{% endblock %}
 
-<body>
-
-    <div class="navbar">
-
-        <div class="logo">
-            <img src="../Static/logo.png" width="210px">
-        </div>
-
-        <nav>
-            <ul>
-                <li><a href="{% url 'resumo_da_grade' %}">Minha grade</a></li>
-                <li><a href="{% url 'grades_sugeridas' %}">Grades sugeridas</a></li>
-                <li><a href="{% url 'questionario' %}">Questionário</a></li>
-                <li><a href="{% url 'ajuda' %}">Ajuda</a></li>
-            </ul>
-        </nav>
-
-        <div class="perfil">
-            <span>●</span>
-            <span>Olá, {{ user.first_name|default:user.username }}</span>
-        </div>
-
-    </div>
-
+{% block content %}
     <div class="conteudo">
 
         <div class="titulo">
@@ -135,13 +110,9 @@
         </button>
 
     </div>
+{% endblock %}
 
-    <footer>
-        <b>grade.puc</b>
-        <span> | Planejamento hoje. Mais conquistas amanhã.</span>
-        <span class="puc">PUC-Rio</span>
-    </footer>
-
+{% block extra_js %}
     <script>
         const detalhe = document.querySelector('.detalhes-disciplina');
         const apiUrl = detalhe.dataset.apiUrl;
@@ -176,6 +147,4 @@
             });
         });
     </script>
-
-</body>
-</html>
+{% endblock %}

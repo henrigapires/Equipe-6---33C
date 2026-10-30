@@ -1,28 +1,13 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grades sugeridas</title>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;700&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'gradessugeridascss.css' %}">
-</head>
-<body>
 
-<div class="navbar">
-  <div class="logo">
-    <img src="{% static 'logo.png' %}" width="60px">
-  </div>
-  <nav>
-    <a href="{% url 'resumo_da_grade' %}" class="link-menu">Minha grade</a>
-    <a href="{% url 'grades_sugeridas' %}" class="link-menu ativo">Grades sugeridas</a>
-    <a href="{% url 'questionario' %}" class="link-menu">Questionário</a>
-    <a href="{% url 'ajuda' %}" class="link-menu">Ajuda</a>
-  </nav>
-  <span class="usuario">Olá, {{ user.first_name|default:user.username }}</span>
-</div>
+{% block title %}Grades sugeridas{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'gradessugeridascss.css' %}">
+{% endblock %}
+
+{% block content %}
 <div class="conteudo">
   <div>
     <h1>Grades sugeridas</h1>
@@ -74,6 +59,4 @@
         </div>
     {% endfor %}
 </div>
-
-</body>
-</html>
+{% endblock %}
