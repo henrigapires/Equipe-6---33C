@@ -31,6 +31,10 @@ def create_user(request):
                 'error_msg': 'Preencha o nome.'
             })
 
+        partes = nome.split(None, 1)
+        primeiro_nome = partes[0]
+        sobrenome = partes[1] if len(partes) > 1 else ''
+
         if not matricula or not senha:
             return render(request, 'cadastro.html', {
                 'error_msg': 'Preencha a matrícula e a senha.'
@@ -51,7 +55,8 @@ def create_user(request):
                 username=matricula,
                 email=email,
                 password=senha,
-                first_name=nome
+                first_name=primeiro_nome,
+                last_name=sobrenome
             )
 
             aluno = Aluno.objects.filter(
