@@ -97,3 +97,59 @@ class TransicoesEntreTelasTests(TestCase):
 				for destino in destinos:
 					with self.subTest(pagina=pagina, destino=destino):
 						self.assertIn(self.client.get(destino).status_code, [200, 302])
+
+
+class BaseHtmlTests(TestCase):
+	def setUp(self):
+		usuario = User.objects.create_user(username='8888888', password='Senha!123', first_name='Teste')
+		Aluno.objects.create(usuario=usuario, matricula='8888888', senha='')
+		self.client.force_login(usuario)
+
+	def conferir(self, pagina, item_ativo):
+		resposta = self.client.get(pagina)
+		self.assertEqual(resposta.status_code, 200)
+		html = resposta.content.decode()
+
+		self.assertEqual(html.count('class="site-header"'), 1)
+		self.assertEqual(html.count('class="site-footer"'), 1)
+		self.assertEqual(html.count('<footer'), 1)
+		self.assertNotIn('class="navbar"', html)
+		self.assertNotIn('class="cabecalho"', html)
+
+		self.assertIn('Olá, Teste', html)
+		self.assertIn('<form action="/logout/" method="post"', html)
+		self.assertIn('class="btn-sair"', html)
+
+		ativos = re.findall(r'class="site-header__link ativo"\s*aria-current="page">([^<]+)</a>', html)
+		self.assertEqual(ativos, [item_ativo])
+		self.assertEqual(html.count('aria-current="page"'), 1)
+
+	def test_resumo_da_grade(self):
+		self.conferir('/resumodagrade/', 'Minha grade')
+
+	def test_eletivas(self):
+		self.conferir('/eletivas/', 'Minha grade')
+
+	def test_pre_requisitos(self):
+		self.conferir('/pre-requisitos/', 'Minha grade')
+
+	def test_grades_sugeridas(self):
+		self.conferir('/grades-sugeridas/', 'Grades sugeridas')
+
+	def test_questionario(self):
+		self.conferir('/questionario/', 'Questionário')
+
+	def test_questionario_modalidade(self):
+		self.conferir('/questionario/modalidade/', 'Questionário')
+
+	def test_questionario_distribuicao(self):
+		self.conferir('/questionario/distribuicao/', 'Questionário')
+
+	def test_questionario_janelas(self):
+		self.conferir('/questionario/janelas/', 'Questionário')
+
+	def test_questionario_carga(self):
+		self.conferir('/questionario/carga/', 'Questionário')
+
+	def test_ajuda(self):
+		self.conferir('/ajuda/', 'Ajuda')
