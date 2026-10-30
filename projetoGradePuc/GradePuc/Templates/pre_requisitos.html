@@ -42,7 +42,7 @@
             </div>
 
             <button type="button" class="todas-disciplinas"
-                onclick="window.location.href='eletivas.html'">
+                onclick="window.location.href='{% url 'eletivas' %}'">
                 Ver todas as disciplinas →
             </button>
         </div>
@@ -130,7 +130,7 @@
         </div>
 
         <button type="button" class="voltar"
-            onclick="window.location.href='resumo_da_grade.html'">
+            onclick="window.location.href='{% url 'resumo_da_grade' %}'">
             ← &nbsp; Voltar para minha grade
         </button>
 

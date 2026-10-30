@@ -67,10 +67,10 @@
             {% if form.errors %}<p class="erro">Escolha uma opção para continuar.</p>{% endif %}
 
             <div class="botoes-rodape">
-                <a href="/questionario/" class="btn-voltar">← Voltar</a>
+                <a href="{% url 'questionario' %}" class="btn-voltar">← Voltar</a>
                 <div class="lado-direito">
                     <button type="submit" class="btn-proximo">Próximo →</button>
-                    <a href="/grades-sugeridas/" class="link-pulei">Já respondi o questionário</a>
+                    <a href="{% url 'grades_sugeridas' %}" class="link-pulei">Já respondi o questionário</a>
                 </div>
             </div>
         </form>
