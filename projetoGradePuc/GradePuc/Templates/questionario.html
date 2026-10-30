@@ -43,7 +43,8 @@
             {% if form.errors %}<p class="erro">Escolha uma opção para continuar.</p>{% endif %}
 
             <div class="botoes-rodape">
-                <button type="button" class="btn-voltar" onclick="window.location.href='{% url 'resumo_da_grade' %}'">&larr; Voltar</button>
+                {% url 'resumo_da_grade' as url_minha_grade %}
+                <button type="button" class="btn-voltar" onclick="window.location.href='{{ url_minha_grade }}'">&larr; Voltar</button>
                 <div class="lado-direito">
                     <button type="submit" class="btn-proximo">Próximo &rarr;</button>
                     <a href="{% url 'grades_sugeridas' %}" class="link-pulei">Já respondi o questionário</a>
