@@ -20,7 +20,13 @@ from GradePuc.views import *
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+
     path('', home, name='home'),
+
+    path('login/', home, name='login'),
+    path('cadastro/', create_user, name='cadastro'),
+    path('logout/', logout_user, name='logout'),
+    
     path('ajuda/', ajuda),
     path('pre-requisitos/', pre_requisitos),
     path('api/disciplinas/<int:disciplina_id>/', api_disciplina, name='api_disciplina'),

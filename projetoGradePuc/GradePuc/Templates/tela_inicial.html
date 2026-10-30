@@ -11,7 +11,7 @@
 </head>
 
 <body>
-
+    <h1>TESTE NOVA TELA</h1>
     <main class="pagina-login">
         <section class="lado-esquerdo">
             <img src="https://www.puc-rio.br/sobrepuc/campus/imagens/img_campus_banner_index.jpg" class="imagem-puc">
@@ -57,51 +57,42 @@
                 </div>
 
                 <div class="titulo-login">
-                    {% if aluno %}
-                        <h1>Bem-vindo(a) de volta!</h1>
-                        <p> Aluno de matrícula {{ aluno.matricula }},
-                            acesse sua conta para continuar montando sua grade.
-                        </p>
-                    {% else %}
-                        <h1>Bem-vindo(a) ao Grade.puc!</h1>
-                        <p>
-                            Monte sua grade, explore possibilidades
-                            e aproveite ao máximo sua jornada na PUC-Rio
-                        </p>
-                    {% endif %}
+                    <h1>Bem-vindo(a) ao Grade.puc!</h1>
+                    <p>
+                        Monte sua grade, explore possibilidades
+                        e aproveite ao máximo sua jornada na PUC-Rio.
+                    </p>
                 </div>
 
                 <form action="{% url 'home' %}" method="post">
                     {% csrf_token %}
 
                     <div class="campo">
-                        <label for="{{form.usuario.id_for_label }}">
-                            {{ form.usuario.label }}
-                        </label>
-
-                        {{ form.usuario }}
-
-                        {% for erro in form.usuario.errors %}
-                            <p class="erro-formulario">{{ erro}}</p>
-                        {% endfor %}
+                        <label for="matricula">Matrícula</label>
+                        <input
+                            type="text"
+                            name="matricula"
+                            id="matricula"
+                            class="campo-input"
+                            placeholder="Digite sua matrícula"
+                            required
+                        >
                     </div>
 
                     <div class="campo">
-                        <label for="{{ form.email.id_for_label }}">
-                            {{ form.email.label }}
-                        </label>
-
-                        {{ form.email }}
-
-                        {% for erro in form.email.errors %}
-                            <p class="erro-formulario">{{ erro }}</p>
-                        {% endfor %}
+                        <label for="password">Senha</label>
+                        <input
+                            type="password"
+                            name="password"
+                            id="password"
+                            class="campo-input"
+                            placeholder="Digite sua senha"
+                            required
+                        >
                     </div>
 
-                    {% if form.non_field_errors %}
-                        <div class="erro-formulario">
-                            {{ form.non_field_errors}}
-                        </div>
+                    {% if error_msg %}
+                        <p class="erro-formulario">{{ error_msg }}</p>
                     {% endif %}
 
                     <a href="#" class="esqueci-senha">
@@ -111,8 +102,7 @@
                     <button class="botao-login" type="submit">
                         Log in
                     </button>
-
-                </form>
+                </form>    
 
                 <div class="separador">
                     <div></div>
@@ -127,7 +117,7 @@
 
                 <p class="cadastro">
                     Ainda não tem  conta?
-                    <a href="#">Cadastre-se</a>
+                    <a href="{% url 'cadastro' %}">Cadastre-se</a>
                 </p>
 
             </div>

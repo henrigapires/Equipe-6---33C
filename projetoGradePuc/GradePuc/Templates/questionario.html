@@ -7,6 +7,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../Static/questionario.css">
 </head>
+
+<form action="{% url 'logout' %}" method="post">
+    {% csrf_token %}
+    <button type="submit">Sair</button>
+</form>
+
 <body>
     
     <div class="navbar"> 

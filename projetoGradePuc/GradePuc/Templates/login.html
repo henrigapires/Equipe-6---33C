@@ -1,0 +1,24 @@
+<h1>Entrar no Grade.puc</h1>
+
+<form method="POST">
+    {% csrf_token %}
+
+    <div>
+        <label>Matrícula:</label>
+        <input type="text" name="matricula" required>
+    </div>
+
+    <div>
+        <label>Senha:</label>
+        <input type="password" name="password" required>
+    </div>
+
+    <button type="submit">Entrar</button>
+
+    <p style="color: red;">{{ error_msg }}</p>
+</form>
+
+<p>
+    Ainda não tem uma conta?
+    <a href="{% url 'cadastro' %}">Cadastre-se</a>
+</p>
