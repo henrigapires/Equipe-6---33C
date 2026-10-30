@@ -57,6 +57,22 @@ a:hover {
     padding-bottom: 5px;
 }
 
+.btn-sair {
+    background-color: transparent;
+    border: 1px solid #9c4b2f;
+    color: #9c4b2f;
+    font-weight: bold;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-left: 15px;
+    transition: all 0.3s ease;
+}
+
+.btn-sair:hover {
+    background-color: #e6dcd3;
+}
+
 .conteudo-centro {
     display: flex;
     flex-direction: column;
@@ -311,6 +327,10 @@ form {
 
     form {
         width: 100%;
+    }
+
+    .navbar form {
+        width: auto;
     }
 
     .titulo-pergunta {
