@@ -24,7 +24,7 @@ urlpatterns = [
     path('ajuda/', ajuda),
     path('pre-requisitos/', pre_requisitos),
     path('api/disciplinas/<int:disciplina_id>/', api_disciplina, name='api_disciplina'),
-    path('resumodagrade/', resumo_da_grade),
+    path('resumodagrade/', resumo_da_grade, name='resumo_da_grade'),
     path('eletivas/', eletiva),
     path('questionario/', questionario, name='questionario'),
     path('questionario/modalidade/', questionario_modalidade, name='questionario_modalidade'),
