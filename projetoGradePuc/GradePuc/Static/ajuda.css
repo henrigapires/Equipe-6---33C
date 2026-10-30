@@ -1,6 +1,6 @@
 body {
     background-color: #f7ede4;
-    font-family: 'Arial', sans-serif;
+    font-family: 'Nunito', sans-serif;
     margin: 0;
 }
 
@@ -69,15 +69,14 @@ a:hover {
     border-radius: 50%;
 }
 
-/* --- CONTEÚDO CENTRALIZADO --- */
 .conteudo {
     display: flex;
     flex-direction: column;
-    align-items: center;      /* Centraliza títulos, bloco de caixas e botão */
-    max-width: 1000px;        /* Garante que o conteúdo não espalhe demais em telas grandes */
-    margin: 0 auto;           /* Centraliza a seção inteira na tela */
-    padding: 40px 20px;
-    text-align: center;       /* Centraliza os textos do título e subtítulo */
+    align-items: center;      
+    max-width: 1200px;        
+    margin: 0 auto;           
+    padding: 60px 20px;
+    text-align: center;       
 }
 
 .titulo-cor {
@@ -86,34 +85,36 @@ a:hover {
 }
 
 h1.titulo-cor {
-    font-size: 40px;
+    font-size: 46px;
 }
 
 .subtitulo {
     color: rgb(83, 74, 71);
-    font-size: 18px;
+    font-size: 20px;
     margin-top: 0;
     margin-bottom: 40px;
 }
 
 #caixas-perguntas {
     display: flex;
-    gap: 20px;
+    gap: 30px;
     margin-bottom: 40px;
     flex-wrap: wrap;
-    justify-content: center;  /* Centraliza as 3 caixinhas lado a lado */
+    justify-content: center;
+    width: 100%;  
 }
 
 .caixa {
-    width: 300px;
-    min-height: 150px;
+    flex: 1 1 320px; 
+    max-width: 380px;
+    min-height: 180px;
     background-color: #fcf9f5;
     border: 1px solid #e8ddd3;
     border-radius: 15px;
-    padding: 20px;
+    padding: 30px 25px;
     display: flex;
     flex-direction: column;
-    text-align: left;         /* Mantém o texto interno das caixas alinhado à esquerda para facilitar a leitura */
+    text-align: left;         
     box-shadow: 0 4px 8px rgba(0,0,0,0.05);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
@@ -125,6 +126,7 @@ h1.titulo-cor {
 
 .caixa p {
     color: rgb(83, 74, 71);
+    font-size: 16px;
     line-height: 1.5;
 }
 
@@ -134,9 +136,9 @@ h1.titulo-cor {
     font-weight: bold;
     border: none;
     border-radius: 20px;
-    padding: 15px 30px;
+    padding: 16px 40px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 18px;
     transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
@@ -158,4 +160,34 @@ h1.titulo-cor {
 .texto-rodape {
     color: rgb(83, 74, 71);
     font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: column; 
+        gap: 15px;
+        padding: 15px 20px;
+    }
+
+    .logo, .perfil {
+        width: auto; 
+    }
+
+    nav ul li {
+        margin-right: 15px; 
+    }
+
+    .conteudo {
+        padding: 25px 15px;
+    }
+
+    h1.titulo-cor {
+        font-size: 30px; 
+    }
+
+    .rodape {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
 }

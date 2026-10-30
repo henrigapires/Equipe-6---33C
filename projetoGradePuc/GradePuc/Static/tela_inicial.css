@@ -249,3 +249,49 @@ form {
 .cadastro a {
     color: #a52a00;
 }
+
+@media (max-width: 850px) {
+    body {
+        padding: 10px 0;
+    }
+
+    .pagina-login {
+        flex-direction: column;
+        height: auto;
+        min-height: auto;
+    }
+
+    .lado-esquerdo {
+        height: 200px;
+        position: relative;
+    }
+
+    .conteudo-esquerdo {
+        position: absolute;
+        bottom: 15px;
+        left: 20px;
+        right: 20px;
+    }
+
+    .conteudo-esquerdo h1 {
+        font-size: 22px;
+        margin-bottom: 5px;
+    }
+
+    .conteudo-esquerdo > p {
+        font-size: 13px;
+        margin-bottom: 0;
+    }
+
+    .vantagens {
+        display: none;
+    }
+
+    .lado-direito {
+        padding: 25px 20px;
+    }
+
+    .titulo-login h1 {
+        font-size: 26px;
+    }
+}
