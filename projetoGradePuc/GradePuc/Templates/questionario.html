@@ -6,6 +6,12 @@
     <title>Questionário - grade.puc</title>
     <link rel="stylesheet" href="../Static/questionario.css">
 </head>
+
+<form action="{% url 'logout' %}" method="post">
+    {% csrf_token %}
+    <button type="submit">Sair</button>
+</form>
+
 <body>
     
     <div class="navbar"> 

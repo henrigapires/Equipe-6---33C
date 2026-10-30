@@ -1,6 +1,99 @@
 from django.shortcuts import render, redirect
 from .forms import *
 from .models import Professor, Disciplina, Turma, Aluno, RotinaPreferencias, Grade, Pergunta
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+
+def obter_aluno(request):
+    aluno, criado = Aluno.objects.get_or_create(
+        usuario=request.user,
+        defaults={
+            'matricula': request.user.username,
+            'senha': ''
+        }
+    )
+    return aluno
+
+def create_user(request):
+    if request.method == 'POST':
+        matricula = request.POST.get('matricula', '').strip()
+        email = request.POST.get('email', '').strip()
+        senha = request.POST.get('password', '')
+        confirmar_senha = request.POST.get('confirmar_senha', '')
+
+        if not matricula or not senha:
+            return render(request, 'cadastro.html', {
+                'error_msg': 'Preencha a matrícula e a senha.'
+            })
+
+        if senha != confirmar_senha:
+            return render(request, 'cadastro.html', {
+                'error_msg': 'As senhas não coincidem.'
+            })
+
+        if User.objects.filter(username=matricula).exists():
+            return render(request, 'cadastro.html', {
+                'error_msg': 'Esta matrícula já possui uma conta.'
+            })
+
+        with transaction.atomic():
+            usuario = User.objects.create_user(
+                username=matricula,
+                email=email,
+                password=senha
+            )
+
+            aluno = Aluno.objects.filter(
+                matricula=matricula,
+                usuario__isnull=True
+            ).first()
+
+            if aluno:
+                aluno.usuario = usuario
+                aluno.senha = ''
+                aluno.save()
+            else:
+                Aluno.objects.create(
+                    usuario=usuario,
+                    matricula=matricula,
+                    senha=''
+                )
+
+        login(request, usuario)
+        return redirect('home')
+
+    return render(request, 'cadastro.html')
+
+def login_user(request):
+    if request.method == 'POST':
+        matricula = request.POST.get('matricula', '').strip()
+        senha = request.POST.get('password', '')
+
+        usuario = authenticate(
+            request,
+            username=matricula,
+            password=senha
+        )
+
+        if usuario is not None:
+            login(request, usuario)
+            return redirect('home')
+
+        return render(request, 'login.html', {
+            'error_msg': 'Matrícula ou senha incorreta.'
+        })
+
+    return render(request, 'login.html')
+
+@login_required
+def logout_user(request):
+    if request.method == 'POST':
+        logout(request)
+        return redirect('login')
+    
+    return redirect('home')
 
 OPCOES_TURNO = [
     {'valor': 'manha', 'nome': 'Manhã', 'icone': '☀️', 'descricao': 'Prefiro ter aulas no período da manhã.'},
@@ -27,23 +120,30 @@ OPCOES_GRADE = [
 ]
 
 def home(request):
-
-    aluno = Aluno.objects.first()
+    if request.user.is_authenticated:
+        return redirect('/questionario/')
 
     if request.method == 'POST':
-        form = TelaInicialForm(request.POST)
+        matricula = request.POST.get('matricula', '').strip()
+        senha = request.POST.get('password', '')
 
-        if form.is_valid():
+        usuario = authenticate(
+            request,
+            username=matricula,
+            password=senha
+        )
+
+        if usuario is not None:
+            login(request, usuario)
             return redirect('/questionario/')
 
-    else:
-        form = TelaInicialForm()
+        return render(request, 'tela_inicial.html', {
+            'error_msg': 'Matrícula ou senha incorreta.'
+        })
 
-    return render(request, "tela_inicial.html", {
-        'form': form,
-        'aluno': aluno,
-    })
+    return render(request, 'tela_inicial.html')
 
+@login_required
 def ajuda(request):
     perguntas = [
         {'titulo': 'Como montar minha grade?', 
@@ -55,6 +155,7 @@ def ajuda(request):
     ]
     return render(request, 'ajuda.html', {'perguntas': perguntas})
 
+@login_required
 def pre_requisitos(request):
     disciplinas = Disciplina.objects.prefetch_related('pre_requisitos').all()
 
@@ -62,8 +163,9 @@ def pre_requisitos(request):
         'disciplinas': disciplinas,
     })
 
+@login_required
 def resumo_da_grade(request):
-    aluno = Aluno.objects.first()
+    aluno = obter_aluno(request)
     grade = Grade.objects.filter(aluno=aluno).last()
     turmas = grade.turmas.select_related('disciplina') if grade else []
 
@@ -85,8 +187,9 @@ def resumo_da_grade(request):
         'turmas': turmas,
     })
 
+@login_required
 def eletiva(request):
-    aluno = Aluno.objects.first()
+    aluno = obter_aluno(request)
     turmas = Turma.objects.all()
     if aluno != None:
         turmas = turmas.exclude(disciplina__in=aluno.disciplinas_cursadas.all())
@@ -132,8 +235,9 @@ def eletiva(request):
         'filtros': FILTROS_ELETIVAS,
     })
 
+@login_required
 def questionario(request):
-    aluno = Aluno.objects.first()
+    aluno = obter_aluno(request)
     rotina = RotinaPreferencias.objects.filter(aluno=aluno).first()
 
     if request.method == 'POST':
@@ -152,8 +256,9 @@ def questionario(request):
         'opcoes_modalidade': OPCOES_MODALIDADE,
     })
 
+@login_required
 def gradessugeridas(request):
-    aluno = Aluno.objects.first() # provisório, igual ao questionário
+    aluno = obter_aluno(request) # provisório, igual ao questionário
     
     if request.method == 'POST':
         form = UsarGradeForm(request.POST)

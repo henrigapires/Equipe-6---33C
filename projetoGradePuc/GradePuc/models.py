@@ -1,10 +1,13 @@
 from django.db import models
+from django.conf import settings 
+
 class Professor(models.Model):
     nome = models.CharField(max_length=100)
     avaliacoes = models.FloatField(default=0)
 
     def __str__(self):
         return self.nome
+    
 class Disciplina(models.Model):
     codigo = models.CharField(max_length=20)
     nome = models.CharField(max_length=100)
@@ -12,6 +15,7 @@ class Disciplina(models.Model):
 
     def __str__(self):
         return self.codigo + " - " + self.nome
+    
 class Turma(models.Model):
     disciplina = models.ForeignKey(Disciplina, on_delete=models.CASCADE)
     professor = models.ForeignKey(Professor, on_delete=models.CASCADE)
@@ -21,13 +25,22 @@ class Turma(models.Model):
 
     def __str__(self):
         return str(self.disciplina) + " - " + self.dias_horarios
+    
 class Aluno(models.Model):
+    usuario = models.OneToOneField(
+    settings.AUTH_USER_MODEL,
+    on_delete=models.CASCADE,
+    null=True,
+    blank=True
+    )
     matricula = models.CharField(max_length=20)
     senha = models.CharField(max_length=100)
     disciplinas_cursadas = models.ManyToManyField(Disciplina, blank=True)
 
+    
     def __str__(self):
         return self.matricula
+    
 class RotinaPreferencias(models.Model):
     aluno = models.OneToOneField(Aluno, on_delete=models.CASCADE)
     horarios_trabalho = models.CharField(max_length=100, blank=True)
@@ -44,6 +57,7 @@ class Grade(models.Model):
 
     def __str__(self):
         return "Grade de " + str(self.aluno)
+    
 class Pergunta(models.Model):
     pergunta = models.CharField(max_length=200)
     resposta = models.TextField()
