@@ -59,7 +59,8 @@
                         <strong>{{ op.nome }}</strong>
                         <p>{{ op.descricao }}</p>
                     </div>
-                    <input type="radio" name="turno" value="{{ op.valor }}">
+                    <input type="radio" name="turno" value="{{ op.valor }}"
+                        {% if form.turno.value == op.valor %}checked{% endif %}>
                 </label>
                 {% endfor %}
             </div>

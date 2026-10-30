@@ -311,8 +311,9 @@ def questionario(request):
         'opcoes_turno': OPCOES_TURNO,
     })
 
+@login_required
 def questionario_modalidade(request):
-    aluno = Aluno.objects.first()
+    aluno = obter_aluno(request)
     rotina = RotinaPreferencias.objects.filter(aluno=aluno).first()
 
     if request.method == 'POST':
@@ -330,8 +331,9 @@ def questionario_modalidade(request):
         'opcoes_modalidade': OPCOES_MODALIDADE,
     })
 
+@login_required
 def questionario_distribuicao(request):
-    aluno = Aluno.objects.first()
+    aluno = obter_aluno(request)
     rotina = RotinaPreferencias.objects.filter(aluno=aluno).first()
 
     if request.method == 'POST':
@@ -349,8 +351,9 @@ def questionario_distribuicao(request):
         'opcoes_distribuicao': OPCOES_DISTRIBUICAO,
     })
 
+@login_required
 def questionario_janelas(request):
-    aluno = Aluno.objects.first()
+    aluno = obter_aluno(request)
     rotina = RotinaPreferencias.objects.filter(aluno=aluno).first()
 
     if request.method == 'POST':
@@ -368,8 +371,9 @@ def questionario_janelas(request):
         'opcoes_janelas': OPCOES_JANELAS,
     })
 
+@login_required
 def questionario_carga(request):
-    aluno = Aluno.objects.first()
+    aluno = obter_aluno(request)
     rotina = RotinaPreferencias.objects.filter(aluno=aluno).first()
 
     if request.method == 'POST':
