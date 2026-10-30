@@ -1,4 +1,6 @@
-from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render, redirect
+from django.views.decorators.http import require_GET
 from .forms import *
 from .models import Professor, Disciplina, Turma, Aluno, RotinaPreferencias, Grade, Pergunta
 
@@ -75,10 +77,67 @@ def ajuda(request):
     return render(request, 'ajuda.html', {'perguntas': perguntas})
 
 def pre_requisitos(request):
-    disciplinas = Disciplina.objects.prefetch_related('pre_requisitos').all()
+    disciplinas = list(Disciplina.objects.prefetch_related('pre_requisitos').order_by('codigo'))
+    aluno = Aluno.objects.first()
+    concluidas = set(aluno.disciplinas_cursadas.values_list('id', flat=True)) if aluno else set()
+
+    # Organiza as disciplinas por nível de dependência sem pressupor uma grade fixa.
+    niveis = {}
+    pendentes = {disciplina.id: disciplina for disciplina in disciplinas}
+    while pendentes:
+        prontos = [
+            disciplina for disciplina in pendentes.values()
+            if all(pre.id in niveis for pre in disciplina.pre_requisitos.all())
+        ]
+        if not prontos:  # Evita perder disciplinas caso existam dependências cíclicas.
+            prontos = list(pendentes.values())
+        for disciplina in prontos:
+            pre_requisitos = list(disciplina.pre_requisitos.all())
+            niveis[disciplina.id] = max(
+                (niveis.get(pre.id, -1) + 1 for pre in pre_requisitos), default=0
+            )
+            del pendentes[disciplina.id]
+
+    trilhas_por_nivel = {}
+    for disciplina in disciplinas:
+        pre_ids = set(disciplina.pre_requisitos.values_list('id', flat=True))
+        if disciplina.id in concluidas:
+            status = 'concluida'
+        elif pre_ids.issubset(concluidas):
+            status = 'disponivel'
+        else:
+            status = 'bloqueada'
+        nivel = niveis[disciplina.id]
+        trilhas_por_nivel.setdefault(nivel, []).append({
+            'id': disciplina.id,
+            'nome': disciplina.nome,
+            'codigo': disciplina.codigo,
+            'status': status,
+        })
+
+    trilhas = [
+        {'nome': f'Etapa {nivel + 1}', 'disciplinas': itens}
+        for nivel, itens in sorted(trilhas_por_nivel.items())
+    ]
 
     return render(request, "pre_requisitos.html", {
-        'disciplinas': disciplinas,
+        'trilhas': trilhas,
+    })
+
+
+@require_GET
+def api_disciplina(request, disciplina_id):
+    disciplina = get_object_or_404(
+        Disciplina.objects.prefetch_related('pre_requisitos'), pk=disciplina_id
+    )
+    return JsonResponse({
+        'id': disciplina.id,
+        'codigo': disciplina.codigo,
+        'nome': disciplina.nome,
+        'pre_requisitos': [
+            {'id': requisito.id, 'codigo': requisito.codigo, 'nome': requisito.nome}
+            for requisito in disciplina.pre_requisitos.all()
+        ],
     })
 
 def resumo_da_grade(request):

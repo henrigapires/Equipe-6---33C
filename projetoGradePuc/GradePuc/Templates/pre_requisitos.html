@@ -64,7 +64,8 @@
                     </div>
 
                     {% for d in trilha.disciplinas %}
-                    <div class="disciplina {{ d.status }}">
+                    <div class="disciplina {{ d.status }}" data-disciplina-id="{{ d.id }}"
+                        role="button" tabindex="0" aria-label="Ver detalhes de {{ d.nome }}">
                         <h3>{{ d.nome }}</h3>
                         <p>{{ d.codigo }}</p>
 
@@ -80,9 +81,6 @@
                         {% endif %}
                     </div>
 
-                    {% if not forloop.last %}
-                        <div class="seta">&darr;</div>
-                    {% endif %}
                     {% endfor %}
 
                 </div>
@@ -122,7 +120,9 @@
 
                 <div class="dica">
                     <h2>Detalhes</h2>
-                    <p>Selecione uma disciplina para consultar informações e seus pré-requisitos.</p>
+                    <p class="detalhes-disciplina" data-api-url="{% url 'api_disciplina' 0 %}">
+                        Selecione uma disciplina para consultar informações e seus pré-requisitos.
+                    </p>
                 </div>
 
             </div>
@@ -141,6 +141,41 @@
         <span> | Planejamento hoje. Mais conquistas amanhã.</span>
         <span class="puc">PUC-Rio</span>
     </footer>
+
+    <script>
+        const detalhe = document.querySelector('.detalhes-disciplina');
+        const apiUrl = detalhe.dataset.apiUrl;
+
+        async function carregarDetalhes(cartao) {
+            document.querySelectorAll('.disciplina[aria-pressed]').forEach((item) => {
+                item.removeAttribute('aria-pressed');
+            });
+            cartao.setAttribute('aria-pressed', 'true');
+            detalhe.textContent = 'Carregando detalhes…';
+
+            try {
+                const resposta = await fetch(apiUrl.replace('/0/', `/${cartao.dataset.disciplinaId}/`));
+                if (!resposta.ok) throw new Error('Não foi possível carregar os detalhes.');
+                const disciplina = await resposta.json();
+                const requisitos = disciplina.pre_requisitos.length
+                    ? disciplina.pre_requisitos.map((item) => `${item.codigo} — ${item.nome}`).join(', ')
+                    : 'Nenhum';
+                detalhe.textContent = `Pré-requisitos de ${disciplina.codigo}: ${requisitos}.`;
+            } catch (erro) {
+                detalhe.textContent = 'Não foi possível carregar os detalhes. Tente novamente.';
+            }
+        }
+
+        document.querySelectorAll('.disciplina[data-disciplina-id]').forEach((cartao) => {
+            cartao.addEventListener('click', () => carregarDetalhes(cartao));
+            cartao.addEventListener('keydown', (evento) => {
+                if (evento.key === 'Enter' || evento.key === ' ') {
+                    evento.preventDefault();
+                    carregarDetalhes(cartao);
+                }
+            });
+        });
+    </script>
 
 </body>
 </html>
