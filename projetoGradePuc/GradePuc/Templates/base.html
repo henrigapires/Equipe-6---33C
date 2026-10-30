@@ -1,0 +1,57 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}grade.puc{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'base.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    {% with atual=request.resolver_match.url_name %}
+    <header class="site-header">
+        <a href="{% url 'resumo_da_grade' %}" class="site-header__logo">
+            <img src="{% static 'logo_grade_puc_recortado.png' %}" alt="grade.puc - Simulador de Grade PUC-Rio">
+        </a>
+
+        <nav class="site-header__nav" aria-label="Navegação principal">
+            <a href="{% url 'resumo_da_grade' %}"
+                class="site-header__link{% if atual == 'resumo_da_grade' or atual == 'eletivas' or atual == 'pre_requisitos' %} ativo{% endif %}"
+                {% if atual == 'resumo_da_grade' or atual == 'eletivas' or atual == 'pre_requisitos' %}aria-current="page"{% endif %}>Minha grade</a>
+            <a href="{% url 'grades_sugeridas' %}"
+                class="site-header__link{% if atual == 'grades_sugeridas' %} ativo{% endif %}"
+                {% if atual == 'grades_sugeridas' %}aria-current="page"{% endif %}>Grades sugeridas</a>
+            <a href="{% url 'questionario' %}"
+                class="site-header__link{% if atual == 'questionario' or atual == 'questionario_modalidade' or atual == 'questionario_distribuicao' or atual == 'questionario_janelas' or atual == 'questionario_carga' %} ativo{% endif %}"
+                {% if atual == 'questionario' or atual == 'questionario_modalidade' or atual == 'questionario_distribuicao' or atual == 'questionario_janelas' or atual == 'questionario_carga' %}aria-current="page"{% endif %}>Questionário</a>
+            <a href="{% url 'ajuda' %}"
+                class="site-header__link{% if atual == 'ajuda' %} ativo{% endif %}"
+                {% if atual == 'ajuda' %}aria-current="page"{% endif %}>Ajuda</a>
+        </nav>
+
+        <div class="site-header__usuario">
+            <span class="site-header__ola">Olá, {{ user.first_name|default:user.username }}</span>
+            <form action="{% url 'logout' %}" method="post" class="site-header__sair">
+                {% csrf_token %}
+                <button type="submit" class="btn-sair">Sair</button>
+            </form>
+        </div>
+    </header>
+    {% endwith %}
+
+    <div class="site-conteudo">
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer class="site-footer">
+        <span class="site-footer__marca">grade.puc</span>
+        <span class="site-footer__frase">Planejamento hoje. Mais conquistas amanhã.</span>
+        <span class="site-footer__marca">PUC-Rio</span>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

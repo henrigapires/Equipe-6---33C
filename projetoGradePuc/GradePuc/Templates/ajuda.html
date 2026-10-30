@@ -1,35 +1,13 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ajuda - grade.puc</title>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;700&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'ajuda.css' %}">
-</head>
-<body>
 
-    <div class="navbar"> 
-        <div class="logo">
-            <img src="{% static 'logo.png' %}" width="120px">
-        </div>
-        
-        <nav>
-          <ul>
-            <li><a href="/resumodagrade/">Minha grade</a></li>
-            <li><a href="/grades-sugeridas/">Grades sugeridas</a></li>
-            <li><a href="/questionario/">Questionário</a></li>
-            <li><a href="/ajuda/" class="ativo">Ajuda</a></li>
-          </ul>
-        </nav>
-        
-        <div class="perfil">
-            <div class="bolinha-perfil"></div>
-            <span>Olá, {{ user.first_name|default:user.username }}</span>
-        </div>
-    </div>
+{% block title %}Ajuda - grade.puc{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'ajuda.css' %}">
+{% endblock %}
+
+{% block content %}
     <div class="conteudo">
         <h1 class="titulo-cor">Ajuda</h1>
         <p class="subtitulo">Respostas rápidas para planejar sua grade com tranquilidade.</p>
@@ -47,14 +25,7 @@
 
         </div>
 
-        <button type="button" class="botao-voltar" onclick="window.location.href='/resumodagrade/'">Voltar para minha grade</button>
+        {% url 'resumo_da_grade' as url_minha_grade %}
+        <button type="button" class="botao-voltar" onclick="window.location.href='{{ url_minha_grade }}'">Voltar para minha grade</button>
     </div>
-
-    <div class="rodape">
-        <img src="{% static 'logo.png' %}" width="80px">
-        <span class="texto-rodape">Planejamento hoje. Mais conquistas amanhã.</span>
-        <span class="texto-rodape">PUC-Rio</span>
-    </div>
-
-</body>
-</html>
+{% endblock %}

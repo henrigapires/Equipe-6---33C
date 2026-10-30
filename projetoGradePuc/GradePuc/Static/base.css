@@ -1,0 +1,215 @@
+/* Identidade visual grade.puc v1 */
+:root {
+    --cor-fundo: #F1ECE4;
+    --cor-superficie: #FBF8F3;
+    --cor-tinta: #2A211B;
+    --cor-tinta-secundaria: #6E5F52;
+    --cor-terracota: #9C4526;
+    --cor-musgo: #5F6B3F;
+    --cor-ocre: #7A5A1A;
+    --cor-barro: #8B3A30;
+    --cor-borda: #E6DCD3;
+
+    --fonte-interface: 'Fredoka', sans-serif;
+    --fonte-texto: 'Nunito', sans-serif;
+    --fonte-dados: 'IBM Plex Mono', monospace;
+}
+
+/* Estrutura da página: o rodapé fica sempre no fim */
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.site-conteudo {
+    flex: 1 0 auto;
+}
+
+/* Header */
+.site-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 18px 40px;
+    margin: 0;
+    background-color: var(--cor-superficie);
+    border-bottom: 1px solid var(--cor-borda);
+    font-family: var(--fonte-interface);
+    box-sizing: border-box;
+}
+
+.site-header .site-header__logo {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0;
+    border-radius: 4px;
+}
+
+.site-header .site-header__logo img {
+    display: block;
+    height: 52px;
+    width: auto;
+    /* clareia o fundo creme do PNG até virar branco e o multiply
+       faz esse branco sumir sobre a Superfície (sem "caixa" em volta) */
+    filter: brightness(1.07);
+    mix-blend-mode: multiply;
+}
+
+.site-header .site-header__nav {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 32px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.site-header .site-header__link {
+    font-family: var(--fonte-interface);
+    font-weight: 500;
+    font-size: 16px;
+    color: var(--cor-tinta);
+    text-decoration: none;
+    white-space: nowrap;
+    padding: 6px 0 4px;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s ease;
+}
+
+.site-header .site-header__link:hover,
+.site-header .site-header__link:focus-visible {
+    color: var(--cor-terracota);
+}
+
+.site-header .site-header__link.ativo {
+    color: var(--cor-terracota);
+    border-bottom-color: var(--cor-terracota);
+}
+
+.site-header .site-header__usuario {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.site-header .site-header__ola {
+    font-family: var(--fonte-interface);
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--cor-tinta);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+}
+
+.site-header .site-header__sair {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.site-header .btn-sair {
+    font-family: var(--fonte-interface);
+    font-weight: 500;
+    font-size: 15px;
+    line-height: 1.2;
+    color: var(--cor-terracota);
+    background-color: transparent;
+    border: 1px solid var(--cor-terracota);
+    border-radius: 8px;
+    padding: 6px 16px;
+    margin: 0;
+    width: auto;
+    height: auto;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.site-header .btn-sair:hover {
+    background-color: var(--cor-terracota);
+    color: var(--cor-superficie);
+}
+
+.site-header .site-header__logo:focus-visible,
+.site-header .site-header__link:focus-visible,
+.site-header .btn-sair:focus-visible {
+    outline: 2px solid var(--cor-terracota);
+    outline-offset: 3px;
+}
+
+/* Footer */
+.site-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    padding: 18px 40px;
+    margin: 0;
+    background-color: var(--cor-superficie);
+    border-top: 1px solid var(--cor-borda);
+    box-sizing: border-box;
+}
+
+.site-footer .site-footer__marca {
+    font-family: var(--fonte-interface);
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--cor-tinta);
+}
+
+.site-footer .site-footer__frase {
+    font-family: var(--fonte-texto);
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--cor-tinta-secundaria);
+}
+
+/* Telas menores */
+@media (max-width: 768px) {
+    .site-header {
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        padding: 17px 16px;
+    }
+
+    .site-header .site-header__logo img {
+        height: 40px;
+    }
+
+    .site-header .site-header__usuario {
+        flex: 1 1 0;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .site-header .site-header__ola {
+        max-width: 140px;
+    }
+
+    .site-header .site-header__nav {
+        order: 3;
+        flex: 1 0 100%;
+        gap: 4px 20px;
+    }
+
+    .site-footer {
+        flex-direction: column;
+        text-align: center;
+        gap: 4px;
+        padding: 16px;
+    }
+}
