@@ -9,37 +9,6 @@ body {
     min-width: 320px;
 }
 
-.navbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 40px;
-    border-bottom: 1px solid #d3c9c1;
-    background-color: #f7ede4;
-}
-
-.logo, .perfil {
-    display: flex;
-    align-items: center;
-    width: 200px;
-}
-
-.perfil {
-    justify-content: flex-end;
-    gap: 10px;
-    font-weight: bold;
-}
-
-.bolinha-perfil {
-    width: 35px; height: 35px;
-    border: 2px solid #9c4b2f;
-    border-radius: 50%;
-}
-
-nav { flex: 1; text-align: center; }
-nav ul { list-style-type: none; margin: 0; padding: 0; }
-nav ul li { display: inline-block; margin-right: 30px; }
-
 a { 
     text-decoration: none; 
     color: rgb(83, 74, 71); 
@@ -49,28 +18,6 @@ a {
 
 a:hover {
     color: #9c4b2f;
-}
-
-.ativo {
-    color: #9c4b2f;
-    border-bottom: 2px solid #9c4b2f;
-    padding-bottom: 5px;
-}
-
-.btn-sair {
-    background-color: transparent;
-    border: 1px solid #9c4b2f;
-    color: #9c4b2f;
-    font-weight: bold;
-    padding: 8px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    margin-left: 15px;
-    transition: all 0.3s ease;
-}
-
-.btn-sair:hover {
-    background-color: #e6dcd3;
 }
 
 .conteudo-centro {
@@ -259,57 +206,12 @@ form {
 }
 
 @media (max-width: 900px) {
-    .navbar {
-        padding: 16px 24px;
-    }
-
-    .logo,
-    .perfil {
-        width: auto;
-    }
-
-    nav ul li {
-        margin: 0 10px;
-    }
-
     .conteudo-centro {
         padding: 32px 24px;
     }
 }
 
 @media (max-width: 640px) {
-    .navbar {
-        flex-wrap: wrap;
-        justify-content: space-between;
-        gap: 14px;
-        padding: 14px 18px;
-    }
-
-    .logo img {
-        width: 120px;
-        height: auto;
-    }
-
-    nav {
-        order: 3;
-        flex-basis: 100%;
-    }
-
-    nav ul {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 8px 18px;
-    }
-
-    nav ul li {
-        margin: 0;
-    }
-
-    .perfil {
-        font-size: 14px;
-    }
-
     .conteudo-centro {
         align-items: stretch;
         padding: 26px 18px;
@@ -327,10 +229,6 @@ form {
 
     form {
         width: 100%;
-    }
-
-    .navbar form {
-        width: auto;
     }
 
     .titulo-pergunta {
@@ -363,10 +261,6 @@ form {
 }
 
 @media (max-width: 420px) {
-    .navbar {
-        padding: 12px;
-    }
-
     .conteudo-centro {
         padding: 22px 14px;
     }
