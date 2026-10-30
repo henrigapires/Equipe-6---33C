@@ -25,6 +25,7 @@
 
         </div>
 
-        <button type="button" class="botao-voltar" onclick="window.location.href='{% url 'resumo_da_grade' %}'">Voltar para minha grade</button>
+        {% url 'resumo_da_grade' as url_minha_grade %}
+        <button type="button" class="botao-voltar" onclick="window.location.href='{{ url_minha_grade }}'">Voltar para minha grade</button>
     </div>
 {% endblock %}

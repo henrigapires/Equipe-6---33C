@@ -16,8 +16,9 @@
                 <p>Visualize as disciplinas do seu curso e veja quais você já concluiu, pode cursar ou ainda precisa liberar.</p>
             </div>
 
+            {% url 'eletivas' as url_eletivas %}
             <button type="button" class="todas-disciplinas"
-                onclick="window.location.href='{% url 'eletivas' %}'">
+                onclick="window.location.href='{{ url_eletivas }}'">
                 Ver todas as disciplinas →
             </button>
         </div>
@@ -104,8 +105,9 @@
 
         </div>
 
+        {% url 'resumo_da_grade' as url_minha_grade %}
         <button type="button" class="voltar"
-            onclick="window.location.href='{% url 'resumo_da_grade' %}'">
+            onclick="window.location.href='{{ url_minha_grade }}'">
             ← &nbsp; Voltar para minha grade
         </button>
 
