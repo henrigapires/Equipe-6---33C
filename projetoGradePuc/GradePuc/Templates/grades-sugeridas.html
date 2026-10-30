@@ -20,7 +20,7 @@
     <a href="" class="link-menu">Questionário</a>
     <a href="" class="link-menu">Ajuda</a>
   </nav>
-  <span class="usuario">Olá, Maria</span>
+  <span class="usuario">Olá, {{ user.first_name|default:user.username }}</span>
 </div>
 
 <div class="conteudo">

@@ -28,7 +28,7 @@
 
         <div class="perfil">
             <span>●</span>
-            <span>Olá, Maria</span>
+            <span>Olá, {{ user.first_name|default:user.username }}</span>
         </div>
 
     </div>

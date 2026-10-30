@@ -20,10 +20,16 @@ def obter_aluno(request):
 
 def create_user(request):
     if request.method == 'POST':
+        nome = request.POST.get('nome', '').strip()
         matricula = request.POST.get('matricula', '').strip()
         email = request.POST.get('email', '').strip()
         senha = request.POST.get('password', '')
         confirmar_senha = request.POST.get('confirmar_senha', '')
+
+        if not nome:
+            return render(request, 'cadastro.html', {
+                'error_msg': 'Preencha o nome.'
+            })
 
         if not matricula or not senha:
             return render(request, 'cadastro.html', {
@@ -44,7 +50,8 @@ def create_user(request):
             usuario = User.objects.create_user(
                 username=matricula,
                 email=email,
-                password=senha
+                password=senha,
+                first_name=nome
             )
 
             aluno = Aluno.objects.filter(

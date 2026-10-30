@@ -23,7 +23,7 @@
         </nav>
         <div class="perfil">
             <div class="bolinha-perfil"></div>
-            <span>Olá, Maria</span>
+            <span>Olá, {{ user.first_name|default:user.username }}</span>
         </div>
         <form action="{% url 'logout' %}" method="post">
             {% csrf_token %}
