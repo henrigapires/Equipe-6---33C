@@ -127,7 +127,7 @@ nav a:hover {
 }
 
 .trilha {
-    width: 33.33%;
+    flex: 1 1 0;
     min-width: 0;
     background-color: #faf7f0;
     border: 1px solid #ded6cb;
@@ -333,6 +333,19 @@ nav a:hover {
     cursor: pointer;
 }
 
+.disciplina[role="button"] {
+    cursor: pointer;
+}
+
+.disciplina[role="button"]:focus-visible {
+    outline: 3px solid #914b29;
+    outline-offset: 3px;
+}
+
+.disciplina[aria-pressed="true"] {
+    box-shadow: 0 0 0 2px #914b29;
+}
+
 footer {
     margin-top: 35px;
     padding: 22px 45px;
@@ -373,12 +386,17 @@ footer b {
     .lateral {
         width: 100%;
     }
+
+    .trilha {
+        flex: 1 1 0;
+    }
 }
 
 @media (max-width: 700px) {
     .navbar {
         flex-wrap: wrap;
         gap: 15px;
+        padding: 15px 20px;
     }
 
     nav {
@@ -394,6 +412,10 @@ footer b {
         flex-direction: column;
     }
 
+    .todas-disciplinas {
+        white-space: normal;
+    }
+
     .titulo h1 {
         font-size: 28px;
     }
@@ -403,10 +425,53 @@ footer b {
     }
 
     .trilha {
-        width: 100%;
+        flex: 1 1 auto;
     }
 
     footer {
         padding: 20px 25px;
+    }
+}
+
+@media (max-width: 480px) {
+    .conteudo {
+        padding: 22px 16px;
+    }
+
+    .navbar {
+        padding: 14px 16px;
+    }
+
+    .logo img {
+        width: min(180px, 60vw);
+    }
+
+    .perfil {
+        font-size: 13px;
+    }
+
+    nav ul li {
+        margin: 5px 7px;
+    }
+
+    .titulo h1 {
+        font-size: clamp(24px, 8vw, 28px);
+    }
+
+    .disciplina {
+        margin: 12px 9px;
+        padding: 17px 13px;
+    }
+
+    .lateral,
+    .legenda,
+    .dica {
+        min-width: 0;
+    }
+
+    .puc {
+        float: none;
+        display: block;
+        margin-top: 8px;
     }
 }
