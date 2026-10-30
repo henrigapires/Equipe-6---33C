@@ -119,9 +119,6 @@ OPCOES_GRADE = [
 ]
 
 def home(request):
-    if request.user.is_authenticated:
-        return redirect('/questionario/')
-
     if request.method == 'POST':
         matricula = request.POST.get('matricula', '').strip()
         senha = request.POST.get('password', '')
