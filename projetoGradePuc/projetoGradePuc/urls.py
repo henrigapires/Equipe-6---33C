@@ -26,5 +26,9 @@ urlpatterns = [
     path('resumodagrade/', resumo_da_grade),
     path('eletivas/', eletiva),
     path('questionario/', questionario, name='questionario'),
+    path('questionario/modalidade/', questionario_modalidade, name='questionario_modalidade'),
+    path('questionario/distribuicao/', questionario_distribuicao, name='questionario_distribuicao'),
+    path('questionario/janelas/', questionario_janelas, name='questionario_janelas'),
+    path('questionario/carga/', questionario_carga, name='questionario_carga'),
     path('grades-sugeridas/', gradessugeridas),
 ]

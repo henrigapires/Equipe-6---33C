@@ -14,6 +14,25 @@ MODALIDADES = [
     ('hibrido', 'Híbrido'),
 ]
 
+DISTRIBUICOES = [
+    ('equilibrado', 'Equilibrado pela semana'),
+    ('dia_leve', 'Acumular para ter um dia mais leve'),
+    ('dia_livre', 'Acumular para ter um dia livre'),
+    ('tanto_faz', 'Tanto faz'),
+]
+
+JANELAS = [
+    ('sem_janelas', 'Sem janelas'),
+    ('janelas_curtas', 'Aceito janelas curtas'),
+    ('tanto_faz', 'Tanto faz'),
+]
+
+CARGAS = [
+    ('leve', 'Leve'),
+    ('media', 'Média'),
+    ('pesada', 'Pesada'),
+]
+
 
 FILTROS_ELETIVAS = [
     ('todas', 'Todas'),
@@ -28,13 +47,40 @@ class EletivasForm(forms.Form):
     filtro = forms.ChoiceField(choices=FILTROS_ELETIVAS, required=False)
 
 
-class RotinaPreferenciasForm(forms.ModelForm):
+class TurnoForm(forms.ModelForm):
     turno = forms.ChoiceField(choices=TURNOS)
+
+    class Meta:
+        model = RotinaPreferencias
+        fields = ['turno']
+
+class ModalidadeForm(forms.ModelForm):
     modalidade = forms.ChoiceField(choices=MODALIDADES)
 
     class Meta:
         model = RotinaPreferencias
-        fields = ['turno', 'modalidade']
+        fields = ['modalidade']
+
+class DistribuicaoForm(forms.ModelForm):
+    distribuicao_aulas = forms.ChoiceField(choices=DISTRIBUICOES)
+
+    class Meta:
+        model = RotinaPreferencias
+        fields = ['distribuicao_aulas']
+
+class JanelasForm(forms.ModelForm):
+    janelas = forms.ChoiceField(choices=JANELAS)
+
+    class Meta:
+        model = RotinaPreferencias
+        fields = ['janelas']
+
+class CargaForm(forms.ModelForm):
+    carga_disciplinas = forms.ChoiceField(choices=CARGAS)
+
+    class Meta:
+        model = RotinaPreferencias
+        fields = ['carga_disciplinas']
 
 class TelaInicialForm(forms.Form):
     usuario = forms.CharField(

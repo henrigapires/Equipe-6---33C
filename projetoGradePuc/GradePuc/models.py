@@ -34,6 +34,8 @@ class RotinaPreferencias(models.Model):
     distribuicao_aulas = models.CharField(max_length=100, blank=True)
     turno = models.CharField(max_length=20)
     modalidade = models.CharField(max_length=20)
+    janelas = models.CharField(max_length=20, blank=True)
+    carga_disciplinas = models.CharField(max_length=20, blank=True)
 
     def __str__(self):
         return "Preferências de " + str(self.aluno)
