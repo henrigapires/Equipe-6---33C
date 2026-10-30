@@ -61,31 +61,9 @@ def create_user(request):
                     senha=''
                 )
 
-        login(request, usuario)
         return redirect('home')
 
     return render(request, 'cadastro.html')
-
-def login_user(request):
-    if request.method == 'POST':
-        matricula = request.POST.get('matricula', '').strip()
-        senha = request.POST.get('password', '')
-
-        usuario = authenticate(
-            request,
-            username=matricula,
-            password=senha
-        )
-
-        if usuario is not None:
-            login(request, usuario)
-            return redirect('home')
-
-        return render(request, 'login.html', {
-            'error_msg': 'Matrícula ou senha incorreta.'
-        })
-
-    return render(request, 'login.html')
 
 @login_required
 def logout_user(request):
