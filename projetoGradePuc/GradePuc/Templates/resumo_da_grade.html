@@ -16,9 +16,9 @@
 
         <nav class="menu">
             <a href="{% url 'resumo_da_grade' %}" class="ativo">Minha grade</a>
-            <a href="grades-sugeridas.html">Grades sugeridas</a>
-            <a href="questionario.html">Questionário</a>
-            <a href="ajuda.html">Ajuda</a>
+            <a href="{% url 'grades_sugeridas' %}">Grades sugeridas</a>
+            <a href="{% url 'questionario' %}">Questionário</a>
+            <a href="{% url 'ajuda' %}">Ajuda</a>
         </nav>
 
         <div class="perfil">

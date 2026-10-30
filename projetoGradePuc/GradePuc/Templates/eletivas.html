@@ -15,10 +15,10 @@
     <img src="{% static 'logo.png' %}" width="60px">
   </div>
   <nav>
-    <a href="/resumodagrade/" class="link-menu">Minha grade</a>
-    <a href="/grades-sugeridas/" class="link-menu">Grades sugeridas</a>
-    <a href="/questionario/" class="link-menu">Questionário</a>
-    <a href="/ajuda/" class="link-menu">Ajuda</a>
+    <a href="{% url 'resumo_da_grade' %}" class="link-menu">Minha grade</a>
+    <a href="{% url 'grades_sugeridas' %}" class="link-menu">Grades sugeridas</a>
+    <a href="{% url 'questionario' %}" class="link-menu">Questionário</a>
+    <a href="{% url 'ajuda' %}" class="link-menu">Ajuda</a>
   </nav>
   <span class="usuario">Olá, {{ user.first_name|default:user.username }}</span>
 </div>

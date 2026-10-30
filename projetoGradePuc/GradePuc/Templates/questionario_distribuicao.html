@@ -15,10 +15,10 @@
         </div>
         <nav>
           <ul>
-            <li><a href="resumo_da_grade.html">Minha grade</a></li>
-            <li><a href="grades-sugeridas.html">Grades sugeridas</a></li>
-            <li><a href="questionario.html" class="ativo">Questionário</a></li>
-            <li><a href="ajuda.html">Ajuda</a></li>
+            <li><a href="{% url 'resumo_da_grade' %}">Minha grade</a></li>
+            <li><a href="{% url 'grades_sugeridas' %}">Grades sugeridas</a></li>
+            <li><a href="{% url 'questionario' %}" class="ativo">Questionário</a></li>
+            <li><a href="{% url 'ajuda' %}">Ajuda</a></li>
           </ul>
         </nav>
         <div class="perfil">
