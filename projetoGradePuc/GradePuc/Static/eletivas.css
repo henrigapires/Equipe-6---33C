@@ -15,33 +15,6 @@ h1, h3 {
   margin: 0;
 }
 
-.navbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 40px;
-  background-color: #faf7f1;
-  border-bottom: 1px solid #d8cec2;
-}
-
-nav {
-  display: flex;
-  gap: 30px;
-}
-
-.link-menu {
-  color: #5b4a3d;
-  font-weight: bold;
-}
-
-.ativo {
-  color: #9c4526;
-}
-
-.usuario {
-  font-weight: bold;
-}
-
 .conteudo {
   display: flex;
   justify-content: space-between;
@@ -160,19 +133,6 @@ h1 {
   color: #4a3b30;
 }
 
-footer {
-  display: flex;
-  justify-content: space-between;
-  padding: 16px 40px;
-  background-color: #faf7f1;
-  border-top: 1px solid #d8cec2;
-  color: #7a6a5c;
-}
-
-footer b {
-  color: #9c4526;
-}
-
 .busca button {
   padding: 8px 16px;
   border: 1px solid #9c4526;
@@ -187,18 +147,6 @@ footer b {
 
 /* TABLETS */
 @media (max-width: 768px) {
-
-    .navbar {
-        padding: 15px 20px;
-        flex-wrap: wrap;
-        gap: 15px;
-    }
-
-    nav {
-        gap: 15px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
 
     .conteudo {
         padding: 25px 20px;
@@ -233,33 +181,10 @@ footer b {
         gap: 15px;
         flex-wrap: wrap;
     }
-
-    footer {
-        padding: 16px 20px;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
 }
 
 /* CELULARES */
 @media (max-width: 480px) {
-
-    .navbar {
-        flex-direction: column;
-        padding: 15px;
-        gap: 12px;
-    }
-
-    nav {
-        width: 100%;
-        flex-direction: column;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .usuario {
-        margin-top: 5px;
-    }
 
     .conteudo {
         flex-direction: column;
@@ -334,13 +259,5 @@ footer b {
 
     .aviso p {
         line-height: 1.5;
-    }
-
-    footer {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        padding: 18px 15px;
-        gap: 10px;
     }
 }

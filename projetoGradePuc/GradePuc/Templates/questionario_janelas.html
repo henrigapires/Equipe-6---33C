@@ -1,37 +1,13 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Questionário - grade.puc</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'questionario_janelas.css' %}">
-</head>
-<body>
 
-    <div class="navbar">
-        <div class="logo">
-            <img src="{% static 'logo.png' %}" width="120px">
-        </div>
-        <nav>
-          <ul>
-            <li><a href="{% url 'resumo_da_grade' %}">Minha grade</a></li>
-            <li><a href="{% url 'grades_sugeridas' %}">Grades sugeridas</a></li>
-            <li><a href="{% url 'questionario' %}" class="ativo">Questionário</a></li>
-            <li><a href="{% url 'ajuda' %}">Ajuda</a></li>
-          </ul>
-        </nav>
-        <div class="perfil">
-            <div class="bolinha-perfil"></div>
-            <span>Olá, {{ user.first_name|default:user.username }}</span>
-        </div>
-        <form action="{% url 'logout' %}" method="post">
-            {% csrf_token %}
-            <button type="submit" class="btn-sair">Sair</button>
-        </form>
-    </div>
+{% block title %}Questionário - grade.puc{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'questionario_janelas.css' %}">
+{% endblock %}
+
+{% block content %}
     <div class="conteudo-centro">
 
         <div class="cabecalho-questionario">
@@ -75,5 +51,4 @@
             </div>
         </form>
     </div>
-</body>
-</html>
+{% endblock %}
