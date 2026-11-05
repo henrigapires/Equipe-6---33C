@@ -11,6 +11,9 @@ class Professor(models.Model):
 class Disciplina(models.Model):
     codigo = models.CharField(max_length=20)
     nome = models.CharField(max_length=100)
+    creditos = models.IntegerField(default=0)
+    departamento = models.CharField(max_length=10, blank=True)
+
     pre_requisitos = models.ManyToManyField("self", symmetrical=False, blank=True)
 
     def __str__(self):
@@ -19,12 +22,15 @@ class Disciplina(models.Model):
 class Turma(models.Model):
     disciplina = models.ForeignKey(Disciplina, on_delete=models.CASCADE)
     professor = models.ForeignKey(Professor, on_delete=models.CASCADE)
-    dias_horarios = models.CharField(max_length=100)
-    vagas = models.IntegerField()
-    sala = models.CharField(max_length=20)
+    codigo_turma = models.CharField(max_length=10)
+    destino = models.CharField(max_length=10, blank=True)
+    turno = models.CharField(max_length=5, blank=True)
+    dias_horarios = models.CharField(max_length=300, blank=True)
+    vagas = models.IntegerField(default=0)
+    sala = models.CharField(max_length=50, blank=True)
 
     def __str__(self):
-        return str(self.disciplina) + " - " + self.dias_horarios
+        return str(self.disciplina) + " - " + self.codigo_turma
     
 class Aluno(models.Model):
     usuario = models.OneToOneField(
