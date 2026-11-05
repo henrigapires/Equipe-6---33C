@@ -15,10 +15,10 @@
     <img src="{% static 'logo.png' %}" width="60px">
   </div>
   <nav>
-    <a href="" class="link-menu">Minha grade</a>
-    <a href="" class="link-menu ativo">Grades sugeridas</a>
-    <a href="" class="link-menu">Questionário</a>
-    <a href="" class="link-menu">Ajuda</a>
+    <a href="{% url 'resumo_da_grade' %}" class="link-menu">Minha grade</a>
+    <a href="{% url 'grades_sugeridas' %}" class="link-menu ativo">Grades sugeridas</a>
+    <a href="{% url 'questionario' %}" class="link-menu">Questionário</a>
+    <a href="{% url 'ajuda' %}" class="link-menu">Ajuda</a>
   </nav>
   <span class="usuario">Olá, {{ user.first_name|default:user.username }}</span>
 </div>
@@ -28,7 +28,7 @@
     <h1>Grades sugeridas</h1>
     <p class="subtitulo">Com base nas suas preferências, geramos sugestões de grade que podem funcionar para você.</p>
   </div>
-  <a href="/questionario/" class="botao-borda">Refazer questionário</a>
+  <a href="{% url 'questionario' %}" class="botao-borda">Refazer questionário</a>
 </div>
 
 <div class="grades">
