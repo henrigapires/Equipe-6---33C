@@ -1,14 +1,5 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
 body {
-    margin: 0;
-    min-height: 100vh;
-    font-family: Arial, sans-serif;
-    background-color: #f5f2eb;
+    background-color: var(--cor-fundo);
 
     display: flex;
     justify-content: center;
@@ -21,10 +12,10 @@ body {
 
     display: flex;
 
-    border-radius: 20px;
+    border-radius: var(--raio-grande);
     overflow: hidden;
 
-    background-color: white;
+    background-color: var(--cor-superficie);
 }
 
 .lado-esquerdo {
@@ -43,8 +34,8 @@ body {
 
 .conteudo-esquerdo {
     position: absolute;
-    bottom: 60px;
-    left: 60px;
+    bottom: var(--espaco-8);
+    left: var(--espaco-8);
 
     color: white;
     z-index: 2;
@@ -53,29 +44,29 @@ body {
 .conteudo-esquerdo h1 {
     font-size: 55px;
     line-height:1.05;
-    margin-bottom: 18px;
+    margin-bottom: var(--espaco-4);
 }
 
 .conteudo-esquerdo h1 span {
-    color: #f4c542;
+    color: var(--cor-destaque);
 }
 
 .conteudo-esquerdo > p {
     font-size: 20px;
     line-height: 1.5;
-    margin-bottom: 35px;
+    margin-bottom: var(--espaco-6);
 }
 
 .vantagens {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: var(--espaco-4);
 }
 
 .vantagem {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: var(--espaco-4);
 }
 
 .vantagem span {
@@ -93,7 +84,7 @@ body {
     justify-content: center;
     align-items: center;
 
-    padding: 50px;
+    padding: var(--espaco-8);
 }
 
 .formulario {
@@ -105,7 +96,7 @@ body {
 }
 
 .logo {
-    margin-bottom: 45px;
+    margin-bottom: var(--espaco-7);
 }
 
 
@@ -117,7 +108,7 @@ body {
 
 
 .titulo-login {
-    margin-bottom: 35px;
+    margin-bottom: var(--espaco-6);
 }
 
 .titulo-login h1 {
@@ -126,7 +117,7 @@ body {
 }
 
 .titulo-login p {
-    color: #766b66;
+    color: var(--cor-tinta-secundaria);
     font-size: 17px;
 }
 
@@ -139,21 +130,21 @@ form {
     display: flex;
     flex-direction: column;
 
-    margin-bottom: 20px;
+    margin-bottom: var(--espaco-4);
 }
 
 .campo label {
     font-weight: bold;
-    margin: 8px;
+    margin: var(--espaco-2);
 }
 
 .campo input {
     height: 58px;
 
-    border: 1px solid #c8beb6;
-    border-radius: 10px;
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-pequeno);
 
-    padding: 0 18px;
+    padding: 0 var(--espaco-3);
 
     font-size: 16px;
 
@@ -161,24 +152,24 @@ form {
 }
 
 .campo input:focus {
-    border: 2px solid #8f2d05
+    border: 2px solid var(--cor-terracota)
 }
 
 .esqueci-senha {
     align-self: flex-end;
 
-    color: #a52a00;
+    color: var(--cor-terracota);
 
-    margin-bottom: 25px;
+    margin-bottom: var(--espaco-5);
 }
 
 .botao-login {
     height: 58px;
 
     border: none;
-    border-radius: 10px;
+    border-radius: var(--raio-pequeno);
 
-    background-color: #8c2b05;
+    background-color: var(--cor-terracota);
     color: white;
 
     font-size: 18px;
@@ -188,15 +179,15 @@ form {
 }
 
 .botao-login:hover {
-    background-color: #6f2103;
+    background-color: var(--cor-terracota-escura);
 }
 
 .separador {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: var(--espaco-3);
 
-    margin: 25px 0;
+    margin: var(--espaco-5) 0;
 }
 
 
@@ -204,21 +195,21 @@ form {
     flex: 1;
 
     height: 1px;
-    background-color: #d8d0c8;
+    background-color: var(--cor-borda);
 }
 
 
 .separador span {
-    color: #756b65;
+    color: var(--cor-tinta-secundaria);
 }
 
 .botao-google {
     height: 58px;
 
-    background-color: white;
+    background-color: var(--cor-superficie);
 
-    border: 1px solid #c8beb6;
-    border-radius: 10px;
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-pequeno);
 
     font-size: 17px;
     font-weight: bold;
@@ -228,31 +219,31 @@ form {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 15px;
+    gap: var(--espaco-3);
 }
 
 
 .google {
     font-size: 25px;
-    color: #4285f4;
+    color: var(--cor-google);
 }
 
 .cadastro {
     text-align: center;
 
-    margin-top: 50px;
+    margin-top: var(--espaco-8);
 
-    color: #665b55;
+    color: var(--cor-tinta-secundaria);
 }
 
 
 .cadastro a {
-    color: #a52a00;
+    color: var(--cor-terracota);
 }
 
 @media (max-width: 850px) {
     body {
-        padding: 10px 0;
+        padding: var(--espaco-3) 0;
     }
 
     .pagina-login {
@@ -269,13 +260,13 @@ form {
     .conteudo-esquerdo {
         position: absolute;
         bottom: 15px;
-        left: 20px;
-        right: 20px;
+        left: var(--espaco-5);
+        right: var(--espaco-5);
     }
 
     .conteudo-esquerdo h1 {
         font-size: 22px;
-        margin-bottom: 5px;
+        margin-bottom: var(--espaco-1);
     }
 
     .conteudo-esquerdo > p {
@@ -288,7 +279,7 @@ form {
     }
 
     .lado-direito {
-        padding: 25px 20px;
+        padding: var(--espaco-5);
     }
 
     .titulo-login h1 {

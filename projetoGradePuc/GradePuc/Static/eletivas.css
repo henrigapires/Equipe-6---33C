@@ -1,9 +1,7 @@
 body {
-  margin: 0;
-  background-color: #f2ece3;
-  font-family: 'Nunito', sans-serif;
+  background-color: var(--cor-fundo);
   font-size: 14px;
-  color: #4a3b30;
+  color: var(--cor-tinta);
 }
 
 a {
@@ -11,7 +9,7 @@ a {
 }
 
 h1, h3 {
-  font-family: 'Fredoka', sans-serif;
+  font-family: var(--fonte-interface);
   margin: 0;
 }
 
@@ -19,66 +17,66 @@ h1, h3 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 30px 40px 20px 40px;
+  padding: var(--espaco-5) var(--espaco-7) var(--espaco-4);
 }
 
 h1 {
-  color: #9c4526;
+  color: var(--cor-terracota);
 }
 
 .subtitulo {
-  margin: 4px 0 0 0;
-  color: #7a6a5c;
+  margin: var(--espaco-1) 0 0;
+  color: var(--cor-tinta-secundaria);
 }
 
 .busca {
   display: flex;
-  gap: 10px;
+  gap: var(--espaco-2);
 }
 
 .busca input {
   width: 220px;
-  padding: 8px;
-  border: 1px solid #d8cec2;
+  padding: var(--espaco-2);
+  border: 1px solid var(--cor-borda);
 }
 
 .busca select {
-  padding: 8px;
-  border: 1px solid #9c4526;
-  color: #9c4526;
+  padding: var(--espaco-2);
+  border: 1px solid var(--cor-terracota);
+  color: var(--cor-terracota);
 }
 
 .eletivas {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
-  padding: 0 40px;
+  gap: var(--espaco-5);
+  padding: 0 var(--espaco-7);
 }
 
 .caixa {
   width: 28%;
   flex-grow: 1;
-  background-color: #faf7f1;
-  border: 1px solid #d8cec2;
-  padding: 16px;
+  background-color: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  padding: var(--espaco-4);
 }
 
 .topo-caixa {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: var(--espaco-3);
 }
 
 .etiqueta {
-  background-color: #ecdcbf;
-  color: #7a5a1a;
+  background-color: var(--cor-superficie-aviso);
+  color: var(--cor-ocre);
   font-weight: bold;
   font-size: 12px;
-  padding: 3px 10px;
+  padding: var(--espaco-1) var(--espaco-2);
 }
 
 .tipo {
-  color: #7a6a5c;
+  color: var(--cor-tinta-secundaria);
   font-size: 12px;
 }
 
@@ -87,70 +85,68 @@ h1 {
 }
 
 .codigo {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--fonte-dados);
   font-size: 12px;
-  color: #7a6a5c;
-  margin: 4px 0 0 0;
+  color: var(--cor-tinta-secundaria);
+  margin: var(--espaco-1) 0 0;
 }
 
 .descricao {
-  color: #7a6a5c;
+  color: var(--cor-tinta-secundaria);
   height: 40px;
 }
 
 .info p {
   display: flex;
   justify-content: space-between;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--fonte-dados);
   font-size: 12px;
-  margin: 8px 0;
+  margin: var(--espaco-2) 0;
 }
 
 .botao-borda {
   display: block;
   text-align: center;
-  color: #9c4526;
+  color: var(--cor-terracota);
   font-weight: bold;
-  padding: 8px 16px;
-  border: 1px solid #9c4526;
+  padding: var(--espaco-2) var(--espaco-4);
+  border: 1px solid var(--cor-terracota);
+  border-radius: var(--raio-pequeno);
 }
 
 .aviso {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 24px 40px;
-  padding: 0 16px;
-  background-color: #faf7f1;
-  border: 1px solid #d8cec2;
+  margin: var(--espaco-5) var(--espaco-7);
+  padding: 0 var(--espaco-4);
+  background-color: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
 }
 
 .aviso p {
-  color: #7a6a5c;
+  color: var(--cor-tinta-secundaria);
 }
 
 .aviso b {
-  color: #4a3b30;
+  color: var(--cor-tinta);
 }
 
 .busca button {
-  padding: 8px 16px;
-  border: 1px solid #9c4526;
-  background-color: white;
-  color: #9c4526;
+  padding: var(--espaco-2) var(--espaco-4);
+  border: 1px solid var(--cor-terracota);
+  border-radius: var(--raio-pequeno);
+  background-color: var(--cor-superficie);
+  color: var(--cor-terracota);
   font-weight: bold;
-}
-
-* {
-    box-sizing: border-box;
 }
 
 /* TABLETS */
 @media (max-width: 768px) {
 
     .conteudo {
-        padding: 25px 20px;
-        gap: 20px;
+        padding: var(--espaco-5) var(--espaco-4);
+        gap: var(--espaco-5);
         flex-wrap: wrap;
     }
 
@@ -165,8 +161,8 @@ h1 {
     }
 
     .eletivas {
-        padding: 0 20px;
-        gap: 16px;
+        padding: 0 var(--espaco-4);
+        gap: var(--espaco-4);
     }
 
     .caixa {
@@ -176,9 +172,9 @@ h1 {
     }
 
     .aviso {
-        margin: 24px 20px;
-        padding: 12px 16px;
-        gap: 15px;
+        margin: var(--espaco-5) var(--espaco-4);
+        padding: var(--espaco-3) var(--espaco-4);
+        gap: var(--espaco-4);
         flex-wrap: wrap;
     }
 }
@@ -189,8 +185,8 @@ h1 {
     .conteudo {
         flex-direction: column;
         align-items: stretch;
-        padding: 20px 15px;
-        gap: 18px;
+        padding: var(--espaco-4) var(--espaco-3);
+        gap: var(--espaco-4);
     }
 
     h1 {
@@ -205,7 +201,7 @@ h1 {
     .busca {
         flex-direction: column;
         width: 100%;
-        gap: 10px;
+        gap: var(--espaco-2);
     }
 
     .busca input,
@@ -213,19 +209,19 @@ h1 {
     .busca button {
         width: 100%;
         min-width: 0;
-        padding: 10px;
+        padding: var(--espaco-3);
     }
 
     .eletivas {
         flex-direction: column;
-        padding: 0 15px;
-        gap: 16px;
+        padding: 0 var(--espaco-3);
+        gap: var(--espaco-4);
     }
 
     .caixa {
         width: 100%;
         min-width: 0;
-        padding: 14px;
+        padding: var(--espaco-3);
     }
 
     .caixa h3 {
@@ -234,7 +230,7 @@ h1 {
     }
 
     .info p {
-        gap: 10px;
+        gap: var(--espaco-2);
         flex-wrap: wrap;
         line-height: 1.5;
     }
@@ -252,9 +248,9 @@ h1 {
     .aviso {
         flex-direction: column;
         align-items: stretch;
-        margin: 20px 15px;
-        padding: 14px;
-        gap: 10px;
+        margin: var(--espaco-4) var(--espaco-3);
+        padding: var(--espaco-3);
+        gap: var(--espaco-2);
     }
 
     .aviso p {

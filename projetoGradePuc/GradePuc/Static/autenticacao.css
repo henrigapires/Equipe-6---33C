@@ -1,0 +1,72 @@
+body.auth-page {
+    display: grid;
+    min-height: 100vh;
+    place-content: center;
+    gap: var(--espaco-4);
+    padding: var(--espaco-5);
+    background-color: var(--cor-fundo);
+}
+
+.auth-page h1,
+.auth-page form,
+.auth-page > p {
+    width: min(440px, 100%);
+    margin: 0;
+}
+
+.auth-page h1 {
+    color: var(--cor-terracota);
+    font-size: 30px;
+}
+
+.auth-page form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--espaco-4);
+    padding: var(--espaco-5);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-grande);
+    background-color: var(--cor-superficie);
+    box-shadow: var(--sombra-cartao);
+}
+
+.auth-page form div {
+    display: flex;
+    flex-direction: column;
+    gap: var(--espaco-2);
+}
+
+.auth-page label {
+    color: var(--cor-tinta);
+    font-weight: 700;
+}
+
+.auth-page input {
+    width: 100%;
+    padding: var(--espaco-3);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-pequeno);
+    background-color: var(--cor-superficie);
+}
+
+.auth-page button {
+    padding: var(--espaco-3) var(--espaco-4);
+    border: 0;
+    border-radius: var(--raio-pequeno);
+    background-color: var(--cor-terracota);
+    color: white;
+    font-weight: 700;
+}
+
+.auth-page button:hover {
+    background-color: var(--cor-terracota-escura);
+}
+
+.auth-page a {
+    color: var(--cor-terracota);
+}
+
+.auth-error {
+    margin: 0;
+    color: var(--cor-erro);
+}

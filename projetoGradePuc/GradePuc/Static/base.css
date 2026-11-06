@@ -9,10 +9,37 @@
     --cor-ocre: #7A5A1A;
     --cor-barro: #8B3A30;
     --cor-borda: #E6DCD3;
+    --cor-sucesso: #5F6B3F;
+    --cor-aviso: #7A5A1A;
+    --cor-erro: #8B3A30;
+    --cor-superficie-suave: #F7F2EA;
+    --cor-superficie-aviso: #F3E9D7;
+    --cor-superficie-erro: #F7EEEA;
+    --cor-terracota-escura: #7A361D;
+    --cor-destaque: #F0C75E;
+    --cor-google: #4285F4;
+
+    --espaco-1: 4px;
+    --espaco-2: 8px;
+    --espaco-3: 12px;
+    --espaco-4: 16px;
+    --espaco-5: 24px;
+    --espaco-6: 32px;
+    --espaco-7: 40px;
+    --espaco-8: 48px;
+
+    --raio-pequeno: 8px;
+    --raio-medio: 12px;
+    --raio-grande: 16px;
+    --sombra-cartao: 0 4px 12px rgb(42 33 27 / 8%);
 
     --fonte-interface: 'Fredoka', sans-serif;
     --fonte-texto: 'Nunito', sans-serif;
     --fonte-dados: 'IBM Plex Mono', monospace;
+}
+
+* {
+    box-sizing: border-box;
 }
 
 /* Estrutura da página: o rodapé fica sempre no fim */
@@ -21,6 +48,55 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    background-color: var(--cor-fundo);
+    color: var(--cor-tinta);
+    font-family: var(--fonte-texto);
+    line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+button {
+    font-family: var(--fonte-interface);
+}
+
+button,
+input,
+select,
+textarea {
+    font-size: inherit;
+}
+
+button {
+    padding: var(--espaco-2) var(--espaco-4);
+    border: 1px solid var(--cor-terracota);
+    border-radius: var(--raio-pequeno);
+    background-color: var(--cor-superficie);
+    color: var(--cor-terracota);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+button:hover {
+    background-color: var(--cor-superficie-suave);
+}
+
+input,
+select,
+textarea {
+    border-color: var(--cor-borda);
+    border-radius: var(--raio-pequeno);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--cor-terracota);
+    outline-offset: 3px;
 }
 
 .site-conteudo {
@@ -178,6 +254,171 @@ body {
     color: var(--cor-tinta-secundaria);
 }
 
+/* Estilos compartilhados do questionário */
+.site-conteudo .conteudo-centro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--espaco-7);
+}
+
+.site-conteudo .cabecalho-questionario {
+    color: var(--cor-terracota);
+    text-align: center;
+}
+
+.site-conteudo .cabecalho-questionario p {
+    color: var(--cor-tinta-secundaria);
+    margin-top: var(--espaco-1);
+}
+
+.site-conteudo .barra-cinza {
+    width: 400px;
+    max-width: 100%;
+    height: 10px;
+    margin-top: var(--espaco-2);
+    background-color: var(--cor-borda);
+    border-radius: var(--raio-pequeno);
+}
+
+.site-conteudo .barra-marrom {
+    height: 100%;
+    background-color: var(--cor-terracota);
+    border-radius: inherit;
+}
+
+.site-conteudo .texto-etapa {
+    margin: var(--espaco-1) 0 var(--espaco-6);
+    color: var(--cor-tinta-secundaria);
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.site-conteudo .titulo-pergunta {
+    margin: 0 0 var(--espaco-2);
+    color: var(--cor-terracota);
+    font-size: 34px;
+}
+
+.site-conteudo .subtitulo-pergunta {
+    margin: 0 0 var(--espaco-6);
+    color: var(--cor-tinta-secundaria);
+    font-size: 16px;
+}
+
+.site-conteudo .conteudo-centro form {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+}
+
+.site-conteudo .caixa-opcoes,
+.site-conteudo .botoes-rodape {
+    display: flex;
+    width: 100%;
+    max-width: 750px;
+}
+
+.site-conteudo .caixa-opcoes {
+    flex-direction: column;
+    gap: var(--espaco-4);
+}
+
+.site-conteudo .opcao {
+    display: flex;
+    align-items: center;
+    padding: var(--espaco-5);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-medio);
+    background-color: var(--cor-superficie);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.site-conteudo .opcao:hover:not(:has(input:checked)) {
+    transform: translateY(-2px);
+    box-shadow: var(--sombra-cartao);
+    background-color: var(--cor-superficie-suave);
+}
+
+.site-conteudo .opcao:has(input:checked) {
+    border: 2px solid var(--cor-terracota);
+    background-color: var(--cor-superficie-suave);
+}
+
+.site-conteudo .conteudo-centro .icone {
+    margin-right: var(--espaco-5);
+    font-size: 30px;
+}
+
+.site-conteudo .texto-opcao {
+    flex: 1;
+}
+
+.site-conteudo .texto-opcao strong {
+    color: var(--cor-tinta);
+    font-size: 18px;
+}
+
+.site-conteudo .texto-opcao p {
+    margin: var(--espaco-1) 0 0;
+    color: var(--cor-tinta-secundaria);
+    font-size: 15px;
+}
+
+.site-conteudo .botoes-rodape {
+    justify-content: space-between;
+    margin-top: var(--espaco-6);
+}
+
+.site-conteudo .btn-voltar,
+.site-conteudo .btn-proximo {
+    height: 48px;
+    padding: var(--espaco-3) var(--espaco-5);
+    border: 1px solid var(--cor-terracota);
+    border-radius: var(--raio-pequeno);
+    font-weight: bold;
+}
+
+.site-conteudo .btn-voltar {
+    color: var(--cor-terracota);
+    background-color: transparent;
+}
+
+.site-conteudo .btn-voltar:hover {
+    background-color: var(--cor-borda);
+}
+
+.site-conteudo .lado-direito {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--espaco-2);
+}
+
+.site-conteudo .btn-proximo {
+    color: var(--cor-superficie);
+    background-color: var(--cor-terracota);
+}
+
+.site-conteudo .btn-proximo:hover {
+    background-color: var(--cor-terracota-escura);
+}
+
+.site-conteudo .link-pulei {
+    color: var(--cor-terracota);
+    font-size: 12px;
+    text-decoration: underline;
+}
+
+.site-conteudo .erro {
+    margin: var(--espaco-4) 0 0;
+    color: var(--cor-erro);
+    font-size: 14px;
+    text-align: center;
+}
+
 /* Telas menores */
 @media (max-width: 768px) {
     .site-header {
@@ -211,5 +452,22 @@ body {
         text-align: center;
         gap: 4px;
         padding: 16px;
+    }
+
+    .site-conteudo .conteudo-centro {
+        padding: var(--espaco-5) var(--espaco-4);
+    }
+
+    .site-conteudo .titulo-pergunta {
+        font-size: 26px;
+        text-align: center;
+    }
+
+    .site-conteudo .subtitulo-pergunta {
+        text-align: center;
+    }
+
+    .site-conteudo .opcao {
+        padding: var(--espaco-3) var(--espaco-4);
     }
 }
