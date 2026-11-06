@@ -1,3 +1,15 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar - grade.puc</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'base.css' %}">
+    <link rel="stylesheet" href="{% static 'autenticacao.css' %}">
+</head>
+<body class="auth-page">
 <h1>Entrar no Grade.puc</h1>
 
 <form method="POST">
@@ -15,10 +27,12 @@
 
     <button type="submit">Entrar</button>
 
-    <p style="color: red;">{{ error_msg }}</p>
+    <p class="auth-error">{{ error_msg }}</p>
 </form>
 
 <p>
     Ainda não tem uma conta?
     <a href="{% url 'cadastro' %}">Cadastre-se</a>
 </p>
+</body>
+</html>

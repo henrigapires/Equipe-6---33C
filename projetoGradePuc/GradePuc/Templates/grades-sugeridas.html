@@ -30,7 +30,7 @@
                     <form method="post">
                         {% csrf_token %}
                         <input type="hidden" name="opcao" value="{{ o.numero }}">
-                        <button type="submit" class="botao {{ cor }}" style="border: none; cursor: pointer;">Usar esta grade</button>
+                        <button type="submit" class="botao {{ cor }}">Usar esta grade</button>
                     </form>
                 </div>
             </div>

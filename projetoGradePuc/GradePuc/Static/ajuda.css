@@ -1,7 +1,7 @@
 body {
-    background-color: #f7ede4;
-    font-family: 'Nunito', sans-serif;
-    margin: 0;
+    background-color: var(--cor-fundo);
+    color: var(--cor-tinta);
+    font-family: var(--fonte-texto);
 }
 
 .conteudo {
@@ -10,12 +10,12 @@ body {
     align-items: center;      
     max-width: 1200px;        
     margin: 0 auto;           
-    padding: 60px 20px;
+    padding: var(--espaco-7) var(--espaco-5);
     text-align: center;       
 }
 
 .titulo-cor {
-    color: #9c4b2f;
+    color: var(--cor-terracota);
     margin-bottom: 5px;
 }
 
@@ -24,7 +24,7 @@ h1.titulo-cor {
 }
 
 .subtitulo {
-    color: rgb(83, 74, 71);
+    color: var(--cor-tinta-secundaria);
     font-size: 20px;
     margin-top: 0;
     margin-bottom: 40px;
@@ -32,8 +32,8 @@ h1.titulo-cor {
 
 #caixas-perguntas {
     display: flex;
-    gap: 30px;
-    margin-bottom: 40px;
+    gap: var(--espaco-5);
+    margin-bottom: var(--espaco-7);
     flex-wrap: wrap;
     justify-content: center;
     width: 100%;  
@@ -43,14 +43,14 @@ h1.titulo-cor {
     flex: 1 1 320px; 
     max-width: 380px;
     min-height: 180px;
-    background-color: #fcf9f5;
-    border: 1px solid #e8ddd3;
-    border-radius: 15px;
-    padding: 30px 25px;
+    background-color: var(--cor-superficie);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-grande);
+    padding: var(--espaco-5);
     display: flex;
     flex-direction: column;
     text-align: left;         
-    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    box-shadow: var(--sombra-cartao);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -60,31 +60,31 @@ h1.titulo-cor {
 }
 
 .caixa p {
-    color: rgb(83, 74, 71);
+    color: var(--cor-tinta-secundaria);
     font-size: 16px;
     line-height: 1.5;
 }
 
 .botao-voltar {
-    background-color: #9c4b2f;
+    background-color: var(--cor-terracota);
     color: white;
     font-weight: bold;
     border: none;
-    border-radius: 20px;
-    padding: 16px 40px;
+    border-radius: var(--raio-pequeno);
+    padding: var(--espaco-3) var(--espaco-5);
     cursor: pointer;
-    font-size: 18px;
+    font-size: 16px;
     transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 .botao-voltar:hover {
-    background-color: #7a3a24;
+    background-color: var(--cor-terracota-escura);
     transform: scale(1.05);
 }
 
 @media (max-width: 768px) {
     .conteudo {
-        padding: 25px 15px;
+        padding: var(--espaco-5) var(--espaco-4);
     }
 
     h1.titulo-cor {

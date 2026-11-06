@@ -9,7 +9,11 @@ from .models import Aluno, Disciplina
 
 class PreRequisitosApiTests(TestCase):
 	def setUp(self):
-		self.aluno = Aluno.objects.create(matricula='12345', senha='teste')
+		usuario = User.objects.create_user(username='12345', password='Senha!123')
+		self.aluno = Aluno.objects.create(
+			usuario=usuario, matricula='12345', senha='teste'
+		)
+		self.client.force_login(usuario)
 		self.introducao = Disciplina.objects.create(codigo='ENG100', nome='Introdução')
 		self.calculo = Disciplina.objects.create(codigo='MAT200', nome='Cálculo')
 		self.calculo.pre_requisitos.add(self.introducao)
