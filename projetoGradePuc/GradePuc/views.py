@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from .gerador_grades import gerar_grades
 
 def obter_aluno(request):
     aluno, criado = Aluno.objects.get_or_create(
@@ -400,29 +401,56 @@ def questionario_carga(request):
         'opcoes_carga': OPCOES_CARGA,
     })
 
+
 @login_required
 def gradessugeridas(request):
-    aluno = obter_aluno(request) # provisório, igual ao questionário
-    
+    aluno = obter_aluno(request)
+
+    preferencias = RotinaPreferencias.objects.filter(
+        aluno=aluno
+    ).first()
+
+    if not preferencias or not all([
+        preferencias.turno,
+        preferencias.modalidade,
+        preferencias.distribuicao_aulas,
+        preferencias.janelas,
+        preferencias.carga_disciplinas,
+    ]):
+        return redirect('/questionario/')
+
+    grades = gerar_grades(aluno, preferencias)
+
+    opcoes = [
+        {
+            'numero': str(indice),
+            'titulo': f'Grade sugerida {indice}',
+            'turmas': grade['turmas'],
+            'pontuacao': grade['pontuacao'],
+        }
+        for indice, grade in enumerate(grades, start=1)
+    ]
+
     if request.method == 'POST':
         form = UsarGradeForm(request.POST)
+
         if form.is_valid():
-            numero = form.cleaned_data['opcao']
-            opcao = [o for o in OPCOES_GRADE if o['numero'] == numero][0]
-            
-            grade = Grade.objects.create(aluno=aluno, descricao=opcao['titulo'])
-            grade.turmas.set(
-                Turma.objects.filter(disciplina__codigo__in=opcao['codigos'])
-            )
-            return redirect('/resumodagrade/')
-            
-    opcoes = []
-    for o in OPCOES_GRADE:
-        turmas = Turma.objects.filter(disciplina__codigo__in=o['codigos'])
-        opcoes.append({
-            'numero': o['numero'],
-            'titulo': o['titulo'],
-            'turmas': turmas.select_related('disciplina', 'professor')
-        })
-        
-    return render(request, 'grades-sugeridas.html', {'opcoes': opcoes})
+            numero = int(form.cleaned_data['opcao'])
+
+            if 1 <= numero <= len(opcoes):
+                opcao = opcoes[numero - 1]
+
+                with transaction.atomic():
+                    grade = Grade.objects.create(
+                        aluno=aluno,
+                        descricao=opcao['titulo']
+                    )
+                    grade.turmas.set(
+                        turma.id for turma in opcao['turmas']
+                    )
+
+                return redirect('/resumodagrade/')
+
+    return render(request, 'grades-sugeridas.html', {
+        'opcoes': opcoes,
+    })
