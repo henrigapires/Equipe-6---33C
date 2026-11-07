@@ -1,0 +1,9 @@
+Django==6.1.2
+pandas
+openpyxl
+pdfplumber
+requests
+beautifulsoup4
+
+# Opcional: leitura de PDF escaneado (sem texto) por OCR
+# rapidocr_onnxruntime
