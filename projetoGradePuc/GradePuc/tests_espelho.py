@@ -3,9 +3,15 @@
 Sem internet e sem PDF real: o espelho é simulado com palavras falsas
 (texto + posição), no mesmo formato que o pdfplumber devolve.
 """
+import tempfile
+from io import StringIO
+from pathlib import Path
+
 from django.contrib.auth.models import User
+from django.core.management import call_command
 from django.test import TestCase
 
+from .curriculos import escolher_mais_recentes, interpretar_pagina_curso, interpretar_titulo
 from .espelho import (
 	EspelhoInvalido, EspelhoSemTexto, classificar_situacao, interpretar_paginas,
 )
@@ -354,3 +360,107 @@ class DeducaoDeCurriculoTests(TestCase):
 
 	def test_sem_historico_nao_sugere_nada(self):
 		self.assertEqual(deduzir_curriculos(criar_aluno('4000002')), [])
+
+
+def tabela(linhas, com_extensao=True):
+	cabecalho = '<tr><td>Código</td><td>Nome da Disciplina</td><td>Créditos</td>'
+	cabecalho += '<td>CH Semestral de Extensão</td></tr>' if com_extensao else '</tr>'
+	return '<table class="puc_tabela_padrao_TAG-TABLE ccg_tabela_periodizacao">' + cabecalho + linhas + '</table>'
+
+
+def linha(codigo, nome, creditos, extensao='&nbsp;'):
+	return f'<tr><td><a href="#">{codigo}</a></td><td>{nome}</td><td>{creditos}</td><td>{extensao}</td></tr>'
+
+
+def periodo(texto):
+	return f'<tr><td colspan="4">{texto}</td></tr>'
+
+
+HTML_CURSO = (
+	'<html><body>'
+	'<h4><a name="a"></a> Periodização - Engenharia Teste (Currículo 2023) - <a href="#a">Ênfase em Alfa (ALF)</a></h4>'
+	+ tabela(
+		periodo('1º PERÍODO')
+		+ linha('MAT9161', 'Cálculo Teste', 4) + linha('ENG9010', 'Projeto Teste', 4, '60h')
+		+ periodo('2° PERÍODO') + linha('ENG0561', 'Optativas de Engenharia', 8)
+		+ periodo('PERÍODO LETIVO INDETERMINADO') + linha('ACP0900', 'Atividades Complementares', 10)
+		+ periodo('Total de créditos: 26') + linha('LET9801', 'Observação depois do total', 2)
+	)
+	+ '<h4>Periodização - Engenharia Teste (Currículo 2023) - <a href="#b">Ênfase em Beta (BET)</a></h4>'
+	+ tabela(periodo('1º PERÍODO') + linha('MAT9161', 'Cálculo Teste', 4))
+	+ '<h4>Periodização - Engenharia Teste (Currículo 0 - anterior a 2023)</h4>'
+	+ tabela(periodo('1º PERÍODO') + linha('MAT9001', 'Cálculo Antigo', 4), com_extensao=False)
+	+ '<h4>Periodização - Engenharia Teste (Currículo 2021)</h4>'
+	+ tabela(periodo('1º PERÍODO') + linha('MAT9002', 'Cálculo 2021', 4))
+	+ '<h4>Estrutura do Ciclo Básico</h4>'
+	+ tabela(linha('MAT9003', 'Não é periodização', 4))
+	+ '</body></html>'
+)
+
+
+class LeituraDasPaginasDeCursoTests(TestCase):
+	def test_le_secoes_periodos_grupos_e_ignora_totais(self):
+		secoes, avisos = interpretar_pagina_curso(HTML_CURSO, 'https://exemplo.invalid/eng_teste.html')
+		self.assertEqual(len(secoes), 4)
+		self.assertEqual(avisos, [])
+
+		alfa = secoes[0]
+		self.assertEqual((alfa['curso_nome'], alfa['ano'], alfa['enfase']), ('Engenharia Teste', 2023, 'Alfa (ALF)'))
+		self.assertEqual([i['codigo'] for i in alfa['itens']], ['MAT9161', 'ENG9010', 'ENG0561', 'ACP0900'])
+		self.assertEqual([i['periodo'] for i in alfa['itens']], [1, 1, 2, None])
+		self.assertEqual([i['eh_grupo'] for i in alfa['itens']], [False, False, True, True])
+		self.assertEqual(alfa['itens'][1]['ch_extensao'], '60h')
+		self.assertEqual(alfa['itens'][2]['creditos'], 8)
+
+	def test_fica_so_com_o_ano_mais_recente_e_todas_as_enfases(self):
+		secoes, _ = interpretar_pagina_curso(HTML_CURSO, 'https://exemplo.invalid/eng_teste.html')
+		escolhidas = escolher_mais_recentes(secoes)
+		self.assertEqual([(s['ano'], s['enfase']) for s in escolhidas], [(2023, 'Alfa (ALF)'), (2023, 'Beta (BET)')])
+
+	def test_formatos_de_titulo_do_site(self):
+		casos = {
+			'Periodização – Design – currículo 2023': ('Design', 2023, '', None),
+			'Periodização - Bacharelado em Filosofia - 2023': ('Bacharelado em Filosofia', 2023, '', None),
+			'Periodização - Bacharelado em Filosofia (anterior a 2023)': ('Bacharelado em Filosofia', None, '', 2023),
+			'Periodização - Comunicação Social - Cinema (Entrada de alunos até 2020)': ('Comunicação Social - Cinema', None, '', None),
+			'Periodização - Psicologia - Bacharelado (Currículo 0 - 2023)': ('Psicologia - Bacharelado', 2023, 'Currículo 0', None),
+			'Periodização: Bacharelado em Artes Cênicas (Currículo 2023)': ('Bacharelado em Artes Cênicas', 2023, '', None),
+			'Periodização - Bacharelado em Direito - Ênfase em Penal - diurno (Currículo 2018)': ('Bacharelado em Direito', 2018, 'Penal - diurno', None),
+			'Periodização - Bacharelado em Estudos de Mídia Ênfase Cinema e Audiovisual (Currículo2021)': ('Bacharelado em Estudos de Mídia', 2021, 'Cinema e Audiovisual', None),
+		}
+		for titulo, (curso, ano, enfase, anterior_a) in casos.items():
+			with self.subTest(titulo=titulo):
+				r = interpretar_titulo(titulo)
+				self.assertEqual((r['curso_nome'], r['ano'], r['enfase'], r['anterior_a']), (curso, ano, enfase, anterior_a))
+
+	def test_curso_sem_ano_fica_com_o_primeiro_listado(self):
+		secoes = [
+			{'curso_nome': 'Comunicação Social - Cinema', 'ano': None, 'enfase': '', 'anterior_a': None, 'url': 'u', 'itens': [1]},
+			{'curso_nome': 'Comunicação Social - Cinema', 'ano': None, 'enfase': '', 'anterior_a': None, 'url': 'u', 'itens': [2]},
+		]
+		self.assertEqual(escolher_mais_recentes(secoes), [secoes[0]])
+
+
+class ImportarCurriculosCommandTests(TestCase):
+	def test_importa_do_cache_sem_internet_e_e_idempotente(self):
+		paginas = {
+			'cursos.html': '<div class="puc_layout_area-inicial_esquerda"><a href="eng_computacao.html">Computação</a>'
+			               '<a href="comunicacao.html">Comunicação</a></div>',
+			'eng_computacao.html': '<h4>Periodização - Engenharia de Computação (Currículo 2023)</h4>'
+			                       + tabela(periodo('1º PERÍODO') + linha('INF9009', 'Programação Teste', 4)),
+			'comunicacao.html': '<div class="puc_layout_area-inicial_esquerda"><a href="comunicacao_cinema.html">Cinema</a></div>',
+			'comunicacao_cinema.html': '<h4>Periodização - Comunicação Social - Cinema (Entrada de alunos até 2020)</h4>'
+			                           + tabela(periodo('1º PERÍODO') + linha('COM9001', 'Cinema Teste', 4)),
+		}
+		with tempfile.TemporaryDirectory() as pasta:
+			for nome, html in paginas.items():
+				Path(pasta, nome).write_text(html, encoding='utf-8')
+			for _ in range(2):
+				call_command('importar_curriculos', cache=pasta, stdout=StringIO())
+
+		self.assertEqual(Curriculo.objects.count(), 2)
+		self.assertEqual(DisciplinaCurriculo.objects.count(), 2)
+		computacao = Curriculo.objects.get(curso_nome='Engenharia de Computação')
+		self.assertEqual(computacao.ano, 2023)
+		ligacao = LigacaoHabilitacao.objects.get(curso_sigla='CEG', habilitacao_sigla='BCO', enfase_sigla='')
+		self.assertEqual((ligacao.curriculo, ligacao.origem), (computacao, 'pre_cadastro'))
