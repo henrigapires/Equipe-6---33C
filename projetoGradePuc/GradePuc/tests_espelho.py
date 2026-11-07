@@ -3,10 +3,18 @@
 Sem internet e sem PDF real: o espelho é simulado com palavras falsas
 (texto + posição), no mesmo formato que o pdfplumber devolve.
 """
+from django.contrib.auth.models import User
 from django.test import TestCase
 
 from .espelho import (
 	EspelhoInvalido, EspelhoSemTexto, classificar_situacao, interpretar_paginas,
+)
+from .gerador_grades import gerar_grades
+from .historico import pendentes_do_curriculo, remover_historico, salvar_espelho
+from .ligacao import confirmar_curso, deduzir_curriculos
+from .models import (
+	Aluno, Curriculo, Disciplina, DisciplinaCurriculo, HistoricoDisciplina, LigacaoHabilitacao,
+	Professor, RotinaPreferencias, Turma,
 )
 
 
@@ -143,3 +151,206 @@ class LeituraDoEspelhoTests(TestCase):
 		pagina = {"palavras": [palavra("Espelho", 40, 20)], "texto": "Espelho do Histórico", "altura": 800}
 		with self.assertRaises(EspelhoInvalido):
 			interpretar_paginas([pagina])
+
+
+def criar_aluno(matricula):
+	usuario = User.objects.create_user(username=matricula, password='Senha!123', first_name='Teste')
+	return Aluno.objects.create(usuario=usuario, matricula=matricula, senha='')
+
+
+def disciplina_espelho(codigo, situacao, periodo='20261', grupo='', creditos=4):
+	return {
+		'periodo': periodo, 'codigo': codigo, 'nome': 'DISCIPLINA ' + codigo, 'turma': '3VA',
+		'grau': '' if situacao == 'EA' else '8,0', 'situacao': situacao, 'tipo': 'Obrigatória',
+		'grupo': grupo, 'creditos': creditos,
+	}
+
+
+def dados_espelho(disciplinas, curso='CEG', habilitacao='BCO', enfase='CCB'):
+	return {
+		'matricula': '1234567', 'curso': curso, 'habilitacao': habilitacao, 'enfase': enfase,
+		'ano_curriculo': '2023', 'codigo_curriculo': 'X99', 'cr': '7,25', 'disciplinas': disciplinas,
+	}
+
+
+def criar_curriculo(nome, codigos, enfase='', ano=2023):
+	curriculo = Curriculo.objects.create(
+		curso_nome=nome, ano=ano, enfase=enfase, titulo=nome,
+		url_pagina='https://exemplo.invalid/' + nome.replace(' ', '_'),
+	)
+	for ordem, (codigo, periodo) in enumerate(codigos):
+		DisciplinaCurriculo.objects.create(
+			curriculo=curriculo, codigo=codigo, nome='Disciplina ' + codigo, periodo=periodo,
+			creditos=4, ordem=ordem, eh_grupo=codigo[3] == '0',
+		)
+	return curriculo
+
+
+class SalvarEspelhoTests(TestCase):
+	def setUp(self):
+		self.aluno = criar_aluno('1111111')
+		self.mat_a = Disciplina.objects.create(codigo='MAT9161', nome='Cálculo Teste I')
+		self.mat_b = Disciplina.objects.create(codigo='MAT9161', nome='Cálculo Teste I (cópia)')
+		self.reprovada = Disciplina.objects.create(codigo='ENG9000', nome='Reprovada')
+
+	def salvar_padrao(self):
+		return salvar_espelho(self.aluno, dados_espelho([
+			disciplina_espelho('MAT9181', 'AP', grupo='MAT9161'),
+			disciplina_espelho('INF9009', 'EA', periodo='20262'),
+			disciplina_espelho('ENG9000', 'RF', periodo='20262'),
+		]))
+
+	def cursadas(self):
+		return set(self.aluno.disciplinas_cursadas.values_list('codigo', flat=True))
+
+	def test_cria_historico_e_preenche_o_curso(self):
+		self.salvar_padrao()
+		self.aluno.refresh_from_db()
+		self.assertEqual(self.aluno.historico.count(), 3)
+		self.assertEqual(
+			(self.aluno.curso_sigla, self.aluno.habilitacao_sigla, self.aluno.enfase_sigla), ('CEG', 'BCO', 'CCB')
+		)
+		self.assertEqual(self.aluno.matricula_espelho, '1234567')
+		self.assertIsNotNone(self.aluno.espelho_importado_em)
+
+	def test_cria_disciplina_que_nao_existia(self):
+		self.salvar_padrao()
+		nova = Disciplina.objects.get(codigo='INF9009')
+		self.assertEqual(nova.departamento, 'INF')
+		self.assertEqual(nova.creditos, 4)
+		self.assertEqual(HistoricoDisciplina.objects.get(codigo='INF9009').disciplina, nova)
+
+	def test_cursadas_incluem_em_andamento_e_grupo(self):
+		self.salvar_padrao()
+		self.assertEqual(self.cursadas(), {'MAT9181', 'INF9009', 'MAT9161'})
+		ids = set(self.aluno.disciplinas_cursadas.values_list('id', flat=True))
+		self.assertIn(self.mat_a.id, ids)
+		self.assertIn(self.mat_b.id, ids)
+		self.assertNotIn(self.reprovada.id, ids)
+
+	def test_reenvio_substitui_em_vez_de_duplicar(self):
+		self.salvar_padrao()
+		salvar_espelho(self.aluno, dados_espelho([disciplina_espelho('ENG9000', 'AP')]))
+		self.assertEqual(self.aluno.historico.count(), 1)
+		self.assertEqual(self.cursadas(), {'ENG9000'})
+
+	def test_remover_historico_mantem_cursadas_manuais(self):
+		manual = Disciplina.objects.create(codigo='HIS9001', nome='Marcada à mão')
+		self.aluno.disciplinas_cursadas.add(manual)
+		self.salvar_padrao()
+		remover_historico(self.aluno)
+		self.aluno.refresh_from_db()
+		self.assertEqual(self.aluno.historico.count(), 0)
+		self.assertEqual(self.aluno.curso_sigla, '')
+		self.assertIsNone(self.aluno.espelho_importado_em)
+		self.assertEqual(self.cursadas(), {'HIS9001'})
+
+
+class GradesRespeitamHistoricoTests(TestCase):
+	def test_nao_sugere_cursada_em_andamento_nem_equivalente(self):
+		aluno = criar_aluno('2222222')
+		professor = Professor.objects.create(nome='Professor Teste')
+		horarios = ['SEG 07-09', 'TER 07-09', 'QUA 07-09', 'QUI 07-09', 'SEX 07-09', 'SEG 09-11', 'TER 09-11']
+		codigos = ['MAT9161', 'INF9009', 'MAT9171', 'ADM9001', 'ECO9001', 'HIS9001', 'LET9001']
+		for codigo, horario in zip(codigos, horarios):
+			disciplina = Disciplina.objects.create(codigo=codigo, nome='Disciplina ' + codigo)
+			Turma.objects.create(
+				disciplina=disciplina, professor=professor, codigo_turma='3VA',
+				dias_horarios=horario, vagas=30, sala='L100',
+			)
+		preferencias = RotinaPreferencias.objects.create(
+			aluno=aluno, turno='sem_preferencia', modalidade='hibrido',
+			distribuicao_aulas='tanto_faz', janelas='tanto_faz', carga_disciplinas='leve',
+		)
+
+		salvar_espelho(aluno, dados_espelho([
+			disciplina_espelho('MAT9161', 'AP'),
+			disciplina_espelho('INF9009', 'EA', periodo='20262'),
+			disciplina_espelho('MAT9181', 'AP', grupo='MAT9171'),
+		]))
+
+		grades = gerar_grades(aluno, preferencias)
+		self.assertTrue(grades)
+		sugeridos = {turma.disciplina.codigo for grade in grades for turma in grade['turmas']}
+		self.assertFalse(sugeridos & {'MAT9161', 'INF9009', 'MAT9171'})
+		self.assertTrue(sugeridos <= {'ADM9001', 'ECO9001', 'HIS9001', 'LET9001'})
+
+
+class LigacaoDeSiglasTests(TestCase):
+	def setUp(self):
+		self.computacao = criar_curriculo(
+			'Engenharia de Computação', [('MAT9161', 1), ('INF9009', 1), ('INF9037', 2), ('ELL0900', None)]
+		)
+		self.producao = criar_curriculo(
+			'Engenharia de Produção', [('MAT9161', 1), ('ENG9300', 2)], enfase='Sistemas Produtivos (SPR)'
+		)
+		LigacaoHabilitacao.objects.create(
+			curso_sigla='CEG', habilitacao_sigla='BCO', enfase_sigla='',
+			curriculo=self.computacao, origem='pre_cadastro',
+		)
+
+	def espelho_de_producao(self, codigo='MAT9161'):
+		return dados_espelho([disciplina_espelho(codigo, 'AP')], curso='CTC', habilitacao='BPR', enfase='SPR')
+
+	def ligacao_de_producao(self):
+		return LigacaoHabilitacao.objects.get(curso_sigla='CTC', habilitacao_sigla='BPR', enfase_sigla='SPR')
+
+	def test_pre_cadastro_vale_para_qualquer_enfase(self):
+		for matricula, enfase in [('3000001', 'CCB'), ('3000002', 'XYZ')]:
+			aluno = criar_aluno(matricula)
+			reconhecido = salvar_espelho(aluno, dados_espelho([disciplina_espelho('MAT9161', 'AP')], enfase=enfase))
+			self.assertTrue(reconhecido)
+			self.assertFalse(aluno.precisa_confirmar_curso)
+
+	def test_sigla_desconhecida_cria_pendencia(self):
+		aluno = criar_aluno('3000003')
+		self.assertFalse(salvar_espelho(aluno, self.espelho_de_producao()))
+		self.assertTrue(aluno.precisa_confirmar_curso)
+		self.assertIsNone(self.ligacao_de_producao().curriculo)
+
+	def test_confirmar_curso_resolve_para_o_proximo_aluno(self):
+		primeiro = criar_aluno('3000004')
+		salvar_espelho(primeiro, self.espelho_de_producao('ENG9300'))
+		self.assertTrue(confirmar_curso(primeiro, self.producao))
+		self.assertFalse(primeiro.precisa_confirmar_curso)
+
+		segundo = criar_aluno('3000005')
+		self.assertTrue(salvar_espelho(segundo, self.espelho_de_producao()))
+		ligacao = self.ligacao_de_producao()
+		self.assertEqual((ligacao.curriculo, ligacao.origem, ligacao.confirmado_por), (self.producao, 'aluno', primeiro))
+
+	def test_confirmar_nao_sobrescreve_ligacao_do_admin(self):
+		LigacaoHabilitacao.objects.create(
+			curso_sigla='CTC', habilitacao_sigla='BPR', enfase_sigla='SPR', curriculo=self.producao, origem='admin',
+		)
+		aluno = criar_aluno('3000006')
+		salvar_espelho(aluno, self.espelho_de_producao())
+		self.assertFalse(confirmar_curso(aluno, self.computacao))
+		self.assertEqual(self.ligacao_de_producao().curriculo, self.producao)
+
+	def test_pendentes_do_curriculo(self):
+		aluno = criar_aluno('3000007')
+		salvar_espelho(aluno, dados_espelho([disciplina_espelho('MAT9161', 'AP'), disciplina_espelho('INF9009', 'EA')]))
+		self.assertEqual([i.codigo for i in pendentes_do_curriculo(aluno)], ['INF9037', 'ELL0900'])
+
+
+class DeducaoDeCurriculoTests(TestCase):
+	def test_codigos_raros_pesam_mais(self):
+		comum = [('MAT9161', 1), ('MAT9162', 1), ('FIS9001', 1)]
+		computacao = criar_curriculo('Engenharia de Computação', comum + [('INF9009', 2), ('INF9037', 2)])
+		criar_curriculo('Engenharia de Produção', comum + [('ENG9300', 2)])
+		criar_curriculo('Engenharia Civil', comum + [('CIV9001', 2)])
+
+		aluno = criar_aluno('4000001')
+		salvar_espelho(aluno, dados_espelho([
+			disciplina_espelho('MAT9161', 'AP'), disciplina_espelho('MAT9162', 'AP'),
+			disciplina_espelho('FIS9001', 'AP'), disciplina_espelho('INF9009', 'EA'),
+		], curso='ZZZ', habilitacao='ZZZ', enfase=''))
+
+		sugestoes = deduzir_curriculos(aluno)
+		self.assertEqual(sugestoes[0]['curriculo'], computacao)
+		self.assertTrue(sugestoes[0]['forte'])
+		self.assertGreater(sugestoes[0]['pontos'], sugestoes[1]['pontos'])
+
+	def test_sem_historico_nao_sugere_nada(self):
+		self.assertEqual(deduzir_curriculos(criar_aluno('4000002')), [])

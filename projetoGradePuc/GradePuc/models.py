@@ -53,7 +53,13 @@ class Aluno(models.Model):
     matricula_espelho = models.CharField(max_length=20, blank=True)
     espelho_importado_em = models.DateTimeField(null=True, blank=True)
 
-    
+    @property
+    def precisa_confirmar_curso(self):
+        """Tem espelho, mas a sigla do curso ainda não está ligada a nenhum currículo."""
+        if not self.espelho_importado_em or not self.curso_sigla:
+            return False
+        return LigacaoHabilitacao.para_siglas(self.curso_sigla, self.habilitacao_sigla, self.enfase_sigla) is None
+
     def __str__(self):
         return self.matricula
     
@@ -168,6 +174,12 @@ class LigacaoHabilitacao(models.Model):
 
     class Meta:
         unique_together = ('curso_sigla', 'habilitacao_sigla', 'enfase_sigla')
+
+    @classmethod
+    def para_siglas(cls, curso, habilitacao, enfase):
+        """Ligação com currículo: primeiro a sigla exata, depois a que vale para qualquer ênfase."""
+        ligacoes = cls.objects.filter(curso_sigla=curso, habilitacao_sigla=habilitacao, curriculo__isnull=False)
+        return ligacoes.filter(enfase_sigla=enfase).first() or ligacoes.filter(enfase_sigla='').first()
 
     def __str__(self):
         siglas = f"{self.curso_sigla}/{self.habilitacao_sigla}/{self.enfase_sigla or '*'}"
