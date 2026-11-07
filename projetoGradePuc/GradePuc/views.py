@@ -167,7 +167,7 @@ def ajuda(request):
 @login_required
 def pre_requisitos(request):
     disciplinas = list(Disciplina.objects.prefetch_related('pre_requisitos').order_by('codigo'))
-    aluno = Aluno.objects.first()
+    aluno = obter_aluno(request)
     concluidas = set(aluno.disciplinas_cursadas.values_list('id', flat=True)) if aluno else set()
 
     # Organiza as disciplinas por nível de dependência sem pressupor uma grade fixa.
