@@ -107,6 +107,9 @@
                 <label for="espelho">PDF do espelho (até 5 MB) ou prints da tela em PNG/JPG (até 8 MB cada). Se o espelho não couber num print, escolha vários de uma vez, em ordem.</label>
                 <input type="file" name="espelho" id="espelho" multiple accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" required>
                 <button type="submit" class="perfil__botao">Enviar</button>
+                <p class="perfil__carregando" id="aviso-lendo" role="status" hidden>
+                    Lendo o arquivo... isso pode levar até 1 minuto se forem vários prints. Não feche nem recarregue a página.
+                </p>
             </form>
             <p class="perfil__privacidade">O PDF não é guardado: só lemos os dados e descartamos o arquivo.</p>
         </section>
@@ -182,4 +185,25 @@
         </div>
         {% endif %}
     </div>
+
+    <script>
+        // O OCR demora: mostra o aviso e trava o botão para não enviar duas vezes.
+        (function () {
+            var form = document.querySelector('.perfil__envio');
+            if (!form) return;
+            var botao = form.querySelector('button[type="submit"]');
+            var aviso = document.getElementById('aviso-lendo');
+            form.addEventListener('submit', function () {
+                botao.disabled = true;
+                botao.textContent = 'Lendo...';
+                aviso.hidden = false;
+            });
+            // ao voltar pelo botão do navegador, a página volta ao normal
+            window.addEventListener('pageshow', function () {
+                botao.disabled = false;
+                botao.textContent = 'Enviar';
+                aviso.hidden = true;
+            });
+        })();
+    </script>
 {% endblock %}

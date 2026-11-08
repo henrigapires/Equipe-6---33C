@@ -283,3 +283,17 @@
 .perfil__cartao + .perfil__acoes {
     margin-top: var(--espaco-4);
 }
+
+/* Aviso enquanto o OCR lê os arquivos enviados */
+.perfil__carregando {
+    margin: var(--espaco-3) 0 0;
+    padding: var(--espaco-3) var(--espaco-4);
+    background-color: var(--cor-superficie-aviso);
+    border-left: 4px solid var(--cor-aviso);
+    border-radius: var(--raio-pequeno);
+    font-weight: 700;
+}
+
+.perfil__carregando[hidden] {
+    display: none;
+}

@@ -524,3 +524,24 @@ class ConferenciaComCaraDePerfilTests(TestCase):
 def Disciplina_existe(codigo):
 	from .models import Disciplina
 	return Disciplina.objects.filter(codigo=codigo).exists()
+
+
+class AvisoDeLeituraTests(TestCase):
+	def test_perfil_tem_aviso_escondido_e_script_do_botao(self):
+		aluno = criar_aluno('9100030')
+		self.client.force_login(aluno.usuario)
+		resposta = self.client.get('/perfil/')
+		self.assertContains(resposta, 'id="aviso-lendo"')
+		self.assertContains(resposta, 'Lendo o arquivo...')
+		self.assertContains(resposta, "botao.textContent = 'Lendo...'")
+
+	def test_cadastro_trava_o_botao_so_quando_ha_arquivo(self):
+		resposta = self.client.get('/cadastro/')
+		self.assertContains(resposta, 'arquivo.files.length')
+
+	def test_previa_do_ocr_nao_mostra_o_aviso_de_envio(self):
+		aluno = criar_aluno('9100031')
+		self.client.force_login(aluno.usuario)
+		with patch('GradePuc.views.ler_espelho_por_ocr', return_value=leitura_ocr()):
+			resposta = self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': pdf_enviado()}, follow=True)
+		self.assertNotContains(resposta, 'id="aviso-lendo"')

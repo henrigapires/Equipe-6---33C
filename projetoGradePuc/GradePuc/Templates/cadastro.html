@@ -59,5 +59,23 @@
     Já tem uma conta?
     <a href="{% url 'login' %}">Faça login</a>
 </p>
+<script>
+    // Se mandou o espelho, a leitura (OCR) pode demorar: avisa e trava o botão.
+    (function () {
+        var form = document.querySelector('form');
+        var arquivo = document.getElementById('espelho');
+        var botao = form.querySelector('button[type="submit"]');
+        form.addEventListener('submit', function () {
+            if (arquivo.files.length) {
+                botao.disabled = true;
+                botao.textContent = 'Lendo o espelho... pode levar até 1 minuto';
+            }
+        });
+        window.addEventListener('pageshow', function () {
+            botao.disabled = false;
+            botao.textContent = 'Cadastrar';
+        });
+    })();
+</script>
 </body>
 </html>
