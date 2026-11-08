@@ -644,6 +644,15 @@ class AvisosDoPerfilTests(TestCase):
 		self.assertContains(resposta, link)
 		self.assertNotContains(self.client.get('/perfil/'), link)
 
+	def test_estado_vazio_explica_onde_baixar(self):
+		resposta = self.client.get('/perfil/')
+		self.assertContains(resposta, 'class="perfil__passos"')
+		self.assertContains(resposta, 'Entre no Portal SAU da PUC-Rio')
+		self.assertContains(resposta, 'Salvar como PDF')
+
+		salvar_espelho(self.aluno, dados_espelho([disciplina_espelho('MAT9161', 'AP')]))
+		self.assertNotContains(self.client.get('/perfil/'), 'class="perfil__passos"')
+
 	def test_sem_link_para_grades_quando_o_envio_falha(self):
 		arquivo = SimpleUploadedFile('notas.txt', b'texto', content_type='text/plain')
 		resposta = self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': arquivo}, follow=True)

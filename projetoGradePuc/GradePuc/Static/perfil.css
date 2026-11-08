@@ -241,3 +241,9 @@
     font-family: var(--fonte-interface);
     font-weight: 600;
 }
+
+.perfil__passos {
+    margin: var(--espaco-2) 0 0;
+    padding-left: var(--espaco-5);
+    color: var(--cor-tinta-secundaria);
+}

@@ -54,15 +54,19 @@
             {% endif %}
             {% else %}
             <p class="perfil__vazio">Você ainda não enviou o espelho do histórico.</p>
+            <ol class="perfil__passos">
+                <li>Entre no Portal SAU da PUC-Rio e abra o <strong>Espelho do Histórico</strong>.</li>
+                <li>Salve a página em PDF (Imprimir → Salvar como PDF) e envie o arquivo aqui embaixo.</li>
+            </ol>
             {% endif %}
         </section>
 
         <section class="perfil__cartao">
             <h2>{% if aluno.espelho_importado_em %}Enviar o espelho de novo{% else %}Enviar o espelho do histórico{% endif %}</h2>
+            {% if aluno.espelho_importado_em %}
             <p>
                 No SAU, abra o <strong>Espelho do Histórico</strong> e salve a página em PDF.
             </p>
-            {% if aluno.espelho_importado_em %}
             <p class="perfil__substituir">
                 Você já tem um histórico importado. Enviar um novo espelho <strong>substitui</strong> o histórico anterior.
             </p>
