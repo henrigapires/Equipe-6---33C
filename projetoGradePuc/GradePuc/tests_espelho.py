@@ -614,3 +614,16 @@ class AdminDoEspelhoTests(TestCase):
 		self.pendencia.refresh_from_db()
 		self.assertEqual((self.pendencia.curriculo, self.pendencia.origem), (self.curriculo, 'admin'))
 		self.assertFalse(Aluno.objects.get(id=self.aluno.id).precisa_confirmar_curso)
+
+
+class AvisosDoPerfilTests(TestCase):
+	AVISO_PRIVACIDADE = 'O PDF não é guardado: só lemos os dados e descartamos o arquivo.'
+
+	def setUp(self):
+		self.aluno = criar_aluno('8000001')
+		self.client.force_login(self.aluno.usuario)
+
+	def test_aviso_de_privacidade_no_perfil_e_no_cadastro(self):
+		self.assertContains(self.client.get('/perfil/'), self.AVISO_PRIVACIDADE, count=1)
+		self.client.logout()
+		self.assertContains(self.client.get('/cadastro/'), self.AVISO_PRIVACIDADE, count=1)

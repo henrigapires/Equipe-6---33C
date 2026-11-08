@@ -55,7 +55,6 @@
             <h2>{% if aluno.espelho_importado_em %}Enviar o espelho de novo{% else %}Enviar o espelho do histórico{% endif %}</h2>
             <p>
                 No SAU, abra o <strong>Espelho do Histórico</strong> e salve a página em PDF.
-                O PDF é lido na hora e <strong>não fica salvo</strong> no site: guardamos só as disciplinas e o seu curso.
                 Enviar de novo substitui o histórico anterior.
             </p>
             <form method="post" enctype="multipart/form-data" class="perfil__envio">
@@ -65,6 +64,7 @@
                 <input type="file" name="espelho" id="espelho" accept=".pdf,application/pdf" required>
                 <button type="submit" class="perfil__botao">Enviar</button>
             </form>
+            <p class="perfil__privacidade">O PDF não é guardado: só lemos os dados e descartamos o arquivo.</p>
         </section>
 
         {% if pendentes %}

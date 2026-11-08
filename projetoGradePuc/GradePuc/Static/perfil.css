@@ -218,3 +218,9 @@
         display: none;
     }
 }
+
+.perfil__privacidade {
+    margin: var(--espaco-2) 0 0;
+    color: var(--cor-tinta-secundaria);
+    font-size: 14px;
+}
