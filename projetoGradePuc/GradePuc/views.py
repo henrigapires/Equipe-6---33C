@@ -623,38 +623,49 @@ def perfil(request):
 
     pendente = leitura_ocr_pendente(request, aluno)
     if pendente:
+        # Prévia da leitura por OCR com a mesma cara do perfil: grava dentro de uma
+        # transação, monta a página e desfaz tudo. Só fica salvo em "Confirmar e salvar".
         dados = pendente['dados']
-        linhas = [
-            {**d, 'periodo_nome': formatar_periodo(d['periodo']),
-             'nome_situacao': NOMES_DAS_SITUACOES[classificar_situacao(d['situacao'])] if d['situacao'] else 'Não lida'}
-            for d in dados['disciplinas']
-        ]
         contagem = dados.get('ocr', {})
-        pode_ter_faltado = (
-            contagem.get('codigos') != contagem.get('situacoes')
-            or any(not d['situacao'] or not d['periodo'] for d in dados['disciplinas'])
-        )
-        return render(request, 'perfil_conferencia.html', {
-            'dados': dados,
-            'linhas': linhas,
-            'contagem': contagem,
-            'pode_ter_faltado': pode_ter_faltado,
-        })
+        with transaction.atomic():
+            salvar_espelho(aluno, dados)
+            contexto = contexto_do_perfil(request, aluno)
+            contexto['conferencia'] = {
+                'contagem': contagem,
+                'pode_ter_faltado': (
+                    contagem.get('codigos') != contagem.get('situacoes')
+                    or any(not d['situacao'] or not d['periodo'] for d in dados['disciplinas'])
+                ),
+                'total': len(dados['disciplinas']),
+            }
+            contexto['mostrar_link_grades'] = False
+            resposta = render(request, 'perfil.html', contexto)
+            transaction.set_rollback(True)
+        aluno.refresh_from_db()
+        return resposta
 
+    return render(request, 'perfil.html', contexto_do_perfil(request, aluno))
+
+
+def contexto_do_perfil(request, aluno):
     periodos = []
     for linha in aluno.historico.all():
         if not periodos or periodos[-1]['periodo'] != linha.periodo:
             periodos.append({'periodo': linha.periodo, 'nome': formatar_periodo(linha.periodo), 'linhas': []})
-        situacao = classificar_situacao(linha.situacao)
+        if linha.situacao:
+            situacao = classificar_situacao(linha.situacao)
+            nome_situacao = NOMES_DAS_SITUACOES[situacao]
+        else:
+            situacao, nome_situacao = 'nao-lida', 'Não lida'   # só acontece na leitura por OCR
         periodos[-1]['linhas'].append({
             'linha': linha,
             'classe': situacao,
-            'situacao': NOMES_DAS_SITUACOES[situacao],
+            'situacao': nome_situacao,
         })
 
     sugestoes = deduzir_curriculos(aluno) if aluno.precisa_confirmar_curso else []
 
-    return render(request, 'perfil.html', {
+    return {
         'aluno': aluno,
         'curriculo': curriculo_do_aluno(aluno),
         'periodos': periodos,
@@ -664,4 +675,4 @@ def perfil(request):
         'curriculos': Curriculo.objects.all(),
         # o link para as grades aparece uma vez, logo depois de importar
         'mostrar_link_grades': request.session.pop('acabou_de_importar_espelho', False),
-    })
+    }

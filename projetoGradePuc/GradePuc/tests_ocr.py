@@ -16,7 +16,9 @@ from PIL import Image
 
 from . import ocr
 from .espelho import interpretar_paginas, parece_espelho
-from .tests_espelho import criar_aluno, dados_espelho, disciplina_espelho, pagina_espelho
+from .models import LigacaoHabilitacao
+from .tests_espelho import criar_aluno, criar_curriculo, dados_espelho, disciplina_espelho, pagina_espelho
+from .historico import salvar_espelho
 from .views import CHAVE_LEITURA_OCR
 
 
@@ -461,3 +463,64 @@ class PrintRecortadoTests(TestCase):
 		with patch('GradePuc.ocr.motor_ocr', return_value=motor_falso([])):
 			paginas = ocr.extrair_palavras_ocr(png_em_memoria(900, 600))
 		self.assertEqual((paginas[0]['largura'], paginas[0]['altura']), (1800, 1200))
+
+
+class ConferenciaComCaraDePerfilTests(TestCase):
+	"""A leitura por OCR aparece no mesmo layout do perfil (curso, próximas, histórico), sem salvar nada."""
+
+	def setUp(self):
+		self.aluno = criar_aluno('9100020')
+		self.client.force_login(self.aluno.usuario)
+		curriculo = criar_curriculo('Engenharia de Computação', [('CTC9001', 1), ('INF9009', 1), ('INF9037', 2)])
+		LigacaoHabilitacao.objects.create(
+			curso_sigla='CEG', habilitacao_sigla='BCO', enfase_sigla='CCB', curriculo=curriculo, origem='pre_cadastro',
+		)
+
+	def ver_previa(self, dados=None):
+		with patch('GradePuc.views.ler_espelho_por_ocr', return_value=dados or leitura_ocr()):
+			return self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': pdf_enviado()}, follow=True)
+
+	def test_previa_mostra_curso_proximas_e_historico(self):
+		resposta = self.ver_previa()
+		self.assertContains(resposta, 'Lido por OCR: confira antes de salvar.')
+		self.assertContains(resposta, 'Curso reconhecido: <strong>Engenharia de Computação')
+		self.assertContains(resposta, 'Próximas do seu currículo')
+		self.assertContains(resposta, 'INF9037')
+		self.assertContains(resposta, 'Meu histórico')
+		self.assertContains(resposta, '2026.1')
+		self.assertContains(resposta, '2026.2')
+		self.assertContains(resposta, 'value="confirmar_ocr"', count=2)   # botões em cima e embaixo
+		self.assertNotContains(resposta, 'name="espelho"')
+		self.assertNotContains(resposta, 'Remover meu histórico')
+
+	def test_previa_nao_grava_nada(self):
+		self.ver_previa()
+		self.client.get('/perfil/')
+		self.aluno.refresh_from_db()
+		self.assertEqual(self.aluno.historico.count(), 0)
+		self.assertIsNone(self.aluno.espelho_importado_em)
+		self.assertFalse(Disciplina_existe('CTC9001'))
+
+	def test_previa_nao_mexe_no_historico_ja_salvo(self):
+		salvar_espelho(self.aluno, dados_espelho([disciplina_espelho('MAT9161', 'AP')]))
+		resposta = self.ver_previa()
+		self.assertNotContains(resposta, 'MAT9161')
+		self.assertEqual(list(self.aluno.historico.values_list('codigo', flat=True)), ['MAT9161'])
+
+	def test_situacao_nao_lida_aparece_marcada(self):
+		dados = leitura_ocr()
+		dados['disciplinas'][1]['situacao'] = ''
+		resposta = self.ver_previa(dados)
+		self.assertContains(resposta, 'perfil__situacao--nao-lida')
+		self.assertContains(resposta, 'pode ter faltado alguma disciplina')
+
+	def test_curso_desconhecido_espera_salvar_para_confirmar(self):
+		resposta = self.ver_previa(dados_espelho([disciplina_espelho('CTC9001', 'AP')], curso='XYZ'))
+		self.assertContains(resposta, 'depois de salvar, você confirma aqui')
+		self.assertNotContains(resposta, 'name="curriculo"')
+		self.assertFalse(LigacaoHabilitacao.objects.filter(curso_sigla='XYZ').exists())
+
+
+def Disciplina_existe(codigo):
+	from .models import Disciplina
+	return Disciplina.objects.filter(codigo=codigo).exists()

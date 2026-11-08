@@ -271,3 +271,15 @@
     flex-wrap: wrap;
     gap: var(--espaco-3);
 }
+
+/* Conferência da leitura por OCR, no mesmo layout do perfil */
+.perfil__situacao--nao-lida {
+    color: var(--cor-erro);
+    background-color: var(--cor-superficie-erro);
+    font-style: italic;
+}
+
+.perfil__acoes + .perfil__cartao,
+.perfil__cartao + .perfil__acoes {
+    margin-top: var(--espaco-4);
+}

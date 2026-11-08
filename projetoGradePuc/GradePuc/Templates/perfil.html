@@ -10,7 +10,34 @@
 {% block content %}
     <div class="perfil">
         <h1 class="perfil__titulo">Meu perfil</h1>
+        {% if conferencia %}
+        <p class="perfil__aviso-ocr">Lido por OCR: confira antes de salvar.</p>
+        <p class="perfil__subtitulo">
+            Assim vai ficar o seu perfil com as {{ conferencia.total }} disciplinas lidas.
+            Ainda não salvamos nada: confira e clique em <strong>Confirmar e salvar</strong>.
+        </p>
+        {% if conferencia.pode_ter_faltado %}
+        <p class="perfil__aviso-faltando">
+            Lemos {{ conferencia.contagem.codigos }} código(s) de disciplina e {{ conferencia.contagem.situacoes }} situação(ões):
+            <strong>pode ter faltado alguma disciplina</strong>, ou alguma linha veio incompleta.
+            Se o histórico abaixo não estiver completo, envie outro arquivo: o PDF original do SAU ou prints retos e nítidos da tela.
+        </p>
+        {% endif %}
+        <div class="perfil__acoes">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="confirmar_ocr">
+                <button type="submit" class="perfil__botao">Confirmar e salvar</button>
+            </form>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="descartar_ocr">
+                <button type="submit" class="perfil__botao perfil__botao--secundario">Enviar outro arquivo</button>
+            </form>
+        </div>
+        {% else %}
         <p class="perfil__subtitulo">Envie o Espelho do Histórico do SAU para o grade.puc não sugerir disciplinas que você já fez.</p>
+        {% endif %}
 
         {% if mostrar_link_grades %}
         <p class="perfil__proximo-passo">
@@ -32,6 +59,8 @@
 
             {% if curriculo %}
             <p class="perfil__curso">Curso reconhecido: <strong>{{ curriculo }}</strong></p>
+            {% elif conferencia %}
+            <p class="perfil__curso">Ainda não sabemos qual é o seu curso: depois de salvar, você confirma aqui.</p>
             {% else %}
             <form method="post" class="perfil__confirmar">
                 {% csrf_token %}
@@ -61,6 +90,7 @@
             {% endif %}
         </section>
 
+        {% if not conferencia %}
         <section class="perfil__cartao">
             <h2>{% if aluno.espelho_importado_em %}Enviar o espelho de novo{% else %}Enviar o espelho do histórico{% endif %}</h2>
             {% if aluno.espelho_importado_em %}
@@ -80,6 +110,7 @@
             </form>
             <p class="perfil__privacidade">O PDF não é guardado: só lemos os dados e descartamos o arquivo.</p>
         </section>
+        {% endif %}
 
         {% if pendentes %}
         <section class="perfil__cartao">
@@ -119,6 +150,7 @@
             {% endfor %}
         </section>
 
+        {% if not conferencia %}
         <section class="perfil__cartao perfil__cartao--remover">
             <h2>Remover meu histórico</h2>
             <p>Apaga as disciplinas importadas do espelho e os dados do seu curso. Você pode enviar o espelho de novo depois.</p>
@@ -132,6 +164,22 @@
                 <button type="submit" class="perfil__botao perfil__botao--secundario">Remover meu histórico</button>
             </form>
         </section>
+        {% endif %}
+        {% endif %}
+
+        {% if conferencia %}
+        <div class="perfil__acoes">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="confirmar_ocr">
+                <button type="submit" class="perfil__botao">Confirmar e salvar</button>
+            </form>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="descartar_ocr">
+                <button type="submit" class="perfil__botao perfil__botao--secundario">Enviar outro arquivo</button>
+            </form>
+        </div>
         {% endif %}
     </div>
 {% endblock %}
