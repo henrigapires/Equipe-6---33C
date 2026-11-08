@@ -74,8 +74,8 @@
             <form method="post" enctype="multipart/form-data" class="perfil__envio">
                 {% csrf_token %}
                 <input type="hidden" name="acao" value="enviar_espelho">
-                <label for="espelho">PDF do espelho (até 5 MB)</label>
-                <input type="file" name="espelho" id="espelho" accept=".pdf,application/pdf" required>
+                <label for="espelho">PDF do espelho (até 5 MB) ou print da tela em PNG/JPG (até 8 MB)</label>
+                <input type="file" name="espelho" id="espelho" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" required>
                 <button type="submit" class="perfil__botao">Enviar</button>
             </form>
             <p class="perfil__privacidade">O PDF não é guardado: só lemos os dados e descartamos o arquivo.</p>

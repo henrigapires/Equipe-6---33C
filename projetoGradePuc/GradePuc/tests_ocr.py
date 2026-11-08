@@ -254,6 +254,47 @@ class FluxoDeConferenciaTests(TestCase):
 		self.assertNotContains(resposta, self.AVISO_OCR)
 		self.assertNotIn(CHAVE_LEITURA_OCR, self.client.session)
 
+	def test_print_da_tela_passa_pelo_ocr_de_ponta_a_ponta(self):
+		# imagem gerada em memória + motor falso que devolve as caixas de pagina_ocr()
+		caixas = [(c['text'], c['x0'], c['top'], c['x1'], c['bottom']) for c in pagina_ocr()['palavras']]
+		imagem = SimpleUploadedFile('print.png', png_em_memoria(1530, 1980).read(), content_type='image/png')
+		with patch('GradePuc.views.ler_espelho') as leitura_direta, patch('GradePuc.ocr.motor_ocr', return_value=motor_falso(caixas)):
+			resposta = self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': imagem}, follow=True)
+		leitura_direta.assert_not_called()
+		self.assertContains(resposta, self.AVISO_OCR)
+		for codigo in ['CTC9001', 'CTC9002', 'INF9009', 'MAT9002']:
+			self.assertContains(resposta, codigo)
+		self.assertNotContains(resposta, 'pode ter faltado')
+		self.assertEqual(self.aluno.historico.count(), 0)
+
+	def test_jpg_tambem_e_aceito(self):
+		imagem = SimpleUploadedFile('print.JPG', b'qualquer', content_type='image/jpeg')
+		resposta = self.enviar_lido_por_ocr_com_arquivo(imagem)
+		self.assertContains(resposta, self.AVISO_OCR)
+
+	def enviar_lido_por_ocr_com_arquivo(self, arquivo):
+		with patch('GradePuc.views.ler_espelho_por_ocr', return_value=leitura_ocr()):
+			return self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': arquivo}, follow=True)
+
+	def test_limites_de_tamanho_e_formatos(self):
+		grande = SimpleUploadedFile('print.png', b'0' * (8 * 1024 * 1024 + 1), content_type='image/png')
+		self.assertContains(self.enviar_lido_por_ocr_com_arquivo(grande), 'A imagem tem mais de 8 MB.')
+		pdf_grande = SimpleUploadedFile('espelho.pdf', b'0' * (5 * 1024 * 1024 + 1), content_type='application/pdf')
+		self.assertContains(self.enviar_lido_por_ocr_com_arquivo(pdf_grande), 'O arquivo tem mais de 5 MB.')
+		gif = SimpleUploadedFile('print.gif', b'GIF89a', content_type='image/gif')
+		self.assertContains(self.enviar_lido_por_ocr_com_arquivo(gif), 'Envie o espelho em PDF, PNG ou JPG.')
+		self.assertNotIn(CHAVE_LEITURA_OCR, self.client.session)
+
+	def test_imagem_que_nao_abre(self):
+		quebrada = SimpleUploadedFile('print.png', b'nao sou png', content_type='image/png')
+		resposta = self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': quebrada}, follow=True)
+		self.assertContains(resposta, ocr.MENSAGEM_NAO_LEU)
+
+	def test_formularios_aceitam_imagens(self):
+		self.assertContains(self.client.get('/perfil/'), 'accept=".pdf,.png,.jpg,.jpeg,')
+		self.client.logout()
+		self.assertContains(self.client.get('/cadastro/'), 'accept=".pdf,.png,.jpg,.jpeg,')
+
 	def test_cadastro_com_pdf_sem_texto_deixa_a_conferencia_para_o_perfil(self):
 		self.client.logout()
 		dados = {'nome': 'Teste', 'matricula': '9100003', 'email': '', 'password': 'Senha!123',

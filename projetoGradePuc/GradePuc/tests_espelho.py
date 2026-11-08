@@ -509,7 +509,7 @@ class PerfilViewTests(TestCase):
 
 	def test_arquivo_que_nao_e_pdf(self):
 		resposta = self.enviar('notas.txt', b'nao sou pdf')
-		self.assertContains(resposta, 'Envie o espelho em formato PDF.')
+		self.assertContains(resposta, 'Envie o espelho em PDF, PNG ou JPG.')
 		self.assertEqual(self.aluno.historico.count(), 0)
 
 	def test_pdf_que_nao_abre_mostra_erro_sem_quebrar(self):

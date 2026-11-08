@@ -13,7 +13,7 @@ from .espelho import EspelhoInvalido, EspelhoSemTexto, classificar_situacao, ler
 from .historico import curriculo_do_aluno, pendentes_do_curriculo, remover_historico, salvar_espelho
 from .ligacao import confirmar_curso, deduzir_curriculos
 from .models import Curriculo
-from .ocr import MENSAGEM_NAO_LEU, OcrIndisponivel, ler_espelho_por_ocr
+from .ocr import MENSAGEM_NAO_LEU, OcrIndisponivel, eh_imagem, ler_espelho_por_ocr
 
 def obter_aluno(request):
     aluno, criado = Aluno.objects.get_or_create(
@@ -484,7 +484,8 @@ def gradessugeridas(request):
     })
 
 
-TAMANHO_MAXIMO_ESPELHO = 5 * 1024 * 1024  # 5 MB
+TAMANHO_MAXIMO_ESPELHO = 5 * 1024 * 1024  # 5 MB (PDF)
+TAMANHO_MAXIMO_IMAGEM = 8 * 1024 * 1024   # 8 MB (print da tela, lido por OCR)
 
 NOMES_DAS_SITUACOES = {
     'cursada': 'Cursada',
@@ -497,12 +498,13 @@ CHAVE_LEITURA_OCR = 'espelho_lido_por_ocr'
 
 
 def ler_arquivo_enviado(arquivo):
-    """PDF com texto: leitura direta. PDF sem texto: OCR.
+    """PDF com texto: leitura direta. PDF sem texto ou imagem: OCR.
     Devolve (dados, lido_por_ocr) ou levanta EspelhoInvalido com uma mensagem amigável."""
-    try:
-        return ler_espelho(arquivo), False
-    except EspelhoSemTexto:
-        pass
+    if not eh_imagem(arquivo.name):
+        try:
+            return ler_espelho(arquivo), False
+        except EspelhoSemTexto:
+            pass
     try:
         return ler_espelho_por_ocr(arquivo), True
     except OcrIndisponivel:
@@ -513,10 +515,14 @@ def importar_espelho_enviado(request, aluno, arquivo):
     """Lê o arquivo enviado. O arquivo nunca fica salvo no servidor: só os dados lidos.
     Devolve (situacao, mensagem), com situacao 'salvo', 'conferir' (leitura por OCR,
     guardada na sessão até o aluno confirmar) ou 'erro'."""
-    if not arquivo.name.lower().endswith('.pdf'):
-        return 'erro', 'Envie o espelho em formato PDF.'
-    if arquivo.size > TAMANHO_MAXIMO_ESPELHO:
-        return 'erro', 'O arquivo tem mais de 5 MB. Envie o PDF do espelho baixado do SAU.'
+    if eh_imagem(arquivo.name):
+        if arquivo.size > TAMANHO_MAXIMO_IMAGEM:
+            return 'erro', 'A imagem tem mais de 8 MB. Envie um print menor ou o PDF do SAU.'
+    elif arquivo.name.lower().endswith('.pdf'):
+        if arquivo.size > TAMANHO_MAXIMO_ESPELHO:
+            return 'erro', 'O arquivo tem mais de 5 MB. Envie o PDF do espelho baixado do SAU.'
+    else:
+        return 'erro', 'Envie o espelho em PDF, PNG ou JPG.'
 
     try:
         dados, lido_por_ocr = ler_arquivo_enviado(arquivo)
@@ -562,7 +568,7 @@ def perfil(request):
         if acao == 'enviar_espelho':
             arquivo = request.FILES.get('espelho')
             if arquivo is None:
-                messages.error(request, 'Escolha o PDF do espelho para enviar.')
+                messages.error(request, 'Escolha o arquivo do espelho para enviar.')
             else:
                 situacao, mensagem = importar_espelho_enviado(request, aluno, arquivo)
                 if situacao == 'salvo':
