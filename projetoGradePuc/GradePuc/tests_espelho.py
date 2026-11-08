@@ -4,6 +4,7 @@ Sem internet e sem PDF real: o espelho é simulado com palavras falsas
 (texto + posição), no mesmo formato que o pdfplumber devolve.
 """
 import tempfile
+from datetime import datetime, timezone
 from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
@@ -482,6 +483,15 @@ class PerfilViewTests(TestCase):
 		dados = dados_espelho([disciplina_espelho('MAT9161', 'AP'), disciplina_espelho('INF9009', 'EA', periodo='20262')])
 		with patch('GradePuc.views.ler_espelho', return_value=dados):
 			return self.enviar('espelho.pdf', b'%PDF-1.4 falso')
+
+	def test_data_do_espelho_aparece_no_horario_de_brasilia(self):
+		# guardada em UTC: 00:38 do dia 08 é 21:38 do dia 07 em Brasília (UTC-3)
+		self.aluno.curso_sigla = 'CEG'
+		self.aluno.espelho_importado_em = datetime(2026, 11, 8, 0, 38, tzinfo=timezone.utc)
+		self.aluno.save()
+		resposta = self.client.get('/perfil/')
+		self.assertContains(resposta, '07/11/2026 21:38')
+		self.assertNotContains(resposta, '08/11/2026 00:38')
 
 	def test_perfil_exige_login(self):
 		self.client.logout()
