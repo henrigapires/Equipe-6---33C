@@ -83,10 +83,10 @@ def create_user(request):
                 )
 
         # O espelho é opcional e um erro nele nunca impede o cadastro: a conta já existe aqui.
-        arquivo = request.FILES.get('espelho')
-        if arquivo:
+        arquivos = request.FILES.getlist('espelho')
+        if arquivos:
             try:
-                situacao, mensagem = importar_espelho_enviado(request, aluno, arquivo)
+                situacao, mensagem = importar_espelho_enviado(request, aluno, arquivos)
             except Exception:
                 situacao, mensagem = 'erro', 'Não conseguimos ler este arquivo.'
             if situacao == 'salvo':
@@ -486,6 +486,7 @@ def gradessugeridas(request):
 
 TAMANHO_MAXIMO_ESPELHO = 5 * 1024 * 1024  # 5 MB (PDF)
 TAMANHO_MAXIMO_IMAGEM = 8 * 1024 * 1024   # 8 MB (print da tela, lido por OCR)
+MAXIMO_DE_ARQUIVOS = 6                    # o OCR leva uns 10 s por imagem
 
 NOMES_DAS_SITUACOES = {
     'cursada': 'Cursada',
@@ -497,35 +498,43 @@ NOMES_DAS_SITUACOES = {
 CHAVE_LEITURA_OCR = 'espelho_lido_por_ocr'
 
 
-def ler_arquivo_enviado(arquivo):
-    """PDF com texto: leitura direta. PDF sem texto ou imagem: OCR.
-    Devolve (dados, lido_por_ocr) ou levanta EspelhoInvalido com uma mensagem amigável."""
-    if not eh_imagem(arquivo.name):
+def ler_arquivo_enviado(arquivos):
+    """Um PDF com texto: leitura direta. PDF sem texto ou imagens (um ou vários prints,
+    em ordem): OCR. Devolve (dados, lido_por_ocr) ou levanta EspelhoInvalido com uma
+    mensagem amigável."""
+    if len(arquivos) == 1 and not eh_imagem(arquivos[0].name):
         try:
-            return ler_espelho(arquivo), False
+            return ler_espelho(arquivos[0]), False
         except EspelhoSemTexto:
             pass
     try:
-        return ler_espelho_por_ocr(arquivo), True
+        return ler_espelho_por_ocr(arquivos), True
     except OcrIndisponivel:
         raise EspelhoInvalido(MENSAGEM_NAO_LEU)
 
 
-def importar_espelho_enviado(request, aluno, arquivo):
-    """Lê o arquivo enviado. O arquivo nunca fica salvo no servidor: só os dados lidos.
+def importar_espelho_enviado(request, aluno, arquivos):
+    """Lê o(s) arquivo(s) enviado(s). Nada fica salvo no servidor: só os dados lidos.
     Devolve (situacao, mensagem), com situacao 'salvo', 'conferir' (leitura por OCR,
     guardada na sessão até o aluno confirmar) ou 'erro'."""
-    if eh_imagem(arquivo.name):
-        if arquivo.size > TAMANHO_MAXIMO_IMAGEM:
-            return 'erro', 'A imagem tem mais de 8 MB. Envie um print menor ou o PDF do SAU.'
-    elif arquivo.name.lower().endswith('.pdf'):
-        if arquivo.size > TAMANHO_MAXIMO_ESPELHO:
-            return 'erro', 'O arquivo tem mais de 5 MB. Envie o PDF do espelho baixado do SAU.'
-    else:
-        return 'erro', 'Envie o espelho em PDF, PNG ou JPG.'
+    if not isinstance(arquivos, (list, tuple)):
+        arquivos = [arquivos]
+    if len(arquivos) > MAXIMO_DE_ARQUIVOS:
+        return 'erro', f'Envie no máximo {MAXIMO_DE_ARQUIVOS} arquivos de uma vez.'
+    for arquivo in arquivos:
+        if eh_imagem(arquivo.name):
+            if arquivo.size > TAMANHO_MAXIMO_IMAGEM:
+                return 'erro', 'A imagem tem mais de 8 MB. Envie um print menor ou o PDF do SAU.'
+        elif arquivo.name.lower().endswith('.pdf'):
+            if arquivo.size > TAMANHO_MAXIMO_ESPELHO:
+                return 'erro', 'O arquivo tem mais de 5 MB. Envie o PDF do espelho baixado do SAU.'
+            if len(arquivos) > 1:
+                return 'erro', 'Para enviar vários arquivos, use só prints (PNG ou JPG). O PDF vai sozinho.'
+        else:
+            return 'erro', 'Envie o espelho em PDF, PNG ou JPG.'
 
     try:
-        dados, lido_por_ocr = ler_arquivo_enviado(arquivo)
+        dados, lido_por_ocr = ler_arquivo_enviado(arquivos)
     except (EspelhoInvalido, EspelhoSemTexto) as erro:
         return 'erro', str(erro)
     except Exception:
@@ -566,11 +575,11 @@ def perfil(request):
         acao = request.POST.get('acao')
 
         if acao == 'enviar_espelho':
-            arquivo = request.FILES.get('espelho')
-            if arquivo is None:
+            arquivos = request.FILES.getlist('espelho')
+            if not arquivos:
                 messages.error(request, 'Escolha o arquivo do espelho para enviar.')
             else:
-                situacao, mensagem = importar_espelho_enviado(request, aluno, arquivo)
+                situacao, mensagem = importar_espelho_enviado(request, aluno, arquivos)
                 if situacao == 'salvo':
                     messages.success(request, mensagem)
                     request.session['acabou_de_importar_espelho'] = True

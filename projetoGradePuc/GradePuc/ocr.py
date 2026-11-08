@@ -73,7 +73,8 @@ def palavras_da_imagem(imagem):
     return palavras
 
 
-def extrair_palavras_ocr(arquivo):
+def extrair_palavras_ocr(arquivo, numero=0):
+    """Páginas (caixas do OCR) de um arquivo. 'numero' marca de qual arquivo a página veio."""
     nome = getattr(arquivo, 'name', None) or str(arquivo)
     paginas = []
     for imagem in imagens_do_arquivo(conteudo_do_arquivo(arquivo), nome):
@@ -85,14 +86,21 @@ def extrair_palavras_ocr(arquivo):
             'altura': imagem.height,
             'largura': imagem.width,
             'ocr': True,
+            'arquivo': numero,
         })
     return paginas
 
 
-def ler_espelho_por_ocr(arquivo):
-    """Mesmo dicionário de ler_espelho. Erros viram a mensagem amigável."""
+def ler_espelho_por_ocr(arquivos):
+    """Mesmo dicionário de ler_espelho. Aceita um arquivo ou uma lista (prints em ordem,
+    um depois do outro, como páginas do mesmo espelho). Erros viram a mensagem amigável."""
+    if not isinstance(arquivos, (list, tuple)):
+        arquivos = [arquivos]
+    paginas = []
+    for numero, arquivo in enumerate(arquivos):
+        paginas.extend(extrair_palavras_ocr(arquivo, numero))
     try:
-        dados = interpretar_paginas(extrair_palavras_ocr(arquivo))
+        dados = interpretar_paginas(paginas)
     except (EspelhoInvalido, EspelhoSemTexto):
         raise EspelhoInvalido(MENSAGEM_NAO_LEU)
     if not dados['disciplinas']:

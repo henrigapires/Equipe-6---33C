@@ -236,9 +236,9 @@ def codigo_valido(letras, numeros):
     return CODIGO.match(corrigido) and sum(c.isdigit() for c in numeros) >= 2
 
 
-def ler_tabela_ocr(palavras, largura=None):
-    """Lê as disciplinas de uma página do OCR. Devolve (disciplinas, códigos lidos,
-    situações lidas), ou None se a página não tiver a tabela."""
+def achar_colunas_ocr(palavras):
+    """Posição (centro x) de cada coluna da tabela e onde o cabeçalho termina.
+    Devolve None se a página não tiver o cabeçalho da tabela."""
     h = altura_tipica(palavras)
     ancora = None
     for w in palavras:
@@ -270,13 +270,31 @@ def ler_tabela_ocr(palavras, largura=None):
         centros["disciplina"] = min(entre)
     else:
         centros["disciplina"] = centros["periodo"] + (centros["turma"] - centros["periodo"]) * 0.31
+    return centros, max(w["bottom"] for w in cabecalho)
+
+
+def ler_tabela_ocr(palavras, largura=None, colunas_de_antes=None):
+    """Lê as disciplinas de uma página do OCR. Devolve (disciplinas, códigos lidos,
+    situações lidas), ou None se a página não tiver a tabela.
+
+    colunas_de_antes = (centros, largura) de um print anterior: serve para ler um
+    print que continua a tabela e não mostra mais o cabeçalho (rolou a página)."""
+    h = altura_tipica(palavras)
+    largura = largura or max((w["x1"] for w in palavras), default=0)
+    achou = achar_colunas_ocr(palavras)
+    if achou:
+        centros, fim_cabecalho = achou
+    elif colunas_de_antes and colunas_de_antes[1]:
+        escala = largura / colunas_de_antes[1]
+        centros = {c: x * escala for c, x in colunas_de_antes[0].items()}
+        fim_cabecalho = float("-inf")
+    else:
+        return None
 
     def coluna_de(w):
         meio = (w["x0"] + w["x1"]) / 2
         return min(centros, key=lambda c: abs(centros[c] - meio))
 
-    fim_cabecalho = max(w["bottom"] for w in cabecalho)
-    largura = largura or max(w["x1"] for w in palavras)
     corpo = [w for w in palavras if centro_y(w) > fim_cabecalho]
     rodape = [
         w["top"] for w in corpo
@@ -352,6 +370,8 @@ def interpretar_paginas(paginas):
 
     achou_tabela = False
     contagem_ocr = {"codigos": 0, "situacoes": 0}
+    colunas_de_antes = None     # colunas do último print com cabeçalho (prints seguintes não têm)
+    origens = []                # de qual arquivo veio cada disciplina
     for n, pagina in enumerate(paginas):
         palavras = pagina["palavras"]
         por_ocr = pagina.get("ocr", False)
@@ -363,7 +383,11 @@ def interpretar_paginas(paginas):
                 dados.update(ler_cabecalho_do_curso(palavras))
 
         if por_ocr:
-            resultado = ler_tabela_ocr(palavras, pagina.get("largura"))
+            largura = pagina.get("largura")
+            resultado = ler_tabela_ocr(palavras, largura, colunas_de_antes)
+            achou = achar_colunas_ocr(palavras)
+            if achou:
+                colunas_de_antes = (achou[0], largura or max((w["x1"] for w in palavras), default=0))
             linhas = None
             if resultado is not None:
                 linhas, codigos, situacoes = resultado
@@ -374,6 +398,7 @@ def interpretar_paginas(paginas):
         if linhas is not None:
             achou_tabela = True
             dados["disciplinas"].extend(linhas)
+            origens.extend([pagina.get("arquivo", 0)] * len(linhas))
 
     if any(p.get("ocr") for p in paginas):
         dados["ocr"] = contagem_ocr
@@ -388,6 +413,16 @@ def interpretar_paginas(paginas):
             atual = d["periodo"]
         else:
             d["periodo"] = atual
+
+    # prints que se sobrepõem repetem disciplinas: vale a primeira vez que apareceu
+    # (só entre arquivos diferentes, dentro de um arquivo nada é descartado)
+    vistas = {}
+    sem_repetidas = []
+    for d, origem in zip(dados["disciplinas"], origens):
+        chave = (d["periodo"], d["codigo"])
+        if vistas.setdefault(chave, origem) == origem:
+            sem_repetidas.append(d)
+    dados["disciplinas"] = sem_repetidas
     return dados
 
 

@@ -304,3 +304,121 @@ class FluxoDeConferenciaTests(TestCase):
 		self.assertContains(resposta, 'Lemos o seu arquivo por OCR')
 		self.assertTrue(self.client.login(username='9100003', password='Senha!123'))
 		self.assertContains(self.client.get('/perfil/'), self.AVISO_OCR)
+
+
+def dois_prints():
+	"""O espelho de pagina_ocr() cortado em dois prints: o segundo rolou a página, não mostra
+	mais o cabeçalho da tabela e repete a última disciplina do primeiro (sobreposição)."""
+	completa = pagina_ocr()
+	primeiro = [c for c in completa['palavras'] if c['top'] < 1000]
+	deslocamento = 800
+	segundo = [
+		{**c, 'top': c['top'] - deslocamento, 'bottom': c['bottom'] - deslocamento}
+		for c in completa['palavras'] if c['top'] >= 862
+	]
+	def pagina(caixas, numero):
+		return {'palavras': caixas, 'texto': '\n'.join(c['text'] for c in caixas),
+		        'altura': 1980, 'largura': 1530, 'ocr': True, 'arquivo': numero}
+	return pagina(primeiro, 0), pagina(segundo, 1)
+
+
+class VariosPrintsTests(TestCase):
+	def test_segundo_print_sem_cabecalho_usa_as_colunas_do_primeiro(self):
+		primeiro, segundo = dois_prints()
+		dados = interpretar_paginas([primeiro, segundo])
+		self.assertEqual([d['codigo'] for d in dados['disciplinas']], ['CTC9001', 'CTC9002', 'INF9009', 'MAT9002'])
+		self.assertEqual([d['periodo'] for d in dados['disciplinas']], ['20261', '20261', '20262', '20262'])
+		self.assertEqual([d['situacao'] for d in dados['disciplinas']], ['AP', 'AP', 'EA', 'EA'])
+		self.assertEqual(dados['disciplinas'][1]['grupo'], 'MAT9161')
+		self.assertEqual(dados['curso'], 'CEG')
+
+	def test_disciplina_repetida_entre_prints_conta_uma_vez(self):
+		primeiro, segundo = dois_prints()
+		dados = interpretar_paginas([primeiro, segundo])
+		self.assertEqual([d['codigo'] for d in dados['disciplinas']].count('CTC9002'), 1)
+
+	def test_repetida_dentro_do_mesmo_arquivo_nao_e_descartada(self):
+		primeiro, segundo = dois_prints()
+		segundo['arquivo'] = 0
+		dados = interpretar_paginas([primeiro, segundo])
+		self.assertEqual([d['codigo'] for d in dados['disciplinas']].count('CTC9002'), 2)
+
+	def test_so_o_print_sem_cabecalho_nao_tem_tabela(self):
+		_, segundo = dois_prints()
+		segundo['palavras'].append(caixa('Espelho do Historico', 100, 10))
+		segundo['texto'] += '\nEspelho do Historico'
+		with self.assertRaises(ocr.EspelhoInvalido):
+			interpretar_paginas([segundo])
+
+	def test_prints_de_tamanhos_diferentes(self):
+		primeiro, segundo = dois_prints()
+		# o segundo print foi tirado com metade da largura: tudo na metade da escala
+		segundo['palavras'] = [
+			{**c, 'x0': c['x0'] / 2, 'x1': c['x1'] / 2, 'top': c['top'] / 2, 'bottom': c['bottom'] / 2}
+			for c in segundo['palavras']
+		]
+		segundo['largura'] = 765
+		dados = interpretar_paginas([primeiro, segundo])
+		self.assertEqual([d['codigo'] for d in dados['disciplinas']], ['CTC9001', 'CTC9002', 'INF9009', 'MAT9002'])
+
+	def test_ler_espelho_por_ocr_junta_os_arquivos_em_ordem(self):
+		primeiro, segundo = dois_prints()
+		respostas = iter([primeiro['palavras'], segundo['palavras']])
+
+		def motor(imagem):
+			return [[[[c['x0'], c['top']], [c['x1'], c['top']], [c['x1'], c['bottom']], [c['x0'], c['bottom']]], c['text'], 0.99]
+			        for c in next(respostas)], 0.1
+
+		arquivos = [png_em_memoria(1530, 1980), png_em_memoria(1530, 1980)]
+		with patch('GradePuc.ocr.motor_ocr', return_value=motor):
+			dados = ocr.ler_espelho_por_ocr(arquivos)
+		self.assertEqual([d['codigo'] for d in dados['disciplinas']], ['CTC9001', 'CTC9002', 'INF9009', 'MAT9002'])
+
+
+class EnvioDeVariosArquivosTests(TestCase):
+	def setUp(self):
+		self.aluno = criar_aluno('9100010')
+		self.client.force_login(self.aluno.usuario)
+
+	def imagens(self, quantidade):
+		return [SimpleUploadedFile(f'print{n}.png', b'x', content_type='image/png') for n in range(quantidade)]
+
+	def test_varios_prints_chegam_juntos_ao_ocr(self):
+		with patch('GradePuc.views.ler_espelho_por_ocr', return_value=leitura_ocr()) as leitura:
+			resposta = self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': self.imagens(3)}, follow=True)
+		self.assertEqual([a.name for a in leitura.call_args.args[0]], ['print0.png', 'print1.png', 'print2.png'])
+		self.assertContains(resposta, 'Lido por OCR: confira antes de salvar.')
+
+	def test_pagina_de_envio_aceita_varios_arquivos(self):
+		self.assertContains(self.client.get('/perfil/'), 'name="espelho" id="espelho" multiple')
+		self.client.logout()
+		self.assertContains(self.client.get('/cadastro/'), 'name="espelho" id="espelho" multiple')
+
+	def test_limite_de_arquivos(self):
+		with patch('GradePuc.views.ler_espelho_por_ocr') as leitura:
+			resposta = self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': self.imagens(7)}, follow=True)
+		leitura.assert_not_called()
+		self.assertContains(resposta, 'Envie no máximo 6 arquivos de uma vez.')
+
+	def test_pdf_nao_se_mistura_com_outros_arquivos(self):
+		arquivos = self.imagens(1) + [pdf_enviado()]
+		with patch('GradePuc.views.ler_espelho_por_ocr') as leitura:
+			resposta = self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': arquivos}, follow=True)
+		leitura.assert_not_called()
+		self.assertContains(resposta, 'Para enviar vários arquivos, use só prints')
+
+	def test_um_arquivo_com_formato_errado_barra_o_envio_todo(self):
+		arquivos = self.imagens(1) + [SimpleUploadedFile('print.gif', b'GIF89a', content_type='image/gif')]
+		with patch('GradePuc.views.ler_espelho_por_ocr') as leitura:
+			resposta = self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': arquivos}, follow=True)
+		leitura.assert_not_called()
+		self.assertContains(resposta, 'Envie o espelho em PDF, PNG ou JPG.')
+
+	def test_cadastro_com_varios_prints(self):
+		self.client.logout()
+		dados = {'nome': 'Teste', 'matricula': '9100011', 'email': '', 'password': 'Senha!123',
+		         'confirmar_senha': 'Senha!123', 'espelho': self.imagens(2)}
+		with patch('GradePuc.views.ler_espelho_por_ocr', return_value=leitura_ocr()) as leitura:
+			resposta = self.client.post('/cadastro/', dados, follow=True)
+		self.assertEqual(len(leitura.call_args.args[0]), 2)
+		self.assertContains(resposta, 'Lemos o seu arquivo por OCR')
