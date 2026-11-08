@@ -571,3 +571,44 @@ class CadastroComEspelhoTests(TestCase):
 		self.assertContains(resposta, 'Conta criada, mas o espelho não foi importado')
 		self.assertTrue(User.objects.filter(username='6000001').exists())
 		self.assertEqual(Aluno.objects.get(matricula='6000001').historico.count(), 0)
+
+
+class AdminDoEspelhoTests(TestCase):
+	def setUp(self):
+		admin = User.objects.create_superuser('admin_teste', 'admin@exemplo.invalid', 'Senha!123')
+		self.client.force_login(admin)
+		self.aluno = criar_aluno('7000001')
+		self.curriculo = criar_curriculo('Engenharia de Produção', [('MAT9161', 1)])
+		salvar_espelho(self.aluno, dados_espelho([disciplina_espelho('MAT9161', 'AP')], curso='CTC', habilitacao='BPR', enfase='SPR'))
+		self.pendencia = LigacaoHabilitacao.objects.get(curso_sigla='CTC')
+
+	def test_paginas_do_admin_abrem(self):
+		paginas = [
+			'/admin/GradePuc/aluno/', f'/admin/GradePuc/aluno/{self.aluno.id}/change/',
+			'/admin/GradePuc/historicodisciplina/', '/admin/GradePuc/historicodisciplina/?situacao=AP',
+			'/admin/GradePuc/curriculo/', f'/admin/GradePuc/curriculo/{self.curriculo.id}/change/',
+			'/admin/GradePuc/ligacaohabilitacao/',
+		]
+		for pagina in paginas:
+			with self.subTest(pagina=pagina):
+				self.assertEqual(self.client.get(pagina).status_code, 200)
+
+		resposta = self.client.get(f'/admin/GradePuc/aluno/{self.aluno.id}/change/')
+		self.assertContains(resposta, 'MAT9161')
+
+	def test_filtro_sem_ligacao(self):
+		resposta = self.client.get('/admin/GradePuc/ligacaohabilitacao/?ligacao=sem')
+		self.assertContains(resposta, 'SPR')
+		resposta = self.client.get('/admin/GradePuc/ligacaohabilitacao/?ligacao=com')
+		self.assertNotContains(resposta, '>SPR<')
+
+	def test_admin_resolve_a_sigla_pela_lista(self):
+		resposta = self.client.post('/admin/GradePuc/ligacaohabilitacao/', {
+			'form-TOTAL_FORMS': '1', 'form-INITIAL_FORMS': '1',
+			'form-0-id': str(self.pendencia.id), 'form-0-curriculo': str(self.curriculo.id),
+			'_save': 'Salvar',
+		})
+		self.assertEqual(resposta.status_code, 302)
+		self.pendencia.refresh_from_db()
+		self.assertEqual((self.pendencia.curriculo, self.pendencia.origem), (self.curriculo, 'admin'))
+		self.assertFalse(Aluno.objects.get(id=self.aluno.id).precisa_confirmar_curso)
