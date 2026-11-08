@@ -562,3 +562,23 @@ textarea:focus-visible {
         display: none;
     }
 }
+
+/* "Meu perfil" e "Sair" com a mesma largura (a da coluna) e a mesma altura */
+.site-header .site-header__botoes {
+    align-items: stretch;
+}
+
+.site-header .site-header__botoes .site-header__sair {
+    display: flex;
+}
+
+.site-header .site-header__botoes .btn-sair {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3em;
+    text-align: center;
+}
