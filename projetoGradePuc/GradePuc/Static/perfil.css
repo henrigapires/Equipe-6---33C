@@ -224,3 +224,10 @@
     color: var(--cor-tinta-secundaria);
     font-size: 14px;
 }
+
+.perfil__cartao .perfil__substituir {
+    padding: var(--espaco-2) var(--espaco-3);
+    background-color: var(--cor-superficie-aviso);
+    border-left: 4px solid var(--cor-aviso);
+    border-radius: var(--raio-pequeno);
+}

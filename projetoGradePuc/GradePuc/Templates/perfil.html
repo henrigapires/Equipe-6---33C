@@ -55,8 +55,12 @@
             <h2>{% if aluno.espelho_importado_em %}Enviar o espelho de novo{% else %}Enviar o espelho do histórico{% endif %}</h2>
             <p>
                 No SAU, abra o <strong>Espelho do Histórico</strong> e salve a página em PDF.
-                Enviar de novo substitui o histórico anterior.
             </p>
+            {% if aluno.espelho_importado_em %}
+            <p class="perfil__substituir">
+                Você já tem um histórico importado. Enviar um novo espelho <strong>substitui</strong> o histórico anterior.
+            </p>
+            {% endif %}
             <form method="post" enctype="multipart/form-data" class="perfil__envio">
                 {% csrf_token %}
                 <input type="hidden" name="acao" value="enviar_espelho">

@@ -627,3 +627,10 @@ class AvisosDoPerfilTests(TestCase):
 		self.assertContains(self.client.get('/perfil/'), self.AVISO_PRIVACIDADE, count=1)
 		self.client.logout()
 		self.assertContains(self.client.get('/cadastro/'), self.AVISO_PRIVACIDADE, count=1)
+
+	def test_aviso_de_substituir_so_quando_ja_tem_historico(self):
+		self.assertNotContains(self.client.get('/perfil/'), 'substitui')
+		salvar_espelho(self.aluno, dados_espelho([disciplina_espelho('MAT9161', 'AP')]))
+		resposta = self.client.get('/perfil/')
+		self.assertContains(resposta, 'Enviar um novo espelho <strong>substitui</strong> o histórico anterior.')
+		self.assertContains(resposta, '<input type="checkbox" name="confirmo" value="sim" required>')
