@@ -531,3 +531,34 @@ textarea:focus-visible {
     color: var(--cor-terracota);
     font-size: 13px;
 }
+
+/* Botão "Meu perfil" acima do Sair (usa o visual do .btn-sair) */
+.site-header .site-header__botoes {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.site-header a.btn-perfil {
+    display: inline-block;
+    text-decoration: none;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.site-header a.btn-perfil.ativo {
+    background-color: var(--cor-terracota);
+    color: var(--cor-superficie);
+}
+
+.site-header a.btn-perfil:hover .site-header__aviso,
+.site-header a.btn-perfil.ativo .site-header__aviso {
+    color: var(--cor-superficie);
+}
+
+@media (max-width: 768px) {
+    .site-header .site-header__aviso-texto {
+        display: none;
+    }
+}

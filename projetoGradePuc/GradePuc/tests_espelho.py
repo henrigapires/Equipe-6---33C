@@ -493,7 +493,9 @@ class PerfilViewTests(TestCase):
 		resposta = self.client.get('/perfil/')
 		self.assertEqual(resposta.status_code, 200)
 		self.assertContains(resposta, 'Você ainda não enviou o espelho do histórico.')
-		self.assertContains(resposta, 'class="site-header__ola ativo"')
+		self.assertContains(resposta, '<span class="site-header__ola">Olá, Teste</span>')
+		self.assertRegex(resposta.content.decode(), r'href="/perfil/"\s*class="btn-sair btn-perfil ativo"\s*aria-current="page"')
+		self.assertNotContains(resposta, 'site-header__aviso')
 
 	def test_arquivo_que_nao_e_pdf(self):
 		resposta = self.enviar('notas.txt', b'nao sou pdf')
@@ -515,14 +517,14 @@ class PerfilViewTests(TestCase):
 		resposta = self.enviar_espelho_falso()
 		self.assertContains(resposta, 'Histórico importado: 2 disciplinas.')
 		self.assertContains(resposta, 'Confirme seu curso')
-		self.assertContains(resposta, '• confirmar curso')
+		self.assertContains(resposta, '<span class="site-header__aviso"> •<span class="site-header__aviso-texto"> confirmar curso</span></span>')
 		self.assertContains(resposta, 'Em andamento')
 		self.assertEqual(self.aluno.historico.count(), 2)
 
 		resposta = self.client.post('/perfil/', {'acao': 'confirmar_curso', 'curriculo': self.computacao.id}, follow=True)
 		self.assertContains(resposta, 'Curso confirmado')
 		self.assertContains(resposta, 'Curso reconhecido')
-		self.assertNotContains(resposta, '• confirmar curso')
+		self.assertNotContains(resposta, 'site-header__aviso')
 		self.assertContains(resposta, 'INF9037')
 
 	def test_remover_historico_exige_confirmacao(self):
