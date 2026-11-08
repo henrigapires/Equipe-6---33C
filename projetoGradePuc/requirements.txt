@@ -5,5 +5,9 @@ pdfplumber
 requests
 beautifulsoup4
 
-# Opcional: leitura de PDF escaneado (sem texto) por OCR
-# rapidocr_onnxruntime
+# OCR do espelho escaneado ou de print (opcional: o site funciona sem).
+# O rapidocr-onnxruntime só tem versão para Python < 3.13; em Python mais novo
+# o pip pula esta linha e o site mostra "envie o PDF original do SAU".
+pypdfium2
+pillow
+rapidocr-onnxruntime; python_version < "3.13"
