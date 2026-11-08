@@ -33,7 +33,9 @@
         </nav>
 
         <div class="site-header__usuario">
-            <span class="site-header__ola">Olá, {{ user.first_name|default:user.username }}</span>
+            <a href="{% url 'perfil' %}" title="Meu perfil"
+                class="site-header__ola{% if atual == 'perfil' %} ativo{% endif %}"
+                {% if atual == 'perfil' %}aria-current="page"{% endif %}>Olá, {{ user.first_name|default:user.username }}{% if user.aluno.precisa_confirmar_curso %}<span class="site-header__aviso"> • confirmar curso</span>{% endif %}</a>
             <form action="{% url 'logout' %}" method="post" class="site-header__sair">
                 {% csrf_token %}
                 <button type="submit" class="btn-sair">Sair</button>
@@ -43,6 +45,13 @@
     {% endwith %}
 
     <div class="site-conteudo">
+        {% if messages %}
+        <div class="site-mensagens">
+            {% for mensagem in messages %}
+            <p class="site-mensagem site-mensagem--{{ mensagem.tags }}">{{ mensagem }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% block content %}{% endblock %}
     </div>
 

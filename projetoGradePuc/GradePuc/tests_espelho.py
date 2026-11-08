@@ -6,8 +6,10 @@ Sem internet e sem PDF real: o espelho é simulado com palavras falsas
 import tempfile
 from io import StringIO
 from pathlib import Path
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.test import TestCase
 
@@ -464,3 +466,74 @@ class ImportarCurriculosCommandTests(TestCase):
 		self.assertEqual(computacao.ano, 2023)
 		ligacao = LigacaoHabilitacao.objects.get(curso_sigla='CEG', habilitacao_sigla='BCO', enfase_sigla='')
 		self.assertEqual((ligacao.curriculo, ligacao.origem), (computacao, 'pre_cadastro'))
+
+
+class PerfilViewTests(TestCase):
+	def setUp(self):
+		self.aluno = criar_aluno('5000001')
+		self.client.force_login(self.aluno.usuario)
+		self.computacao = criar_curriculo('Engenharia de Computação', [('MAT9161', 1), ('INF9037', 2)])
+
+	def enviar(self, nome, conteudo):
+		arquivo = SimpleUploadedFile(nome, conteudo, content_type='application/pdf')
+		return self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': arquivo}, follow=True)
+
+	def enviar_espelho_falso(self):
+		dados = dados_espelho([disciplina_espelho('MAT9161', 'AP'), disciplina_espelho('INF9009', 'EA', periodo='20262')])
+		with patch('GradePuc.views.ler_espelho', return_value=dados):
+			return self.enviar('espelho.pdf', b'%PDF-1.4 falso')
+
+	def test_perfil_exige_login(self):
+		self.client.logout()
+		resposta = self.client.get('/perfil/')
+		self.assertEqual(resposta.status_code, 302)
+		self.assertTrue(resposta['Location'].startswith('/login/'))
+
+	def test_perfil_sem_espelho(self):
+		resposta = self.client.get('/perfil/')
+		self.assertEqual(resposta.status_code, 200)
+		self.assertContains(resposta, 'Você ainda não enviou o espelho do histórico.')
+		self.assertContains(resposta, 'class="site-header__ola ativo"')
+
+	def test_arquivo_que_nao_e_pdf(self):
+		resposta = self.enviar('notas.txt', b'nao sou pdf')
+		self.assertContains(resposta, 'Envie o espelho em formato PDF.')
+		self.assertEqual(self.aluno.historico.count(), 0)
+
+	def test_pdf_que_nao_abre_mostra_erro_sem_quebrar(self):
+		resposta = self.enviar('espelho.pdf', b'%PDF-1.4 isto nao e um pdf de verdade')
+		self.assertEqual(resposta.status_code, 200)
+		self.assertContains(resposta, 'site-mensagem--error')
+		self.assertEqual(self.aluno.historico.count(), 0)
+
+	def test_pdf_que_nao_e_espelho(self):
+		with patch('GradePuc.views.ler_espelho', side_effect=EspelhoInvalido('Este PDF não parece ser o Espelho do Histórico do SAU.')):
+			resposta = self.enviar('boleto.pdf', b'%PDF-1.4')
+		self.assertContains(resposta, 'Este PDF não parece ser o Espelho do Histórico do SAU.')
+
+	def test_envio_confirmacao_do_curso_e_indicador_no_header(self):
+		resposta = self.enviar_espelho_falso()
+		self.assertContains(resposta, 'Histórico importado: 2 disciplinas.')
+		self.assertContains(resposta, 'Confirme seu curso')
+		self.assertContains(resposta, '• confirmar curso')
+		self.assertContains(resposta, 'Em andamento')
+		self.assertEqual(self.aluno.historico.count(), 2)
+
+		resposta = self.client.post('/perfil/', {'acao': 'confirmar_curso', 'curriculo': self.computacao.id}, follow=True)
+		self.assertContains(resposta, 'Curso confirmado')
+		self.assertContains(resposta, 'Curso reconhecido')
+		self.assertNotContains(resposta, '• confirmar curso')
+		self.assertContains(resposta, 'INF9037')
+
+	def test_remover_historico_exige_confirmacao(self):
+		self.enviar_espelho_falso()
+		resposta = self.client.post('/perfil/', {'acao': 'remover_historico'}, follow=True)
+		self.assertContains(resposta, 'Marque a confirmação')
+		self.assertEqual(self.aluno.historico.count(), 2)
+
+		resposta = self.client.post('/perfil/', {'acao': 'remover_historico', 'confirmo': 'sim'}, follow=True)
+		self.assertContains(resposta, 'Seu histórico foi removido.')
+		self.aluno.refresh_from_db()
+		self.assertEqual(self.aluno.historico.count(), 0)
+		self.assertEqual(self.aluno.curso_sigla, '')
+		self.assertEqual(self.aluno.disciplinas_cursadas.count(), 0)

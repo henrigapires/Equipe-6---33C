@@ -8,6 +8,11 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from .gerador_grades import gerar_grades
+from django.contrib import messages
+from .espelho import EspelhoInvalido, EspelhoSemTexto, classificar_situacao, ler_espelho
+from .historico import curriculo_do_aluno, pendentes_do_curriculo, remover_historico, salvar_espelho
+from .ligacao import confirmar_curso, deduzir_curriculos
+from .models import Curriculo
 
 def obter_aluno(request):
     aluno, criado = Aluno.objects.get_or_create(
@@ -453,4 +458,102 @@ def gradessugeridas(request):
 
     return render(request, 'grades-sugeridas.html', {
         'opcoes': opcoes,
+    })
+
+
+TAMANHO_MAXIMO_ESPELHO = 5 * 1024 * 1024  # 5 MB
+
+NOMES_DAS_SITUACOES = {
+    'cursada': 'Cursada',
+    'em_andamento': 'Em andamento',
+    'pode_cursar': 'Pode cursar de novo',
+}
+
+
+def importar_espelho_enviado(aluno, arquivo):
+    """Lê o PDF enviado e salva o histórico. O PDF não fica salvo no servidor:
+    só os dados extraídos vão para o banco. Devolve (deu_certo, mensagem)."""
+    if not arquivo.name.lower().endswith('.pdf'):
+        return False, 'Envie o espelho em formato PDF.'
+    if arquivo.size > TAMANHO_MAXIMO_ESPELHO:
+        return False, 'O arquivo tem mais de 5 MB. Envie o PDF do espelho baixado do SAU.'
+
+    try:
+        dados = ler_espelho(arquivo)
+    except (EspelhoInvalido, EspelhoSemTexto) as erro:
+        return False, str(erro)
+    except Exception:
+        return False, 'Não conseguimos ler este PDF. Envie o PDF original baixado do SAU.'
+
+    reconhecido = salvar_espelho(aluno, dados)
+    mensagem = f"Histórico importado: {len(dados['disciplinas'])} disciplinas."
+    if not reconhecido:
+        mensagem += ' Confirme seu curso no seu perfil.'
+    return True, mensagem
+
+
+def formatar_periodo(periodo):
+    """'20261' -> '2026.1'"""
+    if len(periodo) == 5 and periodo.isdigit():
+        return periodo[:4] + '.' + periodo[4]
+    return periodo
+
+
+@login_required
+def perfil(request):
+    aluno = obter_aluno(request)
+
+    if request.method == 'POST':
+        acao = request.POST.get('acao')
+
+        if acao == 'enviar_espelho':
+            arquivo = request.FILES.get('espelho')
+            if arquivo is None:
+                messages.error(request, 'Escolha o PDF do espelho para enviar.')
+            else:
+                deu_certo, mensagem = importar_espelho_enviado(aluno, arquivo)
+                if deu_certo:
+                    messages.success(request, mensagem)
+                else:
+                    messages.error(request, mensagem)
+
+        elif acao == 'confirmar_curso':
+            curriculo = Curriculo.objects.filter(id=request.POST.get('curriculo') or 0).first()
+            if curriculo is None or not aluno.curso_sigla:
+                messages.error(request, 'Escolha um curso da lista.')
+            elif confirmar_curso(aluno, curriculo):
+                messages.success(request, f'Curso confirmado: {curriculo}.')
+            else:
+                messages.error(request, 'O curso desta sigla já foi definido pela administração do site.')
+
+        elif acao == 'remover_historico':
+            if request.POST.get('confirmo') == 'sim':
+                remover_historico(aluno)
+                messages.success(request, 'Seu histórico foi removido.')
+            else:
+                messages.error(request, 'Marque a confirmação para remover o histórico.')
+
+        return redirect('perfil')
+
+    periodos = []
+    for linha in aluno.historico.all():
+        if not periodos or periodos[-1]['periodo'] != linha.periodo:
+            periodos.append({'periodo': linha.periodo, 'nome': formatar_periodo(linha.periodo), 'linhas': []})
+        situacao = classificar_situacao(linha.situacao)
+        periodos[-1]['linhas'].append({
+            'linha': linha,
+            'classe': situacao,
+            'situacao': NOMES_DAS_SITUACOES[situacao],
+        })
+
+    sugestoes = deduzir_curriculos(aluno) if aluno.precisa_confirmar_curso else []
+
+    return render(request, 'perfil.html', {
+        'aluno': aluno,
+        'curriculo': curriculo_do_aluno(aluno),
+        'periodos': periodos,
+        'pendentes': pendentes_do_curriculo(aluno)[:10],
+        'sugestoes': sugestoes,
+        'sugerido': sugestoes[0]['curriculo'] if sugestoes else None,
+        'curriculos': Curriculo.objects.all(),
     })

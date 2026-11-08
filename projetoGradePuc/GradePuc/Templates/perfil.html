@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Meu perfil - grade.puc{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'perfil.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="perfil">
+        <h1 class="perfil__titulo">Meu perfil</h1>
+        <p class="perfil__subtitulo">Envie o Espelho do Histórico do SAU para o grade.puc não sugerir disciplinas que você já fez.</p>
+
+        <section class="perfil__cartao">
+            <h2>Meu curso</h2>
+            {% if aluno.espelho_importado_em %}
+            <dl class="perfil__dados">
+                <div><dt>Curso</dt><dd class="perfil__sigla">{{ aluno.curso_sigla|default:"-" }}</dd></div>
+                <div><dt>Habilitação</dt><dd class="perfil__sigla">{{ aluno.habilitacao_sigla|default:"-" }}</dd></div>
+                <div><dt>Ênfase</dt><dd class="perfil__sigla">{{ aluno.enfase_sigla|default:"-" }}</dd></div>
+                <div><dt>Ano do currículo</dt><dd class="perfil__sigla">{{ aluno.ano_curriculo|default:"-" }}</dd></div>
+                <div><dt>CR acumulado</dt><dd class="perfil__sigla">{{ aluno.cr|default:"-" }}</dd></div>
+                <div><dt>Espelho enviado em</dt><dd>{{ aluno.espelho_importado_em|date:"d/m/Y H:i" }}</dd></div>
+            </dl>
+
+            {% if curriculo %}
+            <p class="perfil__curso">Curso reconhecido: <strong>{{ curriculo }}</strong></p>
+            {% else %}
+            <form method="post" class="perfil__confirmar">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="confirmar_curso">
+                <h3>Confirme seu curso</h3>
+                <p>
+                    Ainda não sabemos a qual curso correspondem as siglas do seu espelho
+                    (<span class="perfil__sigla">{{ aluno.curso_sigla }} / {{ aluno.habilitacao_sigla }} / {{ aluno.enfase_sigla|default:"-" }}</span>).
+                    {% if sugerido %}Pelo seu histórico, o mais provável é <strong>{{ sugerido }}</strong>.{% endif %}
+                </p>
+                <label for="curriculo">Curso</label>
+                <select name="curriculo" id="curriculo" required>
+                    <option value="">Escolha seu curso</option>
+                    {% for opcao in curriculos %}
+                    <option value="{{ opcao.id }}" {% if opcao == sugerido %}selected{% endif %}>{{ opcao }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="perfil__botao">Confirmar curso</button>
+            </form>
+            {% endif %}
+            {% else %}
+            <p class="perfil__vazio">Você ainda não enviou o espelho do histórico.</p>
+            {% endif %}
+        </section>
+
+        <section class="perfil__cartao">
+            <h2>{% if aluno.espelho_importado_em %}Enviar o espelho de novo{% else %}Enviar o espelho do histórico{% endif %}</h2>
+            <p>
+                No SAU, abra o <strong>Espelho do Histórico</strong> e salve a página em PDF.
+                O PDF é lido na hora e <strong>não fica salvo</strong> no site: guardamos só as disciplinas e o seu curso.
+                Enviar de novo substitui o histórico anterior.
+            </p>
+            <form method="post" enctype="multipart/form-data" class="perfil__envio">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="enviar_espelho">
+                <label for="espelho">PDF do espelho (até 5 MB)</label>
+                <input type="file" name="espelho" id="espelho" accept=".pdf,application/pdf" required>
+                <button type="submit" class="perfil__botao">Enviar</button>
+            </form>
+        </section>
+
+        {% if pendentes %}
+        <section class="perfil__cartao">
+            <h2>Próximas do seu currículo</h2>
+            <ul class="perfil__pendentes">
+                {% for item in pendentes %}
+                <li>
+                    <span class="perfil__codigo">{{ item.codigo }}</span>
+                    <span>{{ item.nome }}</span>
+                    <span class="perfil__periodo">{% if item.periodo %}{{ item.periodo }}º período{% else %}período livre{% endif %}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        {% if periodos %}
+        <section class="perfil__cartao">
+            <h2>Meu histórico</h2>
+            {% for periodo in periodos %}
+            <h3 class="perfil__periodo-titulo">{{ periodo.nome }}</h3>
+            <table class="perfil__tabela">
+                <thead>
+                    <tr><th>Código</th><th>Disciplina</th><th>Créditos</th><th>Situação</th></tr>
+                </thead>
+                <tbody>
+                    {% for item in periodo.linhas %}
+                    <tr>
+                        <td class="perfil__codigo">{{ item.linha.codigo }}</td>
+                        <td>{{ item.linha.nome }}{% if item.linha.grupo %} <span class="perfil__grupo">(equivale a {{ item.linha.grupo }})</span>{% endif %}</td>
+                        <td class="perfil__codigo">{{ item.linha.creditos }}</td>
+                        <td><span class="perfil__situacao perfil__situacao--{{ item.classe }}">{{ item.situacao }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endfor %}
+        </section>
+
+        <section class="perfil__cartao perfil__cartao--remover">
+            <h2>Remover meu histórico</h2>
+            <p>Apaga as disciplinas importadas do espelho e os dados do seu curso. Você pode enviar o espelho de novo depois.</p>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="remover_historico">
+                <label class="perfil__confirmacao">
+                    <input type="checkbox" name="confirmo" value="sim" required>
+                    Sim, quero remover meu histórico
+                </label>
+                <button type="submit" class="perfil__botao perfil__botao--secundario">Remover meu histórico</button>
+            </form>
+        </section>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -471,3 +471,63 @@ textarea:focus-visible {
         padding: var(--espaco-3) var(--espaco-4);
     }
 }
+
+/* Mensagens do Django (sucesso / erro) */
+.site-mensagens {
+    max-width: 1000px;
+    margin: var(--espaco-4) auto 0;
+    padding: 0 var(--espaco-4);
+    box-sizing: border-box;
+}
+
+.site-mensagem {
+    margin: 0 0 var(--espaco-2);
+    padding: var(--espaco-3) var(--espaco-4);
+    border-left: 4px solid var(--cor-terracota);
+    border-radius: var(--raio-pequeno);
+    background-color: var(--cor-superficie-suave);
+    color: var(--cor-tinta);
+    font-family: var(--fonte-texto);
+    font-size: 15px;
+}
+
+.site-mensagem--success {
+    border-left-color: var(--cor-sucesso);
+}
+
+.site-mensagem--warning {
+    border-left-color: var(--cor-aviso);
+    background-color: var(--cor-superficie-aviso);
+}
+
+.site-mensagem--error {
+    border-left-color: var(--cor-erro);
+    background-color: var(--cor-superficie-erro);
+}
+
+/* "Olá, nome" como link para o perfil */
+.site-header a.site-header__ola {
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s ease;
+}
+
+.site-header a.site-header__ola:hover,
+.site-header a.site-header__ola:focus-visible {
+    color: var(--cor-terracota);
+}
+
+.site-header a.site-header__ola:focus-visible {
+    outline: 2px solid var(--cor-terracota);
+    outline-offset: 3px;
+}
+
+.site-header a.site-header__ola.ativo {
+    color: var(--cor-terracota);
+    border-bottom-color: var(--cor-terracota);
+}
+
+.site-header .site-header__aviso {
+    color: var(--cor-terracota);
+    font-size: 13px;
+}
