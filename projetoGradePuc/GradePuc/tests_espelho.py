@@ -537,3 +537,37 @@ class PerfilViewTests(TestCase):
 		self.assertEqual(self.aluno.historico.count(), 0)
 		self.assertEqual(self.aluno.curso_sigla, '')
 		self.assertEqual(self.aluno.disciplinas_cursadas.count(), 0)
+
+
+class CadastroComEspelhoTests(TestCase):
+	def cadastrar(self, arquivo=None):
+		dados = {'nome': 'Teste Silva', 'matricula': '6000001', 'email': '', 'password': 'Senha!123', 'confirmar_senha': 'Senha!123'}
+		if arquivo:
+			dados['espelho'] = arquivo
+		return self.client.post('/cadastro/', dados, follow=True)
+
+	def test_formulario_aceita_arquivo(self):
+		resposta = self.client.get('/cadastro/')
+		self.assertContains(resposta, 'enctype="multipart/form-data"')
+		self.assertContains(resposta, 'name="espelho"')
+
+	def test_cadastro_sem_espelho_continua_igual(self):
+		resposta = self.cadastrar()
+		self.assertEqual(resposta.redirect_chain, [('/', 302)])
+		aluno = Aluno.objects.get(matricula='6000001')
+		self.assertEqual(aluno.usuario.first_name, 'Teste')
+		self.assertEqual(aluno.historico.count(), 0)
+		self.assertNotContains(resposta, 'site-mensagem')
+
+	def test_cadastro_com_espelho(self):
+		dados = dados_espelho([disciplina_espelho('MAT9161', 'AP')])
+		with patch('GradePuc.views.ler_espelho', return_value=dados):
+			resposta = self.cadastrar(SimpleUploadedFile('espelho.pdf', b'%PDF-1.4', content_type='application/pdf'))
+		self.assertContains(resposta, 'Conta criada! Histórico importado: 1 disciplinas.')
+		self.assertEqual(Aluno.objects.get(matricula='6000001').historico.count(), 1)
+
+	def test_pdf_com_erro_nao_impede_o_cadastro(self):
+		resposta = self.cadastrar(SimpleUploadedFile('espelho.pdf', b'%PDF-1.4 quebrado', content_type='application/pdf'))
+		self.assertContains(resposta, 'Conta criada, mas o espelho não foi importado')
+		self.assertTrue(User.objects.filter(username='6000001').exists())
+		self.assertEqual(Aluno.objects.get(matricula='6000001').historico.count(), 0)

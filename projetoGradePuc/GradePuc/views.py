@@ -75,10 +75,26 @@ def create_user(request):
                 aluno.senha = ''
                 aluno.save()
             else:
-                Aluno.objects.create(
+                aluno = Aluno.objects.create(
                     usuario=usuario,
                     matricula=matricula,
                     senha=''
+                )
+
+        # O espelho é opcional e um erro nele nunca impede o cadastro: a conta já existe aqui.
+        arquivo = request.FILES.get('espelho')
+        if arquivo:
+            try:
+                deu_certo, mensagem = importar_espelho_enviado(aluno, arquivo)
+            except Exception:
+                deu_certo, mensagem = False, 'Não conseguimos ler este PDF.'
+            if deu_certo:
+                messages.success(request, 'Conta criada! ' + mensagem)
+            else:
+                messages.warning(
+                    request,
+                    'Conta criada, mas o espelho não foi importado: ' + mensagem
+                    + ' Você pode enviar de novo no seu perfil.'
                 )
 
         return redirect('home')
