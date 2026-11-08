@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Confira o seu histórico - grade.puc{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'perfil.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="perfil">
+        <h1 class="perfil__titulo">Confira o seu histórico</h1>
+        <p class="perfil__aviso-ocr">Lido por OCR: confira antes de salvar.</p>
+
+        {% if pode_ter_faltado %}
+        <p class="perfil__aviso-faltando">
+            Lemos {{ contagem.codigos }} código(s) de disciplina e {{ contagem.situacoes }} situação(ões):
+            <strong>pode ter faltado alguma disciplina</strong>, ou alguma linha veio incompleta.
+            Se a lista abaixo não estiver completa, envie outro arquivo: o PDF original do SAU ou um print reto e nítido da tela.
+        </p>
+        {% endif %}
+
+        <section class="perfil__cartao">
+            <h2>Curso lido</h2>
+            <dl class="perfil__dados">
+                <div><dt>Curso</dt><dd class="perfil__sigla">{{ dados.curso|default:"-" }}</dd></div>
+                <div><dt>Habilitação</dt><dd class="perfil__sigla">{{ dados.habilitacao|default:"-" }}</dd></div>
+                <div><dt>Ênfase</dt><dd class="perfil__sigla">{{ dados.enfase|default:"-" }}</dd></div>
+                <div><dt>Ano do currículo</dt><dd class="perfil__sigla">{{ dados.ano_curriculo|default:"-" }}</dd></div>
+            </dl>
+        </section>
+
+        <section class="perfil__cartao">
+            <h2>Disciplinas lidas ({{ linhas|length }})</h2>
+            <table class="perfil__tabela">
+                <thead>
+                    <tr><th>Código</th><th>Disciplina</th><th>Período</th><th>Situação</th></tr>
+                </thead>
+                <tbody>
+                    {% for d in linhas %}
+                    <tr>
+                        <td class="perfil__codigo">{{ d.codigo }}</td>
+                        <td>{{ d.nome|default:"-" }}</td>
+                        <td class="perfil__codigo">{{ d.periodo_nome|default:"?" }}</td>
+                        <td>{% if d.situacao %}{{ d.situacao }} · {% endif %}{{ d.nome_situacao }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <div class="perfil__acoes">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="confirmar_ocr">
+                <button type="submit" class="perfil__botao">Confirmar e salvar</button>
+            </form>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="descartar_ocr">
+                <button type="submit" class="perfil__botao perfil__botao--secundario">Enviar outro arquivo</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

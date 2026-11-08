@@ -13,6 +13,7 @@ from .espelho import EspelhoInvalido, EspelhoSemTexto, classificar_situacao, ler
 from .historico import curriculo_do_aluno, pendentes_do_curriculo, remover_historico, salvar_espelho
 from .ligacao import confirmar_curso, deduzir_curriculos
 from .models import Curriculo
+from .ocr import MENSAGEM_NAO_LEU, OcrIndisponivel, ler_espelho_por_ocr
 
 def obter_aluno(request):
     aluno, criado = Aluno.objects.get_or_create(
@@ -85,11 +86,17 @@ def create_user(request):
         arquivo = request.FILES.get('espelho')
         if arquivo:
             try:
-                deu_certo, mensagem = importar_espelho_enviado(aluno, arquivo)
+                situacao, mensagem = importar_espelho_enviado(request, aluno, arquivo)
             except Exception:
-                deu_certo, mensagem = False, 'Não conseguimos ler este PDF.'
-            if deu_certo:
+                situacao, mensagem = 'erro', 'Não conseguimos ler este arquivo.'
+            if situacao == 'salvo':
                 messages.success(request, 'Conta criada! ' + mensagem)
+            elif situacao == 'conferir':
+                messages.success(
+                    request,
+                    'Conta criada! Lemos o seu arquivo por OCR: depois de entrar, '
+                    'abra "Meu perfil" e confira as disciplinas antes de salvar.'
+                )
             else:
                 messages.warning(
                     request,
@@ -486,26 +493,56 @@ NOMES_DAS_SITUACOES = {
 }
 
 
-def importar_espelho_enviado(aluno, arquivo):
-    """Lê o PDF enviado e salva o histórico. O PDF não fica salvo no servidor:
-    só os dados extraídos vão para o banco. Devolve (deu_certo, mensagem)."""
+CHAVE_LEITURA_OCR = 'espelho_lido_por_ocr'
+
+
+def ler_arquivo_enviado(arquivo):
+    """PDF com texto: leitura direta. PDF sem texto: OCR.
+    Devolve (dados, lido_por_ocr) ou levanta EspelhoInvalido com uma mensagem amigável."""
+    try:
+        return ler_espelho(arquivo), False
+    except EspelhoSemTexto:
+        pass
+    try:
+        return ler_espelho_por_ocr(arquivo), True
+    except OcrIndisponivel:
+        raise EspelhoInvalido(MENSAGEM_NAO_LEU)
+
+
+def importar_espelho_enviado(request, aluno, arquivo):
+    """Lê o arquivo enviado. O arquivo nunca fica salvo no servidor: só os dados lidos.
+    Devolve (situacao, mensagem), com situacao 'salvo', 'conferir' (leitura por OCR,
+    guardada na sessão até o aluno confirmar) ou 'erro'."""
     if not arquivo.name.lower().endswith('.pdf'):
-        return False, 'Envie o espelho em formato PDF.'
+        return 'erro', 'Envie o espelho em formato PDF.'
     if arquivo.size > TAMANHO_MAXIMO_ESPELHO:
-        return False, 'O arquivo tem mais de 5 MB. Envie o PDF do espelho baixado do SAU.'
+        return 'erro', 'O arquivo tem mais de 5 MB. Envie o PDF do espelho baixado do SAU.'
 
     try:
-        dados = ler_espelho(arquivo)
+        dados, lido_por_ocr = ler_arquivo_enviado(arquivo)
     except (EspelhoInvalido, EspelhoSemTexto) as erro:
-        return False, str(erro)
+        return 'erro', str(erro)
     except Exception:
-        return False, 'Não conseguimos ler este PDF. Envie o PDF original baixado do SAU.'
+        return 'erro', 'Não conseguimos ler este PDF. Envie o PDF original baixado do SAU.'
+
+    if lido_por_ocr:
+        request.session[CHAVE_LEITURA_OCR] = {'aluno': aluno.id, 'dados': dados}
+        return 'conferir', 'Lemos o arquivo por OCR: confira as disciplinas antes de salvar.'
 
     reconhecido = salvar_espelho(aluno, dados)
     mensagem = f"Histórico importado: {len(dados['disciplinas'])} disciplinas."
     if not reconhecido:
         mensagem += ' Confirme seu curso no seu perfil.'
-    return True, mensagem
+    return 'salvo', mensagem
+
+
+def leitura_ocr_pendente(request, aluno):
+    """A leitura por OCR que espera conferência, só se for deste aluno."""
+    pendente = request.session.get(CHAVE_LEITURA_OCR)
+    if pendente and pendente.get('aluno') != aluno.id:
+        request.session.pop(CHAVE_LEITURA_OCR)
+        return None
+    return pendente
 
 
 def formatar_periodo(periodo):
@@ -527,12 +564,29 @@ def perfil(request):
             if arquivo is None:
                 messages.error(request, 'Escolha o PDF do espelho para enviar.')
             else:
-                deu_certo, mensagem = importar_espelho_enviado(aluno, arquivo)
-                if deu_certo:
+                situacao, mensagem = importar_espelho_enviado(request, aluno, arquivo)
+                if situacao == 'salvo':
                     messages.success(request, mensagem)
                     request.session['acabou_de_importar_espelho'] = True
+                elif situacao == 'conferir':
+                    messages.info(request, mensagem)
                 else:
                     messages.error(request, mensagem)
+
+        elif acao == 'confirmar_ocr':
+            pendente = leitura_ocr_pendente(request, aluno)
+            if pendente:
+                request.session.pop(CHAVE_LEITURA_OCR)
+                reconhecido = salvar_espelho(aluno, pendente['dados'])
+                mensagem = f"Histórico importado: {len(pendente['dados']['disciplinas'])} disciplinas."
+                if not reconhecido:
+                    mensagem += ' Confirme seu curso abaixo.'
+                messages.success(request, mensagem)
+                request.session['acabou_de_importar_espelho'] = True
+
+        elif acao == 'descartar_ocr':
+            request.session.pop(CHAVE_LEITURA_OCR, None)
+            messages.info(request, 'Leitura descartada. Envie outro arquivo.')
 
         elif acao == 'confirmar_curso':
             curriculo = Curriculo.objects.filter(id=request.POST.get('curriculo') or 0).first()
@@ -551,6 +605,26 @@ def perfil(request):
                 messages.error(request, 'Marque a confirmação para remover o histórico.')
 
         return redirect('perfil')
+
+    pendente = leitura_ocr_pendente(request, aluno)
+    if pendente:
+        dados = pendente['dados']
+        linhas = [
+            {**d, 'periodo_nome': formatar_periodo(d['periodo']),
+             'nome_situacao': NOMES_DAS_SITUACOES[classificar_situacao(d['situacao'])] if d['situacao'] else 'Não lida'}
+            for d in dados['disciplinas']
+        ]
+        contagem = dados.get('ocr', {})
+        pode_ter_faltado = (
+            contagem.get('codigos') != contagem.get('situacoes')
+            or any(not d['situacao'] or not d['periodo'] for d in dados['disciplinas'])
+        )
+        return render(request, 'perfil_conferencia.html', {
+            'dados': dados,
+            'linhas': linhas,
+            'contagem': contagem,
+            'pode_ter_faltado': pode_ter_faltado,
+        })
 
     periodos = []
     for linha in aluno.historico.all():

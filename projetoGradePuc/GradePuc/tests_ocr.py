@@ -10,12 +10,14 @@ import types
 from unittest.mock import patch
 
 import pypdfium2 as pdfium
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from PIL import Image
 
 from . import ocr
 from .espelho import interpretar_paginas, parece_espelho
-from .tests_espelho import pagina_espelho
+from .tests_espelho import criar_aluno, dados_espelho, disciplina_espelho, pagina_espelho
+from .views import CHAVE_LEITURA_OCR
 
 
 def png_em_memoria(largura=300, altura=200):
@@ -172,3 +174,92 @@ class InterpretacaoDoOcrTests(TestCase):
 		dados = interpretar_paginas([pagina_espelho()])
 		self.assertNotIn('ocr', dados)
 		self.assertEqual([d['codigo'] for d in dados['disciplinas']], ['MAT9161', 'MAT9181', 'INF9009', 'ENG9000'])
+
+
+def leitura_ocr(codigos=2, situacoes=2):
+	dados = dados_espelho([disciplina_espelho('CTC9001', 'AP'), disciplina_espelho('INF9009', 'EA', periodo='20262')])
+	dados['ocr'] = {'codigos': codigos, 'situacoes': situacoes}
+	return dados
+
+
+def pdf_enviado():
+	return SimpleUploadedFile('escaneado.pdf', pdf_em_branco().read(), content_type='application/pdf')
+
+
+class FluxoDeConferenciaTests(TestCase):
+	AVISO_OCR = 'Lido por OCR: confira antes de salvar.'
+
+	def setUp(self):
+		self.aluno = criar_aluno('9100001')
+		self.client.force_login(self.aluno.usuario)
+		ocr._motor = None
+
+	def tearDown(self):
+		ocr._motor = None
+
+	def enviar_lido_por_ocr(self, dados):
+		with patch('GradePuc.views.ler_espelho_por_ocr', return_value=dados):
+			return self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': pdf_enviado()}, follow=True)
+
+	def test_pdf_sem_texto_vai_para_a_conferencia_sem_salvar(self):
+		resposta = self.enviar_lido_por_ocr(leitura_ocr())
+		self.assertContains(resposta, self.AVISO_OCR)
+		self.assertContains(resposta, 'CTC9001')
+		self.assertContains(resposta, 'Confirmar e salvar')
+		self.assertContains(resposta, 'Enviar outro arquivo')
+		self.assertNotContains(resposta, 'pode ter faltado')
+		self.assertEqual(self.aluno.historico.count(), 0)
+		self.assertIn(CHAVE_LEITURA_OCR, self.client.session)
+
+	def test_confirmar_salva_o_historico(self):
+		self.enviar_lido_por_ocr(leitura_ocr())
+		resposta = self.client.post('/perfil/', {'acao': 'confirmar_ocr'}, follow=True)
+		self.assertContains(resposta, 'Histórico importado: 2 disciplinas.')
+		self.assertContains(resposta, 'Ver grades sugeridas')
+		self.assertNotContains(resposta, self.AVISO_OCR)
+		self.assertEqual(self.aluno.historico.count(), 2)
+		self.assertNotIn(CHAVE_LEITURA_OCR, self.client.session)
+
+	def test_enviar_outro_arquivo_descarta_a_leitura(self):
+		self.enviar_lido_por_ocr(leitura_ocr())
+		resposta = self.client.post('/perfil/', {'acao': 'descartar_ocr'}, follow=True)
+		self.assertContains(resposta, 'Leitura descartada. Envie outro arquivo.')
+		self.assertContains(resposta, 'name="espelho"')
+		self.assertEqual(self.aluno.historico.count(), 0)
+
+	def test_aviso_quando_codigos_e_situacoes_nao_batem(self):
+		resposta = self.enviar_lido_por_ocr(leitura_ocr(codigos=3, situacoes=2))
+		self.assertContains(resposta, 'pode ter faltado alguma disciplina')
+
+	def test_pdf_sem_texto_e_sem_ocr_instalado(self):
+		with patch.dict(sys.modules, {'rapidocr_onnxruntime': None}):
+			resposta = self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': pdf_enviado()}, follow=True)
+		self.assertEqual(resposta.status_code, 200)
+		self.assertContains(resposta, ocr.MENSAGEM_NAO_LEU)
+		self.assertNotContains(resposta, self.AVISO_OCR)
+		self.assertNotIn(CHAVE_LEITURA_OCR, self.client.session)
+
+	def test_ocr_que_nao_acha_nada(self):
+		with patch('GradePuc.ocr.motor_ocr', return_value=motor_falso([])):
+			resposta = self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': pdf_enviado()}, follow=True)
+		self.assertContains(resposta, ocr.MENSAGEM_NAO_LEU)
+		self.assertEqual(self.aluno.historico.count(), 0)
+
+	def test_leitura_de_outro_aluno_e_ignorada(self):
+		outro = criar_aluno('9100002')
+		sessao = self.client.session
+		sessao[CHAVE_LEITURA_OCR] = {'aluno': outro.id, 'dados': leitura_ocr()}
+		sessao.save()
+		resposta = self.client.get('/perfil/')
+		self.assertNotContains(resposta, self.AVISO_OCR)
+		self.assertNotIn(CHAVE_LEITURA_OCR, self.client.session)
+
+	def test_cadastro_com_pdf_sem_texto_deixa_a_conferencia_para_o_perfil(self):
+		self.client.logout()
+		dados = {'nome': 'Teste', 'matricula': '9100003', 'email': '', 'password': 'Senha!123',
+		         'confirmar_senha': 'Senha!123', 'espelho': pdf_enviado()}
+		with patch('GradePuc.views.ler_espelho_por_ocr', return_value=leitura_ocr()):
+			resposta = self.client.post('/cadastro/', dados, follow=True)
+		self.assertContains(resposta, 'Lemos o seu arquivo por OCR')
+		self.assertTrue(self.client.login(username='9100003', password='Senha!123'))
+		self.assertContains(self.client.get('/perfil/'), self.AVISO_OCR)
