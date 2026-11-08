@@ -4,6 +4,7 @@ Sem arquivo real e sem rodar o OCR de verdade: as imagens e PDFs são gerados
 em memória e o motor do RapidOCR é trocado por um falso que devolve caixas.
 """
 import io
+import random
 import sys
 import types
 from unittest.mock import patch
@@ -13,6 +14,8 @@ from django.test import TestCase
 from PIL import Image
 
 from . import ocr
+from .espelho import interpretar_paginas, parece_espelho
+from .tests_espelho import pagina_espelho
 
 
 def png_em_memoria(largura=300, altura=200):
@@ -91,3 +94,81 @@ class MotorOcrTests(TestCase):
 			segundo = ocr.motor_ocr()
 		self.assertIs(primeiro, segundo)
 		self.assertEqual(len(criados), 1)
+
+
+def caixa(texto, x0, top, x1=None, altura=25):
+	return {'text': texto, 'x0': x0, 'x1': x1 or x0 + 12 * len(texto), 'top': top, 'bottom': top + altura}
+
+
+def pagina_ocr(sem_rotulo_disciplina=False, sem_situacao_na_ultima=False):
+	"""Caixas como o RapidOCR devolve (pixels, sem acento, código e nome juntos ou não)."""
+	caixas = [
+		caixa('PUC-Rio-SAU-EspelhodoHistorico', 710, 35), caixa('Boa noiteFulano(1234567)', 680, 145),
+		caixa('Curso', 115, 463), caixa('Habilitacao', 274, 464), caixa('Enfase', 491, 458),
+		caixa('Ano curriculo', 670, 464), caixa('Codigo curriculo', 942, 464), caixa('CR acumulado', 1246, 464),
+		caixa('CEG', 124, 524), caixa('BCO', 310, 523), caixa('CCB', 508, 525), caixa('2023', 714, 523),
+		caixa('0', 1018, 525), caixa('7,5', 1301, 524),
+		# cabeçalho da tabela: "Situaclio" é como o OCR leu "Situação" numa imagem borrada
+		caixa('Periodo', 92, 656, 173), caixa('Turma', 495, 655, 567), caixa('Grau', 597, 655, 657),
+		caixa('Situaclio', 683, 655, 775), caixa('Tipo da', 817, 639, 901), caixa('disciplina', 806, 665, 911),
+		caixa('Grupo', 953, 655, 1020), caixa('No', 1071, 638, 1107), caixa('créd.', 1061, 666, 1121),
+		caixa('Horas', 1148, 655, 1216), caixa('Horas', 1244, 639, 1313), caixa('Ext.', 1254, 670, 1304),
+		caixa('No oport.', 1342, 624, 1444),
+		# período colado no código e no nome
+		caixa('20261 CTC9001 - INSTRUMENTACAO E', 92, 745, 461), caixa('MEDICAO', 203, 802, 298),
+		caixa('33A', 507, 774, 556), caixa('8,5', 604, 774, 645), caixa('AP', 713, 774, 747), caixa('OB', 842, 774, 877),
+		caixa('4', 1084, 780, 1097), caixa('60', 1148, 774, 1180), caixa('0', 1271, 778, 1287), caixa('1', 1388, 781, 1400),
+		# código sozinho, nome nas linhas de baixo, tipo em minúscula e grupo de equivalência
+		caixa('CTC9002 -', 203, 862, 309), caixa('MODELAGEM E', 203, 889, 356), caixa('PROGRAMACAO', 203, 915, 356),
+		caixa('33A', 506, 875, 556), caixa('AP', 712, 875, 748), caixa('oC', 841, 875, 878),
+		caixa('MAT9161', 940, 875, 1030), caixa('6', 1083, 878, 1100),
+		# período numa caixa separada e código em minúsculas
+		caixa('20262', 97, 1398, 164), caixa('inf9009-logica para', 205, 1385, 435), caixa('COMPUTACAO', 205, 1415, 340),
+		caixa('3WA', 506, 1399, 556), caixa('EA', 714, 1399, 746), caixa('4', 1082, 1401, 1099),
+		# zeros lidos como a letra O
+		caixa('MAT9OO2 - CALCULO', 204, 1475, 400), caixa('33C', 508, 1487, 554), caixa('2', 1083, 1489, 1099),
+		caixa('*Sera desligado compulsoriamente da Universidade', 85, 1600, 1398),
+	]
+	if not sem_situacao_na_ultima:
+		caixas.append(caixa('EA', 714, 1487, 745))
+	if not sem_rotulo_disciplina:
+		caixas.append(caixa('Disciplina', 204, 653, 309))
+	random.Random(7).shuffle(caixas)   # o OCR não devolve na ordem de leitura
+	texto = '\n'.join(c['text'] for c in caixas)
+	return {'palavras': caixas, 'texto': texto, 'altura': 1980, 'largura': 1530, 'ocr': True}
+
+
+class InterpretacaoDoOcrTests(TestCase):
+	def test_le_disciplinas_das_caixas_do_ocr(self):
+		dados = interpretar_paginas([pagina_ocr()])
+		self.assertEqual((dados['curso'], dados['habilitacao'], dados['enfase'], dados['ano_curriculo']), ('CEG', 'BCO', 'CCB', '2023'))
+		self.assertEqual(dados['matricula'], '1234567')
+		linhas = dados['disciplinas']
+		self.assertEqual([d['codigo'] for d in linhas], ['CTC9001', 'CTC9002', 'INF9009', 'MAT9002'])
+		self.assertEqual([d['periodo'] for d in linhas], ['20261', '20261', '20262', '20262'])
+		self.assertEqual([d['situacao'] for d in linhas], ['AP', 'AP', 'EA', 'EA'])
+		self.assertEqual([d['nome'] for d in linhas], ['INSTRUMENTACAO E MEDICAO', 'MODELAGEM E PROGRAMACAO', 'LOGICA PARA COMPUTACAO', 'CALCULO'])
+		self.assertEqual([d['tipo'] for d in linhas], ['OB', 'OC', '', ''])
+		self.assertEqual([d['grupo'] for d in linhas], ['', 'MAT9161', '', ''])
+		self.assertEqual([d['creditos'] for d in linhas], [4, 6, 4, 2])
+		self.assertEqual(linhas[0]['turma'], '33A')
+		self.assertEqual(dados['ocr'], {'codigos': 4, 'situacoes': 4})
+
+	def test_sem_o_rotulo_disciplina_estima_a_coluna(self):
+		dados = interpretar_paginas([pagina_ocr(sem_rotulo_disciplina=True)])
+		self.assertEqual([d['codigo'] for d in dados['disciplinas']], ['CTC9001', 'CTC9002', 'INF9009', 'MAT9002'])
+
+	def test_contagem_mostra_quando_falta_uma_situacao(self):
+		dados = interpretar_paginas([pagina_ocr(sem_situacao_na_ultima=True)])
+		self.assertEqual(dados['ocr'], {'codigos': 4, 'situacoes': 3})
+		self.assertEqual(dados['disciplinas'][-1]['situacao'], '')
+
+	def test_titulo_sem_espacos_e_sem_acento(self):
+		self.assertTrue(parece_espelho('PUC-Rio-SAU-EspelhodoHistorico'))
+		self.assertTrue(parece_espelho('Espelho do Histórico'))
+		self.assertFalse(parece_espelho('Boleto bancário'))
+
+	def test_leitura_direta_continua_igual_e_sem_contagem_de_ocr(self):
+		dados = interpretar_paginas([pagina_espelho()])
+		self.assertNotIn('ocr', dados)
+		self.assertEqual([d['codigo'] for d in dados['disciplinas']], ['MAT9161', 'MAT9181', 'INF9009', 'ENG9000'])
