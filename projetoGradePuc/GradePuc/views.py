@@ -530,6 +530,7 @@ def perfil(request):
                 deu_certo, mensagem = importar_espelho_enviado(aluno, arquivo)
                 if deu_certo:
                     messages.success(request, mensagem)
+                    request.session['acabou_de_importar_espelho'] = True
                 else:
                     messages.error(request, mensagem)
 
@@ -572,4 +573,6 @@ def perfil(request):
         'sugestoes': sugestoes,
         'sugerido': sugestoes[0]['curriculo'] if sugestoes else None,
         'curriculos': Curriculo.objects.all(),
+        # o link para as grades aparece uma vez, logo depois de importar
+        'mostrar_link_grades': request.session.pop('acabou_de_importar_espelho', False),
     })

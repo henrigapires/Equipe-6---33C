@@ -12,6 +12,12 @@
         <h1 class="perfil__titulo">Meu perfil</h1>
         <p class="perfil__subtitulo">Envie o Espelho do Histórico do SAU para o grade.puc não sugerir disciplinas que você já fez.</p>
 
+        {% if mostrar_link_grades %}
+        <p class="perfil__proximo-passo">
+            <a href="{% url 'grades_sugeridas' %}" class="perfil__link-grades">Ver grades sugeridas</a>
+        </p>
+        {% endif %}
+
         <section class="perfil__cartao">
             <h2>Meu curso</h2>
             {% if aluno.espelho_importado_em %}

@@ -634,3 +634,17 @@ class AvisosDoPerfilTests(TestCase):
 		resposta = self.client.get('/perfil/')
 		self.assertContains(resposta, 'Enviar um novo espelho <strong>substitui</strong> o histórico anterior.')
 		self.assertContains(resposta, '<input type="checkbox" name="confirmo" value="sim" required>')
+
+	def test_link_para_grades_so_logo_depois_de_importar(self):
+		link = '<a href="/grades-sugeridas/" class="perfil__link-grades">Ver grades sugeridas</a>'
+		dados = dados_espelho([disciplina_espelho('MAT9161', 'AP')])
+		with patch('GradePuc.views.ler_espelho', return_value=dados):
+			arquivo = SimpleUploadedFile('espelho.pdf', b'%PDF-1.4', content_type='application/pdf')
+			resposta = self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': arquivo}, follow=True)
+		self.assertContains(resposta, link)
+		self.assertNotContains(self.client.get('/perfil/'), link)
+
+	def test_sem_link_para_grades_quando_o_envio_falha(self):
+		arquivo = SimpleUploadedFile('notas.txt', b'texto', content_type='text/plain')
+		resposta = self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': arquivo}, follow=True)
+		self.assertNotContains(resposta, 'Ver grades sugeridas')

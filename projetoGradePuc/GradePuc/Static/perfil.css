@@ -231,3 +231,13 @@
     border-left: 4px solid var(--cor-aviso);
     border-radius: var(--raio-pequeno);
 }
+
+.perfil__proximo-passo {
+    margin: 0 0 var(--espaco-5);
+}
+
+.perfil__link-grades {
+    color: var(--cor-terracota);
+    font-family: var(--fonte-interface);
+    font-weight: 600;
+}
