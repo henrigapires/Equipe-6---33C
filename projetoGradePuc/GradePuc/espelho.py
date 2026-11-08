@@ -270,7 +270,16 @@ def achar_colunas_ocr(palavras):
         centros["disciplina"] = min(entre)
     else:
         centros["disciplina"] = centros["periodo"] + (centros["turma"] - centros["periodo"]) * 0.31
-    return centros, max(w["bottom"] for w in cabecalho)
+
+    # "Tipo da" é fácil de o OCR errar; a linha de baixo ("disciplina") fica entre Situação e Grupo
+    if "tipo" not in centros and "grupo" in centros:
+        abaixo = [
+            centro_do_trecho(w, "discip") for w in cabecalho
+            if "discip" in sem_acento(w["text"]) and centros["situacao"] < centro_do_trecho(w, "discip") < centros["grupo"]
+        ]
+        if abaixo:
+            centros["tipo"] = abaixo[0]
+    return centros,max(w["bottom"] for w in cabecalho)
 
 
 def ler_tabela_ocr(palavras, largura=None, colunas_de_antes=None):
@@ -339,7 +348,8 @@ def ler_tabela_ocr(palavras, largura=None, colunas_de_antes=None):
         disciplinas.append({
             "periodo": periodo,
             "codigo": corrigir_codigo(m.group(2), m.group(3)),
-            "nome": re.sub(r"\s+", " ", nome),
+            # o OCR troca a letra O pelo zero no meio das palavras (M0DELAGEM)
+            "nome": re.sub(r"(?<=[A-Z])0|0(?=[A-Z])", "O", re.sub(r"\s+", " ", nome)),
             "turma": coluna("turma"),
             "grau": coluna("grau"),
             "situacao": re.sub(r"[^A-Z]", "", coluna("situacao")),
@@ -357,7 +367,9 @@ def interpretar_paginas(paginas):
             "Este PDF não tem texto selecionável (parece escaneado ou foto). "
             "Envie o PDF original baixado do SAU."
         )
-    if not parece_espelho(texto):
+    # um print recortado pode não mostrar o título; aí vale ter o cabeçalho da tabela do espelho
+    tem_tabela_ocr = any(p.get("ocr") and achar_colunas_ocr(p["palavras"]) for p in paginas)
+    if not parece_espelho(texto) and not tem_tabela_ocr:
         raise EspelhoInvalido("Este PDF não parece ser o Espelho do Histórico do SAU.")
 
     m = MATRICULA.search(texto)

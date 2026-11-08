@@ -10,6 +10,7 @@ from .espelho import EspelhoInvalido, EspelhoSemTexto, interpretar_paginas
 
 ESCALA_PDF = 2.5                       # resolução da página renderizada para o OCR
 EXTENSOES_IMAGEM = ('.png', '.jpg', '.jpeg')
+LARGURA_MINIMA = 1800                  # prints mais estreitos são ampliados antes do OCR
 MENSAGEM_NAO_LEU = 'Não conseguimos ler este arquivo. Envie o PDF original do SAU ou um print reto da tela.'
 
 _motor = None                          # o RapidOCR demora para carregar: só na primeira vez
@@ -48,7 +49,12 @@ def imagens_do_arquivo(conteudo, nome):
     try:
         from PIL import Image
         if eh_imagem(nome):
-            return [Image.open(io.BytesIO(conteudo)).convert('RGB')]
+            imagem = Image.open(io.BytesIO(conteudo)).convert('RGB')
+            if imagem.width < LARGURA_MINIMA:
+                # print pequeno: amplia para o OCR enxergar números miúdos (ex.: créditos)
+                escala = LARGURA_MINIMA / imagem.width
+                imagem = imagem.resize((LARGURA_MINIMA, round(imagem.height * escala)), Image.LANCZOS)
+            return [imagem]
         import pypdfium2 as pdfium
         pdf = pdfium.PdfDocument(conteudo)
         return [pagina.render(scale=ESCALA_PDF).to_pil().convert('RGB') for pagina in pdf]

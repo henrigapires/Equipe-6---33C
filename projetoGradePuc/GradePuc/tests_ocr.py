@@ -52,7 +52,7 @@ class ExtrairPalavrasOcrTests(TestCase):
 		self.assertEqual(len(paginas), 1)
 		pagina = paginas[0]
 		self.assertTrue(pagina['ocr'])
-		self.assertEqual((pagina['largura'], pagina['altura']), (300, 200))
+		self.assertEqual((pagina['largura'], pagina['altura']), (1800, 1200))  # print pequeno é ampliado
 		palavra = pagina['palavras'][0]
 		self.assertEqual((palavra['text'], palavra['x0'], palavra['x1'], palavra['top'], palavra['bottom']), ('CTC4001 -', 10, 80, 20, 35))
 		self.assertIn('CTC4001', pagina['texto'])
@@ -422,3 +422,42 @@ class EnvioDeVariosArquivosTests(TestCase):
 			resposta = self.client.post('/cadastro/', dados, follow=True)
 		self.assertEqual(len(leitura.call_args.args[0]), 2)
 		self.assertContains(resposta, 'Lemos o seu arquivo por OCR')
+
+
+class PrintRecortadoTests(TestCase):
+	def sem(self, pagina, *textos):
+		pagina['palavras'] = [c for c in pagina['palavras'] if c['text'] not in textos]
+		pagina['texto'] = '\n'.join(c['text'] for c in pagina['palavras'])
+		return pagina
+
+	def test_print_sem_o_titulo_mas_com_a_tabela_e_aceito(self):
+		pagina = self.sem(pagina_ocr(), 'PUC-Rio-SAU-EspelhodoHistorico', 'Boa noiteFulano(1234567)')
+		dados = interpretar_paginas([pagina])
+		self.assertEqual(len(dados['disciplinas']), 4)
+		self.assertEqual(dados['curso'], 'CEG')
+
+	def test_imagem_sem_titulo_e_sem_tabela_continua_recusada(self):
+		pagina = {'palavras': [caixa('Boleto', 10, 10)], 'texto': 'Boleto', 'altura': 100, 'largura': 100, 'ocr': True}
+		with self.assertRaises(ocr.EspelhoInvalido):
+			interpretar_paginas([pagina])
+
+	def test_tipo_da_disciplina_mal_lido_usa_a_linha_de_baixo(self):
+		pagina = pagina_ocr()
+		for c in pagina['palavras']:
+			if c['text'] == 'Tipo da':
+				c['text'] = 'ep od!'
+		dados = interpretar_paginas([pagina])
+		self.assertEqual([d['tipo'] for d in dados['disciplinas']], ['OB', 'OC', '', ''])
+
+	def test_zero_no_meio_do_nome_vira_letra_o(self):
+		pagina = pagina_ocr()
+		for c in pagina['palavras']:
+			if c['text'] == 'MODELAGEM E':
+				c['text'] = 'M0DELAGEM E'
+		dados = interpretar_paginas([pagina])
+		self.assertEqual(dados['disciplinas'][1]['nome'], 'MODELAGEM E PROGRAMACAO')
+
+	def test_print_pequeno_e_ampliado_antes_do_ocr(self):
+		with patch('GradePuc.ocr.motor_ocr', return_value=motor_falso([])):
+			paginas = ocr.extrair_palavras_ocr(png_em_memoria(900, 600))
+		self.assertEqual((paginas[0]['largura'], paginas[0]['altura']), (1800, 1200))
