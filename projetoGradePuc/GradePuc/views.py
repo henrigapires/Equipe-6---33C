@@ -11,6 +11,10 @@ from .gerador_grades import gerar_grades
 from django.contrib import messages
 from .espelho import EspelhoInvalido, EspelhoSemTexto, classificar_situacao, ler_espelho
 from .historico import curriculo_do_aluno, pendentes_do_curriculo, remover_historico, salvar_espelho
+from .historico import (
+    SITUACOES_DA_CORRECAO, CorrecaoInvalida, adicionar_ao_historico, disciplina_digitada,
+    remover_do_historico, trocar_situacao_no_historico,
+)
 from .ligacao import confirmar_curso, deduzir_curriculos
 from .models import Curriculo
 from .ocr import MENSAGEM_NAO_LEU, OcrIndisponivel, eh_imagem, ler_espelho_por_ocr
@@ -625,6 +629,12 @@ def perfil(request):
             else:
                 messages.error(request, 'Marque a confirmação para remover o histórico.')
 
+        elif acao in ('adicionar_disciplina', 'remover_disciplina', 'trocar_situacao'):
+            corrigir_historico(request, aluno, acao)
+            resposta = redirect('perfil')
+            resposta['Location'] += '#historico'      # volta para a lista que estava sendo corrigida
+            return resposta
+
         return redirect('perfil')
 
     pendente = leitura_ocr_pendente(request, aluno)
@@ -635,10 +645,15 @@ def perfil(request):
         contagem = dados.get('ocr', {})
         with transaction.atomic():
             salvar_espelho(aluno, dados)
-            contexto = contexto_do_perfil(request, aluno)
+            # as linhas foram criadas na ordem da leitura: o id de cada uma leva à posição
+            # dela na lista da sessão, que é o que as correções à mão usam
+            ids = aluno.historico.order_by('id').values_list('id', flat=True)
+            chaves = {id_linha: posicao for posicao, id_linha in enumerate(ids)}
+            para_conferir = {i for i, d in enumerate(dados['disciplinas']) if d.get('confira')}
+            contexto = contexto_do_perfil(request, aluno, chaves, para_conferir)
             contexto['conferencia'] = {
                 'contagem': contagem,
-                'pode_ter_faltado': (
+                'pode_ter_faltado': not dados.get('corrigido_a_mao') and (
                     contagem.get('codigos') != contagem.get('situacoes')
                     or any(not d['situacao'] or not d['periodo'] for d in dados['disciplinas'])
                 ),
@@ -653,7 +668,9 @@ def perfil(request):
     return render(request, 'perfil.html', contexto_do_perfil(request, aluno))
 
 
-def contexto_do_perfil(request, aluno):
+def contexto_do_perfil(request, aluno, chaves=None, para_conferir=()):
+    """Dados da página do perfil. Na conferência do OCR, 'chaves' leva o id de cada linha
+    à posição dela na leitura da sessão e 'para_conferir' marca as linhas de código incerto."""
     periodos = []
     for linha in aluno.historico.all():
         if not periodos or periodos[-1]['periodo'] != linha.periodo:
@@ -663,10 +680,13 @@ def contexto_do_perfil(request, aluno):
             nome_situacao = NOMES_DAS_SITUACOES[situacao]
         else:
             situacao, nome_situacao = 'nao-lida', 'Não lida'   # só acontece na leitura por OCR
+        chave = chaves[linha.id] if chaves is not None else linha.id
         periodos[-1]['linhas'].append({
             'linha': linha,
             'classe': situacao,
             'situacao': nome_situacao,
+            'chave': chave,
+            'confira': chave in para_conferir,
         })
 
     sugestoes = deduzir_curriculos(aluno) if aluno.precisa_confirmar_curso else []
@@ -681,4 +701,59 @@ def contexto_do_perfil(request, aluno):
         'curriculos': Curriculo.objects.all(),
         # o link para as grades aparece uma vez, logo depois de importar
         'mostrar_link_grades': request.session.pop('acabou_de_importar_espelho', False),
+        # correções à mão: período sugerido para uma disciplina nova e situações possíveis
+        'ultimo_periodo': max((p['periodo'] for p in periodos), default=''),
+        'situacoes_da_correcao': SITUACOES_DA_CORRECAO.items(),
     }
+
+
+def corrigir_historico(request, aluno, acao):
+    """Correções à mão: adicionar, remover ou trocar a situação de uma disciplina.
+    Na conferência do OCR mexem na leitura guardada na sessão (nada vai para o banco antes
+    de "Confirmar e salvar"); no perfil já salvo mexem no histórico do banco."""
+    pendente = leitura_ocr_pendente(request, aluno)
+    try:
+        if acao == 'adicionar_disciplina':
+            d = disciplina_digitada(
+                request.POST.get('codigo'), request.POST.get('situacao'), request.POST.get('periodo')
+            )
+            if pendente:
+                linhas = pendente['dados']['disciplinas']
+                if any(x['periodo'] == d['periodo'] and x['codigo'] == d['codigo'] for x in linhas):
+                    raise CorrecaoInvalida(f"{d['codigo']} já está na lista em {d['periodo']}.")
+                linhas.append(d)
+            else:
+                adicionar_ao_historico(aluno, d)
+            mensagem = f"{d['codigo']} adicionada."
+        else:
+            chave = request.POST.get('linha', '')
+            situacao = request.POST.get('situacao')
+            if acao == 'trocar_situacao' and situacao not in SITUACOES_DA_CORRECAO:
+                raise CorrecaoInvalida('Escolha uma situação da lista.')
+            if pendente:
+                linhas = pendente['dados']['disciplinas']
+                if not chave.isdigit() or int(chave) >= len(linhas):
+                    raise CorrecaoInvalida('Não encontramos essa disciplina na lista.')
+                linha = linhas[int(chave)]
+                if acao == 'remover_disciplina':
+                    linhas.remove(linha)
+                else:
+                    linha['situacao'] = situacao
+                codigo = linha['codigo']
+            else:
+                linha = aluno.historico.filter(id=int(chave) if chave.isdigit() else 0).first()
+                if linha is None:
+                    raise CorrecaoInvalida('Não encontramos essa disciplina no seu histórico.')
+                codigo = linha.codigo
+                if acao == 'remover_disciplina':
+                    remover_do_historico(aluno, linha.id)
+                else:
+                    trocar_situacao_no_historico(aluno, linha.id, situacao)
+            mensagem = f'{codigo} removida.' if acao == 'remover_disciplina' else f'Situação de {codigo} trocada.'
+    except CorrecaoInvalida as erro:
+        messages.error(request, str(erro))
+        return
+    if pendente:
+        pendente['dados']['corrigido_a_mao'] = True
+        request.session[CHAVE_LEITURA_OCR] = pendente
+    messages.success(request, mensagem)

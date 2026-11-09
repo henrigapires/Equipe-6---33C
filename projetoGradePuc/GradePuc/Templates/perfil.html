@@ -20,7 +20,9 @@
         <p class="perfil__aviso-faltando">
             Lemos {{ conferencia.contagem.codigos }} código(s) de disciplina e {{ conferencia.contagem.situacoes }} situação(ões):
             <strong>pode ter faltado alguma disciplina</strong>, ou alguma linha veio incompleta.
-            Se o histórico abaixo não estiver completo, envie outro arquivo: o PDF original do SAU ou prints retos e nítidos da tela.
+            <a href="#adicionar">Faltou alguma? Adicione abaixo.</a>
+            Também dá para trocar a situação ou remover uma linha na lista, ou enviar outro arquivo
+            (o PDF original do SAU ou prints retos e nítidos da tela).
         </p>
         {% endif %}
         <div class="perfil__acoes">
@@ -130,8 +132,8 @@
         </section>
         {% endif %}
 
-        {% if periodos %}
-        <section class="perfil__cartao">
+        {% if periodos or conferencia %}
+        <section class="perfil__cartao" id="historico">
             <h2>Meu histórico</h2>
             {% for periodo in periodos %}
             <h3 class="perfil__periodo-titulo">{{ periodo.nome }}</h3>
@@ -142,8 +144,31 @@
                 <tbody>
                     {% for item in periodo.linhas %}
                     <tr>
-                        <td class="perfil__codigo">{{ item.linha.codigo }}</td>
-                        <td>{{ item.linha.nome }}{% if item.linha.grupo %} <span class="perfil__grupo">(equivale a {{ item.linha.grupo }})</span>{% endif %}</td>
+                        <td class="perfil__codigo">{{ item.linha.codigo }}{% if item.confira %} <span class="perfil__confira">confira o código</span>{% endif %}</td>
+                        <td>{{ item.linha.nome }}{% if item.linha.grupo %} <span class="perfil__grupo">(equivale a {{ item.linha.grupo }})</span>{% endif %}
+                        <details class="perfil__corrigir">
+                            <summary>Corrigir</summary>
+                            <form method="post" class="perfil__corrigir-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="acao" value="trocar_situacao">
+                                <input type="hidden" name="linha" value="{{ item.chave }}">
+                                <label for="situacao-{{ item.chave }}" class="perfil__oculto">Nova situação de {{ item.linha.codigo }}</label>
+                                <select name="situacao" id="situacao-{{ item.chave }}">
+                                    {% for valor, nome in situacoes_da_correcao %}
+                                    <option value="{{ valor }}" {% if valor == item.linha.situacao %}selected{% endif %}>{{ nome }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="perfil__botao perfil__botao--pequeno">Trocar</button>
+                            </form>
+                            <form method="post" class="perfil__corrigir-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="acao" value="remover_disciplina">
+                                <input type="hidden" name="linha" value="{{ item.chave }}">
+                                <button type="submit" class="perfil__botao perfil__botao--secundario perfil__botao--pequeno"
+                                        aria-label="Remover {{ item.linha.codigo }}">Remover</button>
+                            </form>
+                        </details>
+                        </td>
                         <td class="perfil__codigo">{{ item.linha.creditos }}</td>
                         <td><span class="perfil__situacao perfil__situacao--{{ item.classe }}">{{ item.situacao }}</span></td>
                     </tr>
@@ -151,9 +176,31 @@
                 </tbody>
             </table>
             {% endfor %}
+
+            <form method="post" class="perfil__adicionar" id="adicionar">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="adicionar_disciplina">
+                <h3>Adicionar disciplina</h3>
+                <p>Faltou alguma? Digite o código: o nome e os créditos vêm do cadastro da PUC.</p>
+                <div class="perfil__adicionar-campos">
+                    <label>Código
+                        <input type="text" name="codigo" placeholder="MAT4161" maxlength="8" required>
+                    </label>
+                    <label>Situação
+                        <select name="situacao">
+                            <option value="AP">Cursada</option>
+                            <option value="EA">Em andamento</option>
+                        </select>
+                    </label>
+                    <label>Período
+                        <input type="text" name="periodo" value="{{ ultimo_periodo }}" placeholder="20261" maxlength="7" required>
+                    </label>
+                    <button type="submit" class="perfil__botao">Adicionar</button>
+                </div>
+            </form>
         </section>
 
-        {% if not conferencia %}
+        {% if periodos and not conferencia %}
         <section class="perfil__cartao perfil__cartao--remover">
             <h2>Remover meu histórico</h2>
             <p>Apaga as disciplinas importadas do espelho e os dados do seu curso. Você pode enviar o espelho de novo depois.</p>

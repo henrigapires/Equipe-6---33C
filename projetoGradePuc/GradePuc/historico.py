@@ -1,4 +1,6 @@
 """Salva no banco o que foi lido do Espelho do Histórico e responde perguntas sobre ele."""
+import re
+
 from django.db import transaction
 from django.utils import timezone
 
@@ -57,30 +59,94 @@ def salvar_espelho(aluno, dados):
 
         aluno.historico.all().delete()
         for d in dados['disciplinas']:
-            disciplina = Disciplina.objects.filter(codigo=d['codigo']).first()
-            if disciplina is None:
-                disciplina = Disciplina.objects.create(
-                    codigo=d['codigo'],
-                    nome=d['nome'][:100],
-                    creditos=d['creditos'],
-                    departamento=d['codigo'][:3],
-                )
-            HistoricoDisciplina.objects.create(
-                aluno=aluno,
-                periodo=d['periodo'],
-                codigo=d['codigo'],
-                nome=d['nome'],
-                turma=d['turma'],
-                grau=d['grau'],
-                situacao=d['situacao'],
-                tipo=d['tipo'],
-                grupo=d['grupo'],
-                creditos=d['creditos'],
-                disciplina=disciplina,
-            )
+            criar_linha(aluno, d)
 
         sincronizar_cursadas(aluno, codigos_antigos)
         return registrar_siglas(aluno)
+
+
+def criar_linha(aluno, d):
+    """Uma linha do histórico (e a Disciplina do código, se ainda não existir)."""
+    disciplina = Disciplina.objects.filter(codigo=d['codigo']).first()
+    if disciplina is None:
+        disciplina = Disciplina.objects.create(
+            codigo=d['codigo'],
+            nome=d['nome'][:100],
+            creditos=d['creditos'],
+            departamento=d['codigo'][:3],
+        )
+    return HistoricoDisciplina.objects.create(
+        aluno=aluno,
+        periodo=d['periodo'],
+        codigo=d['codigo'],
+        nome=d['nome'],
+        turma=d['turma'],
+        grau=d['grau'],
+        situacao=d['situacao'],
+        tipo=d['tipo'],
+        grupo=d['grupo'],
+        creditos=d['creditos'],
+        disciplina=disciplina,
+    )
+
+
+# ---------- Correções à mão (quando a leitura errou) ----------
+
+# Situações que o aluno pode escolher ao corrigir uma linha
+SITUACOES_DA_CORRECAO = {'AP': 'Cursada', 'EA': 'Em andamento', 'RM': 'Reprovada'}
+SITUACOES_AO_ADICIONAR = ('AP', 'EA')
+
+
+class CorrecaoInvalida(Exception):
+    pass
+
+
+def disciplina_digitada(codigo, situacao, periodo):
+    """Disciplina que o aluno acrescentou à mão. Nome e créditos vêm do banco;
+    se o código não for conhecido, levanta CorrecaoInvalida com a mensagem para a tela."""
+    codigo = re.sub(r'\s+', '', codigo or '').upper()
+    periodo = re.sub(r'[.\s/-]', '', periodo or '')
+    if not re.fullmatch(r'[A-Z]{3}\d{4}', codigo):
+        raise CorrecaoInvalida('Digite o código da disciplina com 3 letras e 4 números, por exemplo MAT4161.')
+    if situacao not in SITUACOES_AO_ADICIONAR:
+        raise CorrecaoInvalida('Escolha se a disciplina foi cursada ou está em andamento.')
+    if not re.fullmatch(r'\d{4}[0-3]', periodo):
+        raise CorrecaoInvalida('Digite o período no formato 20261 (ano e semestre).')
+    oficial = dados_oficiais(codigo)
+    if oficial is None:
+        raise CorrecaoInvalida(f'Não encontramos a disciplina {codigo}. Confira o código no SAU.')
+    nome, creditos = oficial
+    return {
+        'periodo': periodo, 'codigo': codigo, 'nome': nome, 'turma': '', 'grau': '',
+        'situacao': situacao, 'tipo': '', 'grupo': '', 'creditos': creditos,
+    }
+
+
+def adicionar_ao_historico(aluno, d):
+    if aluno.historico.filter(periodo=d['periodo'], codigo=d['codigo']).exists():
+        raise CorrecaoInvalida(f"{d['codigo']} já está no seu histórico em {d['periodo']}.")
+    with transaction.atomic():
+        codigos_antigos = codigos_bloqueados(aluno)
+        criar_linha(aluno, d)
+        sincronizar_cursadas(aluno, codigos_antigos)
+
+
+def remover_do_historico(aluno, linha_id):
+    with transaction.atomic():
+        codigos_antigos = codigos_bloqueados(aluno)
+        apagadas, _ = aluno.historico.filter(id=linha_id).delete()
+        sincronizar_cursadas(aluno, codigos_antigos)
+    return apagadas > 0
+
+
+def trocar_situacao_no_historico(aluno, linha_id, situacao):
+    if situacao not in SITUACOES_DA_CORRECAO:
+        raise CorrecaoInvalida('Escolha uma situação da lista.')
+    with transaction.atomic():
+        codigos_antigos = codigos_bloqueados(aluno)
+        trocadas = aluno.historico.filter(id=linha_id).update(situacao=situacao)
+        sincronizar_cursadas(aluno, codigos_antigos)
+    return trocadas > 0
 
 
 def remover_historico(aluno):

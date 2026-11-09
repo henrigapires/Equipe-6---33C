@@ -763,3 +763,143 @@ class CadastroComPrintsTests(TestCase):
 			self.assertContains(resposta, codigo)
 		self.assertContains(resposta, 'XEG')
 		self.assertEqual(Aluno.objects.get(matricula='9100040').historico.count(), 0)   # ainda não salvou
+
+
+# ---------- Parte C: correções à mão ----------
+
+class CorrecaoNaConferenciaTests(TestCase):
+	"""Na conferência do OCR as correções mexem só na leitura da sessão."""
+
+	def setUp(self):
+		self.aluno = criar_aluno('9100050')
+		self.client.force_login(self.aluno.usuario)
+		criar_curriculo('Curso Inventado', [('CTC9001', 1), ('INF9009', 1), ('MAT9161', 1)])
+		with patch('GradePuc.views.ler_espelho_por_ocr', return_value=leitura_ocr(codigos=2, situacoes=3)):
+			self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': pdf_enviado()})
+
+	def linhas_da_sessao(self):
+		return self.client.session[CHAVE_LEITURA_OCR]['dados']['disciplinas']
+
+	def corrigir(self, **campos):
+		return self.client.post('/perfil/', campos, follow=True)
+
+	def test_aviso_aponta_para_adicionar(self):
+		resposta = self.client.get('/perfil/')
+		self.assertContains(resposta, 'Faltou alguma? Adicione abaixo.')
+		self.assertContains(resposta, 'id="adicionar"')
+		self.assertContains(resposta, 'name="periodo" value="20262"')     # sugere o último período
+
+	def test_adicionar_disciplina(self):
+		resposta = self.corrigir(acao='adicionar_disciplina', codigo='mat 9161', situacao='EA', periodo='2026.2')
+		self.assertContains(resposta, 'MAT9161 adicionada.')
+		self.assertContains(resposta, 'Disciplina MAT9161')        # nome do banco
+		self.assertContains(resposta, 'Lido por OCR: confira antes de salvar.')
+		self.assertEqual(self.linhas_da_sessao()[-1]['codigo'], 'MAT9161')
+		self.assertEqual(self.linhas_da_sessao()[-1]['periodo'], '20262')
+		self.assertEqual(self.aluno.historico.count(), 0)          # nada no banco ainda
+		self.assertNotContains(resposta, 'pode ter faltado')        # já corrigiu à mão
+
+	def test_codigo_inexistente(self):
+		resposta = self.corrigir(acao='adicionar_disciplina', codigo='ZZZ9999', situacao='AP', periodo='20261')
+		self.assertContains(resposta, 'Não encontramos a disciplina ZZZ9999. Confira o código no SAU.')
+		self.assertEqual(len(self.linhas_da_sessao()), 2)
+
+	def test_codigo_mal_digitado_e_repetido(self):
+		resposta = self.corrigir(acao='adicionar_disciplina', codigo='MAT91', situacao='AP', periodo='20261')
+		self.assertContains(resposta, 'Digite o código da disciplina com 3 letras e 4 números')
+		resposta = self.corrigir(acao='adicionar_disciplina', codigo='CTC9001', situacao='AP', periodo='20261')
+		self.assertContains(resposta, 'CTC9001 já está na lista em 20261.')
+
+	def test_remover_linha(self):
+		resposta = self.corrigir(acao='remover_disciplina', linha='0')
+		self.assertContains(resposta, 'CTC9001 removida.')
+		self.assertEqual([d['codigo'] for d in self.linhas_da_sessao()], ['INF9009'])
+
+	def test_trocar_situacao(self):
+		resposta = self.corrigir(acao='trocar_situacao', linha='1', situacao='AP')
+		self.assertContains(resposta, 'Situação de INF9009 trocada.')
+		self.assertEqual(self.linhas_da_sessao()[1]['situacao'], 'AP')
+		resposta = self.corrigir(acao='trocar_situacao', linha='1', situacao='XX')
+		self.assertContains(resposta, 'Escolha uma situação da lista.')
+
+	def test_linha_que_nao_existe(self):
+		resposta = self.corrigir(acao='remover_disciplina', linha='7')
+		self.assertContains(resposta, 'Não encontramos essa disciplina na lista.')
+
+	def test_confirmar_salva_o_que_foi_corrigido(self):
+		self.corrigir(acao='remover_disciplina', linha='0')
+		self.corrigir(acao='adicionar_disciplina', codigo='MAT9161', situacao='AP', periodo='20261')
+		self.client.post('/perfil/', {'acao': 'confirmar_ocr'})
+		self.assertEqual(
+			sorted(self.aluno.historico.values_list('codigo', 'situacao')), [('INF9009', 'EA'), ('MAT9161', 'AP')]
+		)
+
+	def test_codigo_incerto_aparece_marcado(self):
+		dados = leitura_ocr()
+		dados['disciplinas'][0]['confira'] = True
+		with patch('GradePuc.views.ler_espelho_por_ocr', return_value=dados):
+			resposta = self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': pdf_enviado()}, follow=True)
+		self.assertContains(resposta, 'confira o código', count=1)
+
+
+class CorrecaoNoPerfilSalvoTests(TestCase):
+	"""No perfil já salvo as correções mexem no banco e nas disciplinas cursadas."""
+
+	def setUp(self):
+		self.aluno = criar_aluno('9100060')
+		self.client.force_login(self.aluno.usuario)
+		criar_curriculo('Curso Inventado', [('CTC9001', 1), ('INF9009', 1), ('MAT9161', 1)])
+		salvar_espelho(self.aluno, dados_espelho([
+			disciplina_espelho('CTC9001', 'AP'), disciplina_espelho('INF9009', 'EA', periodo='20262'),
+		]))
+
+	def cursadas(self):
+		return sorted(self.aluno.disciplinas_cursadas.values_list('codigo', flat=True))
+
+	def linha(self, codigo):
+		return self.aluno.historico.get(codigo=codigo)
+
+	def test_adicionar_entra_no_historico_e_nas_cursadas(self):
+		resposta = self.client.post('/perfil/', {
+			'acao': 'adicionar_disciplina', 'codigo': 'MAT9161', 'situacao': 'AP', 'periodo': '20261',
+		}, follow=True)
+		self.assertContains(resposta, 'MAT9161 adicionada.')
+		self.assertEqual(resposta.redirect_chain[-1][0], '/perfil/#historico')
+		self.assertEqual(self.linha('MAT9161').nome, 'Disciplina MAT9161')
+		self.assertIn('MAT9161', self.cursadas())
+
+	def test_adicionar_repetida_ou_inexistente(self):
+		resposta = self.client.post('/perfil/', {
+			'acao': 'adicionar_disciplina', 'codigo': 'CTC9001', 'situacao': 'AP', 'periodo': '20261',
+		}, follow=True)
+		self.assertContains(resposta, 'CTC9001 já está no seu histórico em 20261.')
+		resposta = self.client.post('/perfil/', {
+			'acao': 'adicionar_disciplina', 'codigo': 'ZZZ9999', 'situacao': 'AP', 'periodo': '20261',
+		}, follow=True)
+		self.assertContains(resposta, 'Não encontramos a disciplina ZZZ9999.')
+		self.assertEqual(self.aluno.historico.count(), 2)
+
+	def test_remover_tira_das_cursadas(self):
+		resposta = self.client.post('/perfil/', {'acao': 'remover_disciplina', 'linha': self.linha('CTC9001').id}, follow=True)
+		self.assertContains(resposta, 'CTC9001 removida.')
+		self.assertFalse(self.aluno.historico.filter(codigo='CTC9001').exists())
+		self.assertEqual(self.cursadas(), ['INF9009'])
+
+	def test_trocar_para_reprovada_volta_a_ser_sugerida(self):
+		self.client.post('/perfil/', {'acao': 'trocar_situacao', 'linha': self.linha('CTC9001').id, 'situacao': 'RM'})
+		self.assertEqual(self.linha('CTC9001').situacao, 'RM')
+		self.assertEqual(self.cursadas(), ['INF9009'])
+
+	def test_linha_de_outro_aluno_nao_e_mexida(self):
+		outro = criar_aluno('9100061')
+		salvar_espelho(outro, dados_espelho([disciplina_espelho('MAT9161', 'AP')]))
+		linha_do_outro = outro.historico.get()
+		resposta = self.client.post('/perfil/', {'acao': 'remover_disciplina', 'linha': linha_do_outro.id}, follow=True)
+		self.assertContains(resposta, 'Não encontramos essa disciplina no seu histórico.')
+		self.assertTrue(outro.historico.exists())
+
+	def test_tela_tem_os_botoes_de_correcao(self):
+		resposta = self.client.get('/perfil/')
+		self.assertContains(resposta, 'value="trocar_situacao"', count=2)
+		self.assertContains(resposta, 'value="remover_disciplina"', count=2)
+		self.assertContains(resposta, 'Adicionar disciplina')

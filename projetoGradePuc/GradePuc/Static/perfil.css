@@ -297,3 +297,83 @@
 .perfil__carregando[hidden] {
     display: none;
 }
+
+/* Correções à mão no histórico (adicionar, remover, trocar a situação) */
+.perfil__confira {
+    display: inline-block;
+    margin-top: var(--espaco-1);
+    padding: 0 var(--espaco-2);
+    border-radius: var(--raio-pequeno);
+    background-color: var(--cor-superficie-aviso);
+    color: var(--cor-aviso);
+    font-family: var(--fonte-interface);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.perfil__corrigir {
+    margin-top: var(--espaco-1);
+}
+
+.perfil__corrigir summary {
+    display: inline-block;
+    color: var(--cor-terracota);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.perfil__corrigir[open] summary {
+    margin-bottom: var(--espaco-2);
+}
+
+.perfil__corrigir-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-1);
+    align-items: center;
+    margin: 0 0 var(--espaco-2);
+}
+
+.perfil__corrigir select {
+    width: 9.5em;
+    font-size: 14px;
+}
+
+.perfil__botao--pequeno {
+    padding: var(--espaco-1) var(--espaco-2);
+    font-size: 13px;
+}
+
+.perfil__oculto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.perfil__adicionar {
+    margin-top: var(--espaco-5);
+    padding-top: var(--espaco-4);
+    border-top: 1px solid var(--cor-borda);
+}
+
+.perfil__adicionar-campos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-3);
+    align-items: flex-end;
+}
+
+.perfil__adicionar-campos label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--espaco-1);
+    font-weight: 700;
+}
+
+.perfil__adicionar-campos input {
+    width: 9em;
+}
