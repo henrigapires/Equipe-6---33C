@@ -577,12 +577,21 @@ class CadastroComEspelhoTests(TestCase):
 			resposta = self.cadastrar(SimpleUploadedFile('espelho.pdf', b'%PDF-1.4', content_type='application/pdf'))
 		self.assertContains(resposta, 'Conta criada! Histórico importado: 1 disciplinas.')
 		self.assertEqual(Aluno.objects.get(matricula='6000001').historico.count(), 1)
+		# já entra logado e cai no perfil, com o histórico na tela
+		self.assertEqual(resposta.redirect_chain[-1][0], '/perfil/')
+		self.assertTrue(resposta.context['user'].is_authenticated)
+		self.assertContains(resposta, 'Meu histórico')
+		self.assertContains(resposta, 'Ver grades sugeridas')
 
 	def test_pdf_com_erro_nao_impede_o_cadastro(self):
 		resposta = self.cadastrar(SimpleUploadedFile('espelho.pdf', b'%PDF-1.4 quebrado', content_type='application/pdf'))
 		self.assertContains(resposta, 'Conta criada, mas o espelho não foi importado')
 		self.assertTrue(User.objects.filter(username='6000001').exists())
 		self.assertEqual(Aluno.objects.get(matricula='6000001').historico.count(), 0)
+		# no perfil, com o formulário para enviar de novo
+		self.assertEqual(resposta.redirect_chain[-1][0], '/perfil/')
+		self.assertContains(resposta, 'Envie de novo aqui embaixo.')
+		self.assertContains(resposta, 'name="espelho"')
 
 
 class AdminDoEspelhoTests(TestCase):

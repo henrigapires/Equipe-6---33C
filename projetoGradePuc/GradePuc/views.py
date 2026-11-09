@@ -85,24 +85,30 @@ def create_user(request):
         # O espelho é opcional e um erro nele nunca impede o cadastro: a conta já existe aqui.
         arquivos = request.FILES.getlist('espelho')
         if arquivos:
+            # Com espelho, o aluno já entra logado e vai direto para "Meu perfil": lá ele vê o
+            # histórico salvo, a conferência da leitura por OCR ou o erro com o formulário
+            # para enviar de novo. A leitura fica na sessão de quem acabou de entrar.
+            login(request, usuario)
             try:
                 situacao, mensagem = importar_espelho_enviado(request, aluno, arquivos)
             except Exception:
                 situacao, mensagem = 'erro', 'Não conseguimos ler este arquivo.'
             if situacao == 'salvo':
                 messages.success(request, 'Conta criada! ' + mensagem)
+                request.session['acabou_de_importar_espelho'] = True
             elif situacao == 'conferir':
                 messages.success(
                     request,
-                    'Conta criada! Lemos o seu arquivo por OCR: depois de entrar, '
-                    'abra "Meu perfil" e confira as disciplinas antes de salvar.'
+                    'Conta criada! Lemos o seu arquivo por OCR: confira as disciplinas abaixo '
+                    'e clique em "Confirmar e salvar".'
                 )
             else:
                 messages.warning(
                     request,
                     'Conta criada, mas o espelho não foi importado: ' + mensagem
-                    + ' Você pode enviar de novo no seu perfil.'
+                    + ' Envie de novo aqui embaixo.'
                 )
+            return redirect('perfil')
 
         return redirect('home')
 

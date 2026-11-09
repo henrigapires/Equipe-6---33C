@@ -16,7 +16,7 @@ from PIL import Image
 
 from . import ocr
 from .espelho import creditos_conferidos, interpretar_paginas, ler_cabecalho_ocr, normalizar_decimal, parece_espelho
-from .models import LigacaoHabilitacao
+from .models import Aluno, LigacaoHabilitacao
 from .tests_espelho import criar_aluno, criar_curriculo, dados_espelho, disciplina_espelho, pagina_espelho
 from .historico import salvar_espelho
 from .views import CHAVE_LEITURA_OCR
@@ -297,15 +297,20 @@ class FluxoDeConferenciaTests(TestCase):
 		self.client.logout()
 		self.assertContains(self.client.get('/cadastro/'), 'accept=".pdf,.png,.jpg,.jpeg,')
 
-	def test_cadastro_com_pdf_sem_texto_deixa_a_conferencia_para_o_perfil(self):
+	def test_cadastro_com_pdf_sem_texto_vai_direto_para_a_conferencia(self):
 		self.client.logout()
 		dados = {'nome': 'Teste', 'matricula': '9100003', 'email': '', 'password': 'Senha!123',
 		         'confirmar_senha': 'Senha!123', 'espelho': pdf_enviado()}
 		with patch('GradePuc.views.ler_espelho_por_ocr', return_value=leitura_ocr()):
 			resposta = self.client.post('/cadastro/', dados, follow=True)
 		self.assertContains(resposta, 'Lemos o seu arquivo por OCR')
-		self.assertTrue(self.client.login(username='9100003', password='Senha!123'))
-		self.assertContains(self.client.get('/perfil/'), self.AVISO_OCR)
+		self.assertEqual(resposta.redirect_chain[-1][0], '/perfil/')
+		self.assertTrue(resposta.context['user'].is_authenticated)
+		self.assertContains(resposta, self.AVISO_OCR)
+		self.assertContains(resposta, 'Confirmar e salvar')
+		# e confirmar salva no aluno novo
+		self.client.post('/perfil/', {'acao': 'confirmar_ocr'})
+		self.assertEqual(Aluno.objects.get(matricula='9100003').historico.count(), 2)
 
 
 def dois_prints():
@@ -730,3 +735,31 @@ class ConferenciaComOBancoTests(TestCase):
 		self.assertEqual((linha['nome'], linha['creditos']), ('Disciplina XYZ9102', 4))
 		desconhecida = [d for d in dados['disciplinas'] if d['codigo'] == 'XYZ9101'][0]
 		self.assertEqual((desconhecida['nome'], desconhecida['creditos']), ('PRIMEIRA DISCIPLINA', 4))
+
+
+class CadastroComPrintsTests(TestCase):
+	def test_dois_prints_em_ordem_invertida_terminam_na_conferencia_logado(self):
+		def caixas(pagina):
+			return [[[[c['x0'], c['top']], [c['x1'], c['top']], [c['x1'], c['bottom']], [c['x0'], c['bottom']]], c['text'], 0.9]
+			        for c in pagina['palavras']]
+		# o navegador mandou a tabela antes do cabeçalho; depois vêm os recortes relidos (vazios)
+		respostas = iter([caixas(print_da_tabela()), caixas(print_do_cabecalho())])
+
+		def motor(imagem, **parametros):
+			return next(respostas, []), 0.1
+
+		arquivos = [
+			SimpleUploadedFile('tabela.png', png_em_memoria(1800, 1700).read(), content_type='image/png'),
+			SimpleUploadedFile('cabecalho.png', png_em_memoria(1800, 500).read(), content_type='image/png'),
+		]
+		dados = {'nome': 'Teste', 'matricula': '9100040', 'email': '', 'password': 'Senha!123',
+		         'confirmar_senha': 'Senha!123', 'espelho': arquivos}
+		with patch('GradePuc.ocr.motor_ocr', return_value=motor):
+			resposta = self.client.post('/cadastro/', dados, follow=True)
+		self.assertEqual(resposta.redirect_chain[-1][0], '/perfil/')
+		self.assertTrue(resposta.context['user'].is_authenticated)
+		self.assertContains(resposta, 'Lido por OCR: confira antes de salvar.')
+		for codigo in DoisPrintsRecortadosTests.CODIGOS:
+			self.assertContains(resposta, codigo)
+		self.assertContains(resposta, 'XEG')
+		self.assertEqual(Aluno.objects.get(matricula='9100040').historico.count(), 0)   # ainda não salvou
