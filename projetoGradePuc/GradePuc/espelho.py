@@ -282,23 +282,283 @@ def achar_colunas_ocr(palavras):
     return centros,max(w["bottom"] for w in cabecalho)
 
 
-def ler_tabela_ocr(palavras, largura=None, colunas_de_antes=None):
+# ---------- Print/scan lido pelo OCR: cabeçalho do curso ----------
+
+# Começo de cada rótulo do quadro do curso, comparado sem acento e sem espaços
+# (o OCR cola as palavras: "Anocurriculo", "CRacumulado").
+ROTULOS_DO_CURSO = [
+    ("curso", "curso"), ("habilitacao", "habilit"), ("enfase", "enfas"),
+    ("ano_curriculo", "anocurr"), ("codigo_curriculo", "codigocurr"), ("cr", "cracum"),
+]
+DECIMAL = re.compile(r"^(\d{1,2})\s*([,.'´`‘’])\s*(\d{1,2})$")
+GIRADO_180 = str.maketrans("69", "96")
+
+
+def compacto(texto):
+    return re.sub(r"[^a-z]", "", sem_acento(texto))
+
+
+def rotulo_do_curso(w):
+    texto = compacto(w["text"])
+    for chave, inicio in ROTULOS_DO_CURSO:
+        if texto.startswith(inicio):
+            return chave
+    return None
+
+
+def rotulos_do_curso_ocr(palavras):
+    """Rótulos do quadro do curso numa página do OCR: {chave: caixa}.
+    O 'Ênfase' (com acento) sai um pouco mais alto que os outros, por isso a tolerância
+    vertical é de ~1,2 vez a altura das letras."""
+    h = altura_tipica(palavras)
+    for ancora in palavras:
+        if rotulo_do_curso(ancora) != "curso":
+            continue
+        rotulos = {}
+        for w in palavras:
+            chave = rotulo_do_curso(w)
+            if chave and chave not in rotulos and abs(centro_y(w) - centro_y(ancora)) <= 1.2 * h:
+                rotulos[chave] = w
+        if "habilitacao" in rotulos:
+            return rotulos
+    return {}
+
+
+def faixa_dos_valores_do_curso(palavras, rotulos):
+    """Altura (topo, fim) da linha de valores logo abaixo dos rótulos do curso."""
+    h = altura_tipica(palavras)
+    base = max(w["bottom"] for w in rotulos.values())
+    return base - 0.3 * h, base + 3 * h
+
+
+def normalizar_decimal(texto):
+    """Nota ou CR lidos pelo OCR: '8.9' vira '8,9'. Um apóstrofo no lugar da vírgula ("6'8")
+    é sinal de caixa lida de cabeça para baixo (o 8,9 girado): desvira quando só tem dígitos
+    que continuam dígitos girados (0, 1, 6, 8, 9). Se não dá para ter certeza, devolve vazio
+    em vez de um valor errado."""
+    m = DECIMAL.match(texto.strip())
+    if not m:
+        return ""
+    inteiro, separador, fracao = m.groups()
+    if separador in ",.":
+        return f"{inteiro},{fracao}"
+    if set(inteiro + fracao) - set("01689"):
+        return ""
+    desvirado = (inteiro + fracao)[::-1].translate(GIRADO_180)
+    return desvirado[:len(fracao)] + "," + desvirado[len(fracao):]
+
+
+def ler_cabecalho_ocr(palavras):
+    """Curso, habilitação, ênfase, ano e código do currículo e CR numa página do OCR.
+    Os valores são reconhecidos pelo padrão (siglas = 3 letras, ano = 4 dígitos,
+    código = número curto, CR = decimal); a posição só decide entre as siglas."""
+    rotulos = rotulos_do_curso_ocr(palavras)
+    if not rotulos:
+        return {}
+    centros = {c: (w["x0"] + w["x1"]) / 2 for c, w in rotulos.items()}
+    topo, fim = faixa_dos_valores_do_curso(palavras, rotulos)
+    caixas_dos_rotulos = [id(w) for w in rotulos.values()]
+
+    pedacos = []   # (texto, centro x): "BCO CCB" numa caixa só vira dois pedaços
+    for w in palavras:
+        if id(w) in caixas_dos_rotulos or not (topo < centro_y(w) < fim):
+            continue
+        inicio = 0
+        for parte in w["text"].split():
+            pos = w["text"].find(parte, inicio)
+            inicio = pos + len(parte)
+            meio = (pos + len(parte) / 2) / len(w["text"])
+            pedacos.append((parte, w["x0"] + (w["x1"] - w["x0"]) * meio))
+
+    def mais_perto(x, chaves):
+        presentes = [c for c in chaves if c in centros]
+        return min(presentes, key=lambda c: abs(centros[c] - x)) if presentes else None
+
+    resultado = {}
+    siglas = []
+    for texto, x in sorted(pedacos, key=lambda p: p[1]):
+        t = sem_acento(texto).upper().strip(".;:")
+        if re.fullmatch(r"[A-Z]{3}", t):
+            siglas.append((t, x))
+        elif re.fullmatch(r"(19|20)\d{2}", t):
+            resultado.setdefault("ano_curriculo", t)
+        elif DECIMAL.match(t):
+            resultado.setdefault("cr", normalizar_decimal(t))
+        elif re.fullmatch(r"\d{1,3}", t) and mais_perto(x, ["codigo_curriculo", "cr"]) != "cr":
+            resultado.setdefault("codigo_curriculo", t)
+
+    # siglas: cada uma vai para o rótulo mais perto; se duas caírem no mesmo, vale a ordem
+    chaves = ["curso", "habilitacao", "enfase"]
+    pela_posicao = [mais_perto(x, chaves) for _, x in siglas]
+    if None not in pela_posicao and len(set(pela_posicao)) == len(pela_posicao):
+        for (t, _), chave in zip(siglas, pela_posicao):
+            resultado[chave] = t
+    else:
+        for (t, _), chave in zip(siglas, chaves):
+            resultado[chave] = t
+    return resultado
+
+
+# ---------- Print/scan lido pelo OCR: tabela de disciplinas ----------
+
+# Para reconhecer a coluna Situação num print sem cabeçalho
+SITUACOES_CONHECIDAS = SITUACOES_CURSADAS | SITUACOES_EM_ANDAMENTO | {
+    "RM", "RF", "NC", "NI", "CA", "CD", "CJ", "CL", "AT", "DT", "LT", "IN", "TR",
+}
+# Código com uma letra perdida ("FS4001-FISICA I"): só vale com o hífen logo depois
+CODIGO_OCR_CURTO = re.compile(r"^(?:(\d{5})\s*)?([A-Z]{2})\s*([0-9OILSB]{4})\s*-\s*(.*)$")
+
+
+def inicio_de_disciplina(texto):
+    """Caixa que abre uma disciplina: 'CTC4001 -', 'CTC4002-MODELAGEM', '20261 CTC4001 - ...'.
+    Com uma letra perdida ('FS4001-FISICA') também vale, marcada como incerta."""
+    t = sem_acento(texto).upper().strip()
+    m = CODIGO_OCR.match(t)
+    if m and codigo_valido(m.group(2), m.group(3)):
+        incerto = False
+    else:
+        m = CODIGO_OCR_CURTO.match(t)
+        if not m or sum(c.isdigit() for c in m.group(3)) < 2:
+            return None
+        incerto = True
+    return {"periodo": m.group(1) or "", "letras": m.group(2), "numeros": m.group(3),
+            "resto": m.group(4), "incerto": incerto}
+
+
+def texto_limpo(w):
+    return sem_acento(w["text"]).upper().strip()
+
+
+def mediana(valores):
+    valores = sorted(valores)
+    return valores[len(valores) // 2]
+
+
+def inferir_colunas_ocr(palavras, largura):
+    """Print da tabela sem o cabeçalho (o aluno rolou a página): descobre as colunas pelo
+    próprio print, sem usar posições de outro print (cada print é um recorte diferente).
+    Caixas alinhadas formam uma coluna, e o conteúdo diz qual é: situação (AP, EA...),
+    nota (decimal), tipo (2 letras), grupo (código), créditos/horas/extensão/oportunidades
+    (números, nessa ordem). Devolve {coluna: centro x} ou None."""
+    h = altura_tipica(palavras)
+    codigos = [w for w in palavras if w["x0"] < 0.45 * largura and inicio_de_disciplina(w["text"])]
+    if not codigos:
+        return None
+    x_nome = mediana(w["x0"] for w in codigos)
+
+    def na_coluna_do_nome(w):
+        return abs(w["x0"] - x_nome) <= 2 * h
+
+    nomes = [w for w in palavras if na_coluna_do_nome(w)]
+    periodos = [w for w in palavras if w["x1"] < x_nome and re.fullmatch(r"\d{5}", w["text"].strip())]
+    valores = [
+        w for w in palavras
+        if w["x0"] > x_nome + 2 * h and not na_coluna_do_nome(w)
+        and w["x1"] - w["x0"] <= 0.6 * largura and not w["text"].startswith("*")
+    ]
+
+    # caixas com o centro perto umas das outras = mesma coluna
+    grupos = []
+    for w in sorted(valores, key=lambda w: (w["x0"] + w["x1"]) / 2):
+        meio = (w["x0"] + w["x1"]) / 2
+        if grupos and meio - grupos[-1]["ultimo"] <= 1.5 * h:
+            grupos[-1]["caixas"].append(w)
+        else:
+            grupos.append({"caixas": [w]})
+        grupos[-1]["ultimo"] = meio
+    for g in grupos:
+        g["centro"] = mediana((w["x0"] + w["x1"]) / 2 for w in g["caixas"])
+        g["textos"] = [texto_limpo(w) for w in g["caixas"]]
+
+    def parte(g, teste):
+        return sum(1 for t in g["textos"] if teste(t)) / len(g["textos"])
+
+    def eh_situacao(t):
+        return t in SITUACOES_CONHECIDAS
+
+    def eh_duas_letras(t):
+        return bool(re.fullmatch(r"[A-Z]{2}", t.translate(LETRAS_TROCADAS)))
+
+    def eh_codigo(t):
+        return bool(CODIGO_OCR_SOLTO.fullmatch(t.replace(" ", "")))
+
+    situacao = max(grupos, key=lambda g: parte(g, eh_situacao), default=None)
+    if situacao is None or parte(situacao, eh_situacao) < 0.5:
+        return None
+
+    centros = {
+        "periodo": mediana(w["x0"] + w["x1"] for w in periodos) / 2 if periodos else x_nome - 3 * h,
+        "disciplina": mediana((w["x0"] + w["x1"]) / 2 for w in nomes),
+        "situacao": situacao["centro"],
+    }
+    antes = [g for g in grupos if g["centro"] < situacao["centro"]]
+    depois = [g for g in grupos if g["centro"] > situacao["centro"]]
+
+    graus = [g for g in antes if parte(g, lambda t: bool(DECIMAL.match(t))) >= 0.5]
+    if graus:
+        centros["grau"] = graus[-1]["centro"]
+    turmas = [g for g in antes if g not in graus]
+    if turmas:
+        centros["turma"] = turmas[0]["centro"]
+
+    numeros = []
+    for g in depois:
+        if "tipo" not in centros and not numeros and parte(g, eh_duas_letras) >= 0.5:
+            centros["tipo"] = g["centro"]
+        elif "grupo" not in centros and parte(g, eh_codigo) >= 0.5:
+            centros["grupo"] = g["centro"]
+        elif parte(g, str.isdigit) >= 0.5:
+            numeros.append(g)
+
+    # créditos (1 a 12), horas (15 x créditos), horas de extensão, nº de oportunidades
+    def valor_tipico(g):
+        return mediana(int(t) for t in g["textos"] if t.isdigit())
+
+    sobra = list(numeros)
+    if sobra and valor_tipico(sobra[0]) < 15:
+        centros["creditos"] = sobra.pop(0)["centro"]
+    if sobra:
+        centros["horas"] = sobra.pop(0)["centro"]
+    if len(sobra) >= 2:
+        centros["extensao"], centros["oportunidades"] = sobra[0]["centro"], sobra[1]["centro"]
+    elif sobra:
+        so_multiplos_de_15 = all(int(t) % 15 == 0 for t in sobra[0]["textos"] if t.isdigit())
+        centros["extensao" if so_multiplos_de_15 else "oportunidades"] = sobra[0]["centro"]
+    return centros
+
+
+def creditos_conferidos(texto_creditos, texto_horas):
+    """Créditos da linha, conferidos com as horas (horas = 15 x créditos).
+    O OCR às vezes perde o dígito dos créditos ou um zero das horas."""
+    achou = re.search(r"\d+", texto_creditos)
+    creditos = int(achou.group(0)) if achou else None
+    achou = re.search(r"\d+", texto_horas)
+    horas = int(achou.group(0)) if achou else None
+    valido = creditos is not None and 1 <= creditos <= 12
+    if valido and (horas is None or horas == 15 * creditos):
+        return creditos
+    if horas and horas % 15 == 0 and 1 <= horas // 15 <= 12:
+        return horas // 15
+    if valido:
+        return creditos
+    return creditos or 0
+
+
+def ler_tabela_ocr(palavras, largura=None):
     """Lê as disciplinas de uma página do OCR. Devolve (disciplinas, códigos lidos,
     situações lidas), ou None se a página não tiver a tabela.
-
-    colunas_de_antes = (centros, largura) de um print anterior: serve para ler um
-    print que continua a tabela e não mostra mais o cabeçalho (rolou a página)."""
+    Com o cabeçalho da tabela no print, as colunas vêm da posição dos rótulos;
+    sem ele (o aluno rolou a página), são descobertas pelo próprio print."""
     h = altura_tipica(palavras)
     largura = largura or max((w["x1"] for w in palavras), default=0)
     achou = achar_colunas_ocr(palavras)
     if achou:
         centros, fim_cabecalho = achou
-    elif colunas_de_antes and colunas_de_antes[1]:
-        escala = largura / colunas_de_antes[1]
-        centros = {c: x * escala for c, x in colunas_de_antes[0].items()}
-        fim_cabecalho = float("-inf")
     else:
-        return None
+        centros = inferir_colunas_ocr(palavras, largura)
+        if centros is None:
+            return None
+        fim_cabecalho = float("-inf")
 
     def coluna_de(w):
         meio = (w["x0"] + w["x1"]) / 2
@@ -312,52 +572,84 @@ def ler_tabela_ocr(palavras, largura=None, colunas_de_antes=None):
     fim_tabela = min(rodape) if rodape else float("inf")
     tabela = [w for w in corpo if w["top"] < fim_tabela]
 
+    na_esquerda = [w for w in tabela if coluna_de(w) in ("periodo", "disciplina")]
     inicios = []
-    for w in tabela:
-        if coluna_de(w) not in ("periodo", "disciplina"):
-            continue
-        m = CODIGO_OCR.match(sem_acento(w["text"]).upper().strip())
-        if m and codigo_valido(m.group(2), m.group(3)):
-            inicios.append((w, m))
+    for w in na_esquerda:
+        inicio = inicio_de_disciplina(w["text"])
+        if inicio:
+            inicios.append((w, inicio))
     inicios.sort(key=lambda par: par[0]["top"])
 
-    situacoes_lidas = sum(
-        1 for w in tabela
+    situacoes = [
+        w for w in tabela
         if coluna_de(w) == "situacao" and len(re.sub(r"[^A-Z]", "", sem_acento(w["text"]).upper())) == 2
-    )
+    ]
+
+    # Duas situações no mesmo bloco = duas disciplinas: o OCR não reconheceu o código da
+    # segunda. Procura um código na caixa da esquerda que está na altura da segunda situação.
+    def fim_do_bloco(lista, i):
+        return lista[i + 1][0]["top"] - h / 2 if i + 1 < len(lista) else fim_tabela
+
+    extras = []
+    for i, (inicio, _) in enumerate(inicios):
+        no_bloco = sorted(
+            [w for w in situacoes if inicio["top"] - h / 2 <= centro_y(w) < fim_do_bloco(inicios, i)],
+            key=centro_y,
+        )
+        for anterior, seguinte in zip(no_bloco, no_bloco[1:]):
+            if centro_y(seguinte) - centro_y(anterior) <= h:
+                continue
+            perto = [w for w in na_esquerda if abs(centro_y(w) - centro_y(seguinte)) <= 1.5 * h]
+            for w in sorted(perto, key=lambda w: abs(centro_y(w) - centro_y(seguinte))):
+                m = CODIGO_OCR_SOLTO.search(texto_limpo(w))
+                if m and w is not inicio:
+                    extras.append((w, {"periodo": "", "letras": m.group(1), "numeros": m.group(2),
+                                       "resto": texto_limpo(w)[m.end():], "incerto": True}))
+                    break
+    inicios = sorted(inicios + extras, key=lambda par: par[0]["top"])
 
     disciplinas = []
-    for i, (inicio, m) in enumerate(inicios):
+    for i, (inicio, cod) in enumerate(inicios):
         y0 = inicio["top"] - h / 2
-        y1 = inicios[i + 1][0]["top"] - h / 2 if i + 1 < len(inicios) else fim_tabela
+        y1 = fim_do_bloco(inicios, i)
         bloco = [w for w in tabela if w is not inicio and y0 <= centro_y(w) < y1]
 
         def coluna(nome):
             caixas = sorted([w for w in bloco if coluna_de(w) == nome], key=lambda w: (w["top"], w["x0"]))
-            return " ".join(sem_acento(w["text"]).upper().strip() for w in caixas)
+            return " ".join(texto_limpo(w) for w in caixas)
 
-        periodo = m.group(1) or ""
+        periodo = cod["periodo"]
         if not periodo:
             achou = re.search(r"\d{5}", coluna("periodo"))
             periodo = achou.group(0) if achou else ""
 
-        nome = (m.group(4) + " " + coluna("disciplina")).strip(" -")
+        nome = (cod["resto"] + " " + coluna("disciplina")).strip(" -")
         grupo = CODIGO_OCR_SOLTO.search(coluna("grupo")) if "grupo" in centros else None
-        creditos = re.search(r"\d+", coluna("creditos")) if "creditos" in centros else None
+        # só a primeira situação do bloco (nunca "EAEA")
+        situacao = re.findall(r"[A-Z]{2}", re.sub(r"[^A-Z ]", "", coluna("situacao")))
 
-        disciplinas.append({
+        disciplina = {
             "periodo": periodo,
-            "codigo": corrigir_codigo(m.group(2), m.group(3)),
+            "codigo": corrigir_codigo(cod["letras"], cod["numeros"]),
             # o OCR troca a letra O pelo zero no meio das palavras (M0DELAGEM)
             "nome": re.sub(r"(?<=[A-Z])0|0(?=[A-Z])", "O", re.sub(r"\s+", " ", nome)),
             "turma": coluna("turma"),
-            "grau": coluna("grau"),
-            "situacao": re.sub(r"[^A-Z]", "", coluna("situacao")),
+            "grau": normalizar_decimal(coluna("grau")),
+            "situacao": situacao[0] if situacao else "",
             "tipo": re.sub(r"[^A-Z]", "", coluna("tipo").translate(LETRAS_TROCADAS)) if "tipo" in centros else "",
             "grupo": corrigir_codigo(grupo.group(1), grupo.group(2)) if grupo else "",
-            "creditos": int(creditos.group(0)) if creditos else 0,
-        })
-    return disciplinas, len(inicios), situacoes_lidas
+            "creditos": creditos_conferidos(coluna("creditos"), coluna("horas")),
+        }
+        if cod["incerto"]:
+            disciplina["confira"] = True
+        disciplinas.append(disciplina)
+    return disciplinas, len(inicios), len(situacoes)
+
+
+def pagina_com_cabecalho_ocr(pagina):
+    """Print que mostra o quadro do curso ou o cabeçalho da tabela."""
+    palavras = pagina["palavras"]
+    return bool(rotulos_do_curso_ocr(palavras) or achar_colunas_ocr(palavras))
 
 
 def interpretar_paginas(paginas):
@@ -367,10 +659,20 @@ def interpretar_paginas(paginas):
             "Este PDF não tem texto selecionável (parece escaneado ou foto). "
             "Envie o PDF original baixado do SAU."
         )
-    # um print recortado pode não mostrar o título; aí vale ter o cabeçalho da tabela do espelho
-    tem_tabela_ocr = any(p.get("ocr") and achar_colunas_ocr(p["palavras"]) for p in paginas)
-    if not parece_espelho(texto) and not tem_tabela_ocr:
+    # um print recortado pode não mostrar o título; aí vale ter o cabeçalho do curso ou da
+    # tabela, ou uma tabela de disciplinas reconhecível
+    tem_espelho_ocr = any(
+        p.get("ocr") and p["palavras"] and (
+            pagina_com_cabecalho_ocr(p) or inferir_colunas_ocr(p["palavras"], p.get("largura") or 1)
+        )
+        for p in paginas
+    )
+    if not parece_espelho(texto) and not tem_espelho_ocr:
         raise EspelhoInvalido("Este PDF não parece ser o Espelho do Histórico do SAU.")
+
+    # Prints podem chegar em qualquer ordem (o seletor de arquivos nem sempre respeita a
+    # ordem dos cliques): o print com cabeçalho vem primeiro; entre os outros, vale a ordem enviada.
+    paginas = sorted(paginas, key=lambda p: 0 if not p.get("ocr") or pagina_com_cabecalho_ocr(p) else 1)
 
     m = MATRICULA.search(texto)
     dados = {
@@ -382,24 +684,18 @@ def interpretar_paginas(paginas):
 
     achou_tabela = False
     contagem_ocr = {"codigos": 0, "situacoes": 0}
-    colunas_de_antes = None     # colunas do último print com cabeçalho (prints seguintes não têm)
     origens = []                # de qual arquivo veio cada disciplina
     for n, pagina in enumerate(paginas):
         palavras = pagina["palavras"]
         por_ocr = pagina.get("ocr", False)
         if n == 0 or not dados["curso"]:
             if por_ocr:
-                h = altura_tipica(palavras)
-                dados.update(ler_cabecalho_do_curso(palavras, tolerancia=0.6 * h, distancia=3 * h))
+                dados.update(ler_cabecalho_ocr(palavras))
             else:
                 dados.update(ler_cabecalho_do_curso(palavras))
 
         if por_ocr:
-            largura = pagina.get("largura")
-            resultado = ler_tabela_ocr(palavras, largura, colunas_de_antes)
-            achou = achar_colunas_ocr(palavras)
-            if achou:
-                colunas_de_antes = (achou[0], largura or max((w["x1"] for w in palavras), default=0))
+            resultado = ler_tabela_ocr(palavras, pagina.get("largura")) if palavras else None
             linhas = None
             if resultado is not None:
                 linhas, codigos, situacoes = resultado

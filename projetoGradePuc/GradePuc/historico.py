@@ -4,7 +4,7 @@ from django.utils import timezone
 
 from .espelho import SITUACOES_CURSADAS, SITUACOES_EM_ANDAMENTO
 from .ligacao import registrar_siglas
-from .models import Disciplina, HistoricoDisciplina, LigacaoHabilitacao
+from .models import Disciplina, DisciplinaCurriculo, HistoricoDisciplina, LigacaoHabilitacao
 
 # O micro-horário é do PRÓXIMO semestre. O que o aluno está cursando agora (EA)
 # já vai estar concluído quando ele fizer as turmas sugeridas, então conta como
@@ -118,3 +118,34 @@ def pendentes_do_curriculo(aluno):
     itens = [item for item in curriculo.itens.all() if item.codigo not in feitos]
     itens.sort(key=lambda item: (item.periodo is None, item.periodo or 0, item.ordem))
     return itens
+
+
+def dados_oficiais(codigo):
+    """(nome, créditos) de uma disciplina pelo código: primeiro o currículo importado do site
+    da PUC, depois a tabela Disciplina. None se o código não for conhecido."""
+    item = DisciplinaCurriculo.objects.filter(codigo=codigo, eh_grupo=False).first()
+    if item:
+        return item.nome, item.creditos
+    disciplina = Disciplina.objects.filter(codigo=codigo).first()
+    if disciplina:
+        return disciplina.nome, disciplina.creditos
+    return None
+
+
+def letras_em_ordem(poucas, todas):
+    """'FS' cabe em 'FIS' (as letras aparecem na mesma ordem)."""
+    resto = iter(todas)
+    return all(letra in resto for letra in poucas)
+
+
+def reparar_codigo(codigo):
+    """Código lido pelo OCR com uma letra perdida ('FS4001'): devolve o código conhecido com
+    os mesmos 4 dígitos e letras compatíveis ('FIS4001'). Se o código já existe, devolve ele
+    mesmo. None se não houver exatamente um candidato."""
+    if dados_oficiais(codigo):
+        return codigo
+    letras, numeros = codigo[:-4], codigo[-4:]
+    conhecidos = set(DisciplinaCurriculo.objects.filter(codigo__endswith=numeros).values_list('codigo', flat=True))
+    conhecidos |= set(Disciplina.objects.filter(codigo__endswith=numeros).values_list('codigo', flat=True))
+    candidatos = {c for c in conhecidos if len(c) == 7 and letras_em_ordem(letras, c[:3])}
+    return candidatos.pop() if len(candidatos) == 1 else None

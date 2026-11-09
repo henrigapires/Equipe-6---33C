@@ -15,7 +15,7 @@ from django.test import TestCase
 from PIL import Image
 
 from . import ocr
-from .espelho import interpretar_paginas, parece_espelho
+from .espelho import creditos_conferidos, interpretar_paginas, ler_cabecalho_ocr, normalizar_decimal, parece_espelho
 from .models import LigacaoHabilitacao
 from .tests_espelho import criar_aluno, criar_curriculo, dados_espelho, disciplina_espelho, pagina_espelho
 from .historico import salvar_espelho
@@ -42,7 +42,7 @@ def pdf_em_branco(largura=200, altura=100):
 
 def motor_falso(caixas):
 	"""Imita o RapidOCR: recebe a imagem e devolve ([caixa, texto, confiança], tempo)."""
-	def rodar(imagem):
+	def rodar(imagem, **parametros):
 		return [[[[x0, y0], [x1, y0], [x1, y1], [x0, y1]], texto, 0.99] for texto, x0, y0, x1, y1 in caixas], 0.1
 	return rodar
 
@@ -325,7 +325,7 @@ def dois_prints():
 
 
 class VariosPrintsTests(TestCase):
-	def test_segundo_print_sem_cabecalho_usa_as_colunas_do_primeiro(self):
+	def test_segundo_print_sem_cabecalho_descobre_as_colunas_sozinho(self):
 		primeiro, segundo = dois_prints()
 		dados = interpretar_paginas([primeiro, segundo])
 		self.assertEqual([d['codigo'] for d in dados['disciplinas']], ['CTC9001', 'CTC9002', 'INF9009', 'MAT9002'])
@@ -345,12 +345,11 @@ class VariosPrintsTests(TestCase):
 		dados = interpretar_paginas([primeiro, segundo])
 		self.assertEqual([d['codigo'] for d in dados['disciplinas']].count('CTC9002'), 2)
 
-	def test_so_o_print_sem_cabecalho_nao_tem_tabela(self):
+	def test_so_o_print_da_tabela_sem_cabecalho_tambem_e_lido(self):
 		_, segundo = dois_prints()
-		segundo['palavras'].append(caixa('Espelho do Historico', 100, 10))
-		segundo['texto'] += '\nEspelho do Historico'
-		with self.assertRaises(ocr.EspelhoInvalido):
-			interpretar_paginas([segundo])
+		dados = interpretar_paginas([segundo])
+		self.assertEqual([d['codigo'] for d in dados['disciplinas']], ['CTC9002', 'INF9009', 'MAT9002'])
+		self.assertEqual([d['situacao'] for d in dados['disciplinas']], ['AP', 'EA', 'EA'])
 
 	def test_prints_de_tamanhos_diferentes(self):
 		primeiro, segundo = dois_prints()
@@ -367,7 +366,7 @@ class VariosPrintsTests(TestCase):
 		primeiro, segundo = dois_prints()
 		respostas = iter([primeiro['palavras'], segundo['palavras']])
 
-		def motor(imagem):
+		def motor(imagem, **parametros):
 			return [[[[c['x0'], c['top']], [c['x1'], c['top']], [c['x1'], c['bottom']], [c['x0'], c['bottom']]], c['text'], 0.99]
 			        for c in next(respostas)], 0.1
 
@@ -545,3 +544,189 @@ class AvisoDeLeituraTests(TestCase):
 		with patch('GradePuc.views.ler_espelho_por_ocr', return_value=leitura_ocr()):
 			resposta = self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': pdf_enviado()}, follow=True)
 		self.assertNotContains(resposta, 'id="aviso-lendo"')
+
+
+# ---------- Parte A: dois prints recortados (quadro do curso + tabela sem cabeçalho) ----------
+# Geometria copiada dos prints de verdade (depois de ampliados para 1800 px), mas com
+# siglas, códigos, nomes e notas inventados.
+
+def pagina_de_print(caixas, numero, largura=1800, altura=1700):
+	return {'palavras': caixas, 'texto': '\n'.join(c['text'] for c in caixas),
+	        'altura': altura, 'largura': largura, 'ocr': True, 'arquivo': numero}
+
+
+def caixa_em(texto, x0, top, x1, bottom):
+	return {'text': texto, 'x0': x0, 'x1': x1, 'top': top, 'bottom': bottom}
+
+
+def print_do_cabecalho(numero=0, sem_codigo_do_curriculo=True, siglas_coladas=True):
+	"""Quadro do curso com os rótulos colados ("Anocurriculo"), o "Enfase" mais alto
+	(por causa do acento), duas siglas numa caixa só e o CR lido de cabeça para baixo ("6'8")."""
+	caixas = [
+		caixa_em('ESPELHODOHISTORICO', 119, 26, 407, 53),
+		caixa_em('Enfase', 541, 204, 625, 240), caixa_em('Curso', 129, 210, 200, 237),
+		caixa_em('Habilitacao', 305, 211, 434, 236), caixa_em('Anocurriculo', 738, 211, 889, 234),
+		caixa_em('Codigocurriculo', 1034, 210, 1218, 236), caixa_em('CRacumulado', 1367, 211, 1529, 235),
+		caixa_em('XEG', 140, 277, 189, 302),
+		caixa_em('2021', 786, 277, 842, 301), caixa_em("6'8", 1427, 275, 1468, 304),
+		# cabeçalho da tabela, sem nenhuma disciplina embaixo
+		caixa_em('No oport.', 1471, 386, 1579, 414), caixa_em('Tipo da', 896, 401, 986, 432),
+		caixa_em('ND', 1176, 404, 1211, 428), caixa_em('Horas', 1363, 404, 1437, 429),
+		caixa_em('Periodo', 103, 419, 193, 442), caixa_em('Disciplina', 228, 417, 341, 444),
+		caixa_em('Turma', 543, 419, 622, 445), caixa_em('Grau', 656, 420, 717, 444),
+		caixa_em('Situacao', 750, 419, 851, 445), caixa_em('Grupo', 1043, 417, 1118, 447),
+		caixa_em('Horas', 1258, 418, 1332, 445), caixa_em('disciplina', 1469, 416, 1582, 446),
+		caixa_em('disciplina', 885, 433, 997, 462), caixa_em('cred.', 1163, 433, 1225, 459),
+		caixa_em('Ext.', 1374, 434, 1424, 460), caixa_em('(*)', 1504, 449, 1549, 480),
+	]
+	if siglas_coladas:
+		caixas.append(caixa_em('YCO ZCB', 346, 277, 607, 302))
+	else:
+		caixas += [caixa_em('YCO', 346, 277, 394, 302), caixa_em('ZCB', 559, 277, 607, 302)]
+	if not sem_codigo_do_curriculo:
+		caixas.append(caixa_em('0', 1115, 277, 1130, 302))
+	return pagina_de_print(caixas, numero, altura=500)
+
+
+def print_da_tabela(numero=1):
+	"""Tabela sem o cabeçalho, em outra escala (as colunas não batem com as do outro print)."""
+	caixas = [
+		# créditos perdidos pelo OCR: vêm das horas (60 = 4 x 15)
+		caixa_em('XYZ9101-', 186, 61, 314, 91), caixa_em('20251', 52, 101, 132, 129),
+		caixa_em('PRIMEIRA DISCIPLINA', 185, 97, 434, 130), caixa_em('33A', 569, 100, 625, 129),
+		caixa_em('7,4', 691, 100, 738, 132), caixa_em('AP', 828, 100, 868, 130), caixa_em('OB', 988, 99, 1033, 130),
+		caixa_em('60', 1375, 100, 1413, 129), caixa_em('0', 1532, 105, 1548, 126),
+		# nota de cabeça para baixo (9,9 lido "6'6") e tipo em minúscula
+		caixa_em('XYZ9102-SEGUNDAE', 188, 211, 495, 237), caixa_em('COISA', 185, 245, 374, 278),
+		caixa_em('33A', 569, 226, 625, 256), caixa_em("6'6", 689, 225, 740, 260), caixa_em('AP', 826, 225, 869, 257),
+		caixa_em('oc', 988, 226, 1033, 257), caixa_em('6', 1292, 229, 1313, 255), caixa_em('90', 1374, 225, 1414, 257),
+		# grupo de equivalência e horas lidas errado ("06" no lugar de 90): vale o crédito
+		caixa_em('XYZ9103-TERCEIRA', 184, 320, 456, 355), caixa_em('33A', 569, 336, 625, 366),
+		caixa_em('9,0', 688, 334, 740, 369), caixa_em('AP', 826, 334, 868, 367), caixa_em('OB', 988, 335, 1033, 367),
+		caixa_em('XYZ9100', 1114, 335, 1226, 364), caixa_em('6', 1290, 335, 1314, 366), caixa_em('06', 1374, 334, 1414, 367),
+		caixa_em('1', 1679, 342, 1691, 356),
+		# segundo período
+		caixa_em('XYZ9201-QUARTA', 186, 430, 471, 462), caixa_em('20252', 52, 450, 133, 478),
+		caixa_em('83B', 568, 450, 624, 480), caixa_em('EA', 827, 448, 869, 480),
+		caixa_em('2', 1292, 451, 1313, 479), caixa_em('30', 1374, 448, 1414, 481),
+		# código com uma letra perdida ("QM" no lugar de "QUM")
+		caixa_em('QM9501-QUIMICAX', 185, 540, 412, 572), caixa_em('EA', 827, 542, 869, 574),
+		caixa_em('5', 1289, 543, 1315, 574), caixa_em('75', 1374, 541, 1415, 575),
+		# ext. e nº de oportunidades lidos
+		caixa_em('XYZ9202-SEXTA', 187, 640, 474, 665), caixa_em('3WA', 566, 654, 629, 686),
+		caixa_em('EA', 828, 656, 868, 684), caixa_em('4', 1291, 659, 1312, 682), caixa_em('60', 1374, 654, 1414, 686),
+		caixa_em('0', 1532, 659, 1548, 680), caixa_em('1', 1677, 663, 1691, 679),
+		# código escondido no meio de lixo: só se percebe pela segunda situação no bloco
+		caixa_em('R XYZ9203 SETIMA', 187, 750, 506, 775), caixa_em('EA', 827, 766, 868, 798),
+		caixa_em('2', 1290, 767, 1314, 797), caixa_em('30', 1374, 766, 1414, 798),
+	]
+	return pagina_de_print(caixas, numero)
+
+
+class DoisPrintsRecortadosTests(TestCase):
+	CODIGOS = ['XYZ9101', 'XYZ9102', 'XYZ9103', 'XYZ9201', 'QM9501', 'XYZ9202', 'XYZ9203']
+
+	def conferir(self, dados):
+		self.assertEqual(
+			(dados['curso'], dados['habilitacao'], dados['enfase'], dados['ano_curriculo'], dados['cr']),
+			('XEG', 'YCO', 'ZCB', '2021', '8,9'),
+		)
+		linhas = dados['disciplinas']
+		self.assertEqual([d['codigo'] for d in linhas], self.CODIGOS)
+		self.assertEqual([d['periodo'] for d in linhas], ['20251'] * 3 + ['20252'] * 4)
+		self.assertEqual([d['situacao'] for d in linhas], ['AP', 'AP', 'AP', 'EA', 'EA', 'EA', 'EA'])
+		self.assertEqual([d['creditos'] for d in linhas], [4, 6, 6, 2, 5, 4, 2])
+		self.assertEqual([d['grau'] for d in linhas[:3]], ['7,4', '9,9', '9,0'])
+		self.assertEqual([d['tipo'] for d in linhas[:3]], ['OB', 'OC', 'OB'])
+		self.assertEqual(linhas[2]['grupo'], 'XYZ9100')
+		self.assertEqual([d['codigo'] for d in linhas if d.get('confira')], ['QM9501', 'XYZ9203'])
+		self.assertEqual(dados['ocr'], {'codigos': 7, 'situacoes': 7})
+
+	def test_cabecalho_e_depois_tabela(self):
+		self.conferir(interpretar_paginas([print_do_cabecalho(0), print_da_tabela(1)]))
+
+	def test_ordem_invertida_da_o_mesmo_resultado(self):
+		self.conferir(interpretar_paginas([print_da_tabela(0), print_do_cabecalho(1)]))
+
+	def test_valor_do_codigo_do_curriculo(self):
+		dados = interpretar_paginas([print_do_cabecalho(0, sem_codigo_do_curriculo=False), print_da_tabela(1)])
+		self.assertEqual(dados['codigo_curriculo'], '0')
+
+	def test_print_so_do_cabecalho_le_o_curso_mas_nenhuma_disciplina(self):
+		dados = interpretar_paginas([print_do_cabecalho(0)])
+		self.assertEqual((dados['curso'], dados['disciplinas']), ('XEG', []))
+
+	def test_nunca_cola_duas_situacoes(self):
+		dados = interpretar_paginas([print_do_cabecalho(0), print_da_tabela(1)])
+		self.assertTrue(all(len(d['situacao']) == 2 for d in dados['disciplinas']))
+
+
+class ValoresDoOcrTests(TestCase):
+	def test_decimal_lido_pelo_ocr(self):
+		self.assertEqual(normalizar_decimal('8.9'), '8,9')
+		self.assertEqual(normalizar_decimal('9,0'), '9,0')
+		self.assertEqual(normalizar_decimal("6'8"), '8,9')     # lido de cabeça para baixo
+		self.assertEqual(normalizar_decimal("6'6"), '9,9')
+		self.assertEqual(normalizar_decimal("7'4"), '')        # não dá para desvirar com certeza
+		self.assertEqual(normalizar_decimal('AP'), '')
+
+	def test_creditos_conferidos_com_as_horas(self):
+		self.assertEqual(creditos_conferidos('', '60'), 4)
+		self.assertEqual(creditos_conferidos('6', '06'), 6)
+		self.assertEqual(creditos_conferidos('4161', '90'), 6)
+		self.assertEqual(creditos_conferidos('4', ''), 4)
+		self.assertEqual(creditos_conferidos('', ''), 0)
+
+	def test_rotulos_colados_e_enfase_mais_alto(self):
+		dados = ler_cabecalho_ocr(print_do_cabecalho()['palavras'])
+		self.assertEqual(dados, {'curso': 'XEG', 'habilitacao': 'YCO', 'enfase': 'ZCB', 'ano_curriculo': '2021', 'cr': '8,9'})
+
+
+class OcrDeNovoNoRecorteTests(TestCase):
+	def test_valor_que_faltou_e_lido_de_novo_no_recorte_ampliado(self):
+		pagina = print_do_cabecalho(siglas_coladas=False)    # só o código do currículo está sem valor
+		cabecalho = [(c['text'], c['x0'], c['top'], c['x1'], c['bottom']) for c in pagina['palavras']]
+		chamadas = []
+
+		def motor(imagem, **parametros):
+			chamadas.append((imagem.shape, parametros))
+			if len(chamadas) == 1:
+				return motor_falso(cabecalho)(imagem)
+			# o recorte ampliado do "Código currículo": um "0" no meio
+			altura, largura = imagem.shape[:2]
+			return [[[[largura / 2 - 15, altura / 2 - 20], [largura / 2 + 15, altura / 2 - 20],
+			          [largura / 2 + 15, altura / 2 + 20], [largura / 2 - 15, altura / 2 + 20]], '0', 0.9]], 0.1
+
+		with patch('GradePuc.ocr.motor_ocr', return_value=motor):
+			paginas = ocr.extrair_palavras_ocr(png_em_memoria(1800, 500))
+		self.assertTrue(all(p.get('use_cls') is False for _, p in chamadas))
+		self.assertEqual(len(chamadas), 2)            # a página inteira + o recorte do código
+		dados = ler_cabecalho_ocr(paginas[0]['palavras'])
+		self.assertEqual(dados['codigo_curriculo'], '0')
+
+
+class ConferenciaComOBancoTests(TestCase):
+	def leitura(self):
+		return interpretar_paginas([print_do_cabecalho(0), print_da_tabela(1)])
+
+	def test_codigo_com_letra_perdida_e_consertado(self):
+		criar_curriculo('Curso Inventado', [('QUM9501', 1), ('XYZ9101', 1)])
+		dados = ocr.conferir_com_o_banco(self.leitura())
+		linhas = {d['codigo']: d for d in dados['disciplinas']}
+		self.assertIn('QUM9501', linhas)
+		self.assertNotIn('confira', linhas['QUM9501'])
+		self.assertTrue(linhas['XYZ9203'].get('confira'))      # não existe no banco: continua para conferir
+
+	def test_dois_candidatos_nao_conserta(self):
+		criar_curriculo('Curso Inventado', [('QUM9501', 1), ('QMA9501', 1)])
+		dados = ocr.conferir_com_o_banco(self.leitura())
+		linhas = {d['codigo']: d for d in dados['disciplinas']}
+		self.assertTrue(linhas['QM9501'].get('confira'))
+
+	def test_nome_e_creditos_oficiais_do_banco(self):
+		criar_curriculo('Curso Inventado', [('XYZ9102', 1)])   # o helper cria com 4 créditos
+		dados = ocr.conferir_com_o_banco(self.leitura())
+		linha = [d for d in dados['disciplinas'] if d['codigo'] == 'XYZ9102'][0]
+		self.assertEqual((linha['nome'], linha['creditos']), ('Disciplina XYZ9102', 4))
+		desconhecida = [d for d in dados['disciplinas'] if d['codigo'] == 'XYZ9101'][0]
+		self.assertEqual((desconhecida['nome'], desconhecida['creditos']), ('PRIMEIRA DISCIPLINA', 4))
