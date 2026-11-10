@@ -237,7 +237,7 @@ class FluxoDeConferenciaTests(TestCase):
 		with patch.dict(sys.modules, {'rapidocr_onnxruntime': None}):
 			resposta = self.client.post('/perfil/', {'acao': 'enviar_espelho', 'espelho': pdf_enviado()}, follow=True)
 		self.assertEqual(resposta.status_code, 200)
-		self.assertContains(resposta, ocr.MENSAGEM_NAO_LEU)
+		self.assertContains(resposta, ocr.MENSAGEM_SEM_OCR)       # não é "não conseguimos ler"
 		self.assertNotContains(resposta, self.AVISO_OCR)
 		self.assertNotIn(CHAVE_LEITURA_OCR, self.client.session)
 

@@ -18,7 +18,7 @@ from .historico import (
 )
 from .ligacao import confirmar_curso, deduzir_curriculos
 from .models import Curriculo
-from .ocr import MENSAGEM_NAO_LEU, OcrIndisponivel, eh_imagem, ler_espelho_por_ocr
+from .ocr import MENSAGEM_SEM_OCR, OcrIndisponivel, eh_imagem, ler_espelho_por_ocr
 
 def obter_aluno(request):
     aluno, criado = Aluno.objects.get_or_create(
@@ -521,7 +521,9 @@ def ler_arquivo_enviado(arquivos):
     try:
         return ler_espelho_por_ocr(arquivos), True
     except OcrIndisponivel:
-        raise EspelhoInvalido(MENSAGEM_NAO_LEU)
+        # OCR não instalado (Python 3.13+ ou requirements não instalados): mensagem própria,
+        # que manda enviar o PDF, em vez do "não conseguimos ler" de uma leitura que falhou
+        raise EspelhoInvalido(MENSAGEM_SEM_OCR)
 
 
 def importar_espelho_enviado(request, aluno, arquivos):
@@ -650,7 +652,11 @@ def perfil(request):
             # dela na lista da sessão, que é o que as correções à mão usam
             ids = aluno.historico.order_by('id').values_list('id', flat=True)
             chaves = {id_linha: posicao for posicao, id_linha in enumerate(ids)}
-            para_conferir = {i for i, d in enumerate(dados['disciplinas']) if d.get('confira')}
+            # o que conferir em cada linha: o código (letra perdida) ou o período (print cortado)
+            para_conferir = {
+                i: 'o código' if d.get('confira') else 'o período'
+                for i, d in enumerate(dados['disciplinas']) if d.get('confira') or d.get('confira_periodo')
+            }
             contexto = contexto_do_perfil(request, aluno, chaves, para_conferir)
             contexto['conferencia'] = {
                 'contagem': contagem,
@@ -669,9 +675,9 @@ def perfil(request):
     return render(request, 'perfil.html', contexto_do_perfil(request, aluno))
 
 
-def contexto_do_perfil(request, aluno, chaves=None, para_conferir=()):
+def contexto_do_perfil(request, aluno, chaves=None, para_conferir=None):
     """Dados da página do perfil. Na conferência do OCR, 'chaves' leva o id de cada linha
-    à posição dela na leitura da sessão e 'para_conferir' marca as linhas de código incerto."""
+    à posição dela na leitura da sessão e 'para_conferir' diz o que conferir em cada linha incerta."""
     curriculo = curriculo_do_aluno(aluno)
     pendentes, conta_como = ocupacao_das_vagas(aluno, curriculo)
     vagas = vagas_do_curriculo(curriculo) if curriculo else []
@@ -704,7 +710,7 @@ def contexto_do_perfil(request, aluno, chaves=None, para_conferir=()):
             'classe': situacao,
             'situacao': nome_situacao,
             'chave': chave,
-            'confira': chave in para_conferir,
+            'confira': (para_conferir or {}).get(chave, ''),
             'conta_como': conta_como.get(linha.id, ''),
             'pode_contar_como': pode_contar_como(linha),
         })

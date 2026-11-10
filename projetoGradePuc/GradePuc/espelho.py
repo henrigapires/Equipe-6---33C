@@ -5,10 +5,15 @@ Duas camadas, para dar para testar sem PDF:
 - interpretar_paginas(paginas): transforma essas palavras no dicionário final.
 """
 import io
+import logging
 import re
 import unicodedata
 
 import pdfplumber
+
+# Só números e sim/não no log (quantas caixas, se achou o cabeçalho, quantas linhas):
+# nada do aluno (nome, matrícula, notas, disciplinas).
+log = logging.getLogger("GradePuc.espelho")
 
 
 # Situações do SAU (legenda do espelho)
@@ -643,7 +648,11 @@ def ler_tabela_ocr(palavras, largura=None):
         if cod["incerto"]:
             disciplina["confira"] = True
         disciplinas.append(disciplina)
-    return disciplinas, len(inicios), len(situacoes)
+
+    # situações acima do primeiro código: linha cortada no topo do print (o código ficou fora)
+    topo = inicios[0][0]["top"] - h / 2 if inicios else float("inf")
+    cortadas_no_topo = sum(1 for w in situacoes if centro_y(w) < topo)
+    return disciplinas, len(inicios), len(situacoes), cortadas_no_topo
 
 
 def pagina_com_cabecalho_ocr(pagina):
@@ -684,7 +693,7 @@ def interpretar_paginas(paginas):
 
     achou_tabela = False
     contagem_ocr = {"codigos": 0, "situacoes": 0}
-    origens = []                # de qual arquivo veio cada disciplina
+    por_pagina = []             # (arquivo, linhas da página, situações cortadas no topo)
     for n, pagina in enumerate(paginas):
         palavras = pagina["palavras"]
         por_ocr = pagina.get("ocr", False)
@@ -694,44 +703,114 @@ def interpretar_paginas(paginas):
             else:
                 dados.update(ler_cabecalho_do_curso(palavras))
 
+        cortadas = 0
         if por_ocr:
             resultado = ler_tabela_ocr(palavras, pagina.get("largura")) if palavras else None
             linhas = None
             if resultado is not None:
-                linhas, codigos, situacoes = resultado
+                linhas, codigos, situacoes, cortadas = resultado
                 contagem_ocr["codigos"] += codigos
                 contagem_ocr["situacoes"] += situacoes
+            log.info(
+                "espelho por OCR, arquivo %s: %d caixas de texto, cabeçalho da tabela: %s, quadro do curso: %s, "
+                "tabela reconhecida: %s, %d linha(s)",
+                pagina.get("arquivo", 0), len(palavras), bool(achar_colunas_ocr(palavras)),
+                bool(rotulos_do_curso_ocr(palavras)), linhas is not None, len(linhas or []),
+            )
         else:
             linhas = ler_tabela(palavras, pagina.get("altura", 10000))
         if linhas is not None:
             achou_tabela = True
-            dados["disciplinas"].extend(linhas)
-            origens.extend([pagina.get("arquivo", 0)] * len(linhas))
-
-    if any(p.get("ocr") for p in paginas):
-        dados["ocr"] = contagem_ocr
+            por_pagina.append((pagina.get("arquivo", 0), linhas, cortadas))
 
     if not achou_tabela:
         raise EspelhoInvalido("Não encontramos a tabela de disciplinas neste espelho.")
 
-    # o período só aparece na primeira disciplina do semestre; as seguintes herdam
-    atual = ""
-    for d in dados["disciplinas"]:
-        if d["periodo"]:
-            atual = d["periodo"]
-        else:
-            d["periodo"] = atual
-
-    # prints que se sobrepõem repetem disciplinas: vale a primeira vez que apareceu
-    # (só entre arquivos diferentes, dentro de um arquivo nada é descartado)
-    vistas = {}
-    sem_repetidas = []
-    for d, origem in zip(dados["disciplinas"], origens):
-        chave = (d["periodo"], d["codigo"])
-        if vistas.setdefault(chave, origem) == origem:
-            sem_repetidas.append(d)
-    dados["disciplinas"] = sem_repetidas
+    dados["disciplinas"], cortadas_cobertas = juntar_paginas(por_pagina)
+    if any(p.get("ocr") for p in paginas):
+        # linha cortada no topo de um print que repete o anterior não é disciplina perdida
+        contagem_ocr["situacoes"] -= cortadas_cobertas
+        dados["ocr"] = contagem_ocr
     return dados
+
+
+def semestre_anterior(periodo):
+    """'20262' -> '20261'; '20261' -> '20252'."""
+    ano, semestre = int(periodo[:4]), periodo[4]
+    return f"{ano}1" if semestre == "2" else f"{ano - 1}2"
+
+
+def em_andamento(situacao):
+    return situacao in SITUACOES_EM_ANDAMENTO
+
+
+def mesma_disciplina(a, b):
+    """Mesmo código e mesma situação (ou uma das situações não foi lida)."""
+    return a["codigo"] == b["codigo"] and (a["situacao"] == b["situacao"] or not a["situacao"] or not b["situacao"])
+
+
+def juntar_paginas(por_pagina):
+    """Junta as linhas das páginas/prints, resolvendo o período e as repetidas.
+
+    No SAU o período só aparece na primeira disciplina do semestre; as seguintes herdam.
+    Um print que começa no meio do semestre tem linhas sem período no começo:
+    - se vierem do mesmo arquivo (página seguinte do mesmo PDF), herdam o último período;
+    - se vierem de outro print e a mesma disciplina (código e situação) já apareceu,
+      é a sobreposição entre prints: pegam aquele período e não entram de novo;
+    - senão, pegam o último período lido, só se a situação combina (uma disciplina
+      concluída não herda um período em andamento, e vice-versa);
+    - senão, o semestre anterior ao primeiro período que aparece no print (marcado para conferir).
+    Prints que se sobrepõem repetem disciplinas: entre arquivos diferentes, a mesma
+    disciplina conta uma vez (dentro de um arquivo nada é descartado: dá para repetir uma
+    disciplina em outro semestre).
+
+    Devolve (disciplinas, situações cortadas no topo de prints que repetem o anterior)."""
+    juntas = []                 # (disciplina, arquivo, período veio do próprio print)
+    cortadas_cobertas = 0
+    for arquivo, linhas, cortadas in por_pagina:
+        atual = ""
+        primeiro = next((d["periodo"] for d in linhas if d["periodo"]), "")
+        sobreposicao = False
+        for d in linhas:
+            proprio = True
+            if d["periodo"]:
+                atual = d["periodo"]
+            elif atual:
+                d["periodo"] = atual
+            else:
+                proprio = False
+                d["periodo"] = periodo_do_comeco_do_print(d, arquivo, juntas, primeiro)
+                if any(a != arquivo and mesma_disciplina(x, d) for x, a, _ in juntas):
+                    sobreposicao = True
+
+            repetida = any(
+                a != arquivo and mesma_disciplina(x, d) and (x["periodo"] == d["periodo"] or not proprio)
+                for x, a, _ in juntas
+            )
+            if not repetida:
+                juntas.append((d, arquivo, proprio))
+        if sobreposicao:
+            cortadas_cobertas += cortadas
+    return [d for d, _, _ in juntas], cortadas_cobertas
+
+
+def periodo_do_comeco_do_print(d, arquivo, juntas, primeiro_do_print):
+    if juntas and juntas[-1][1] == arquivo:                      # página seguinte do mesmo PDF,
+        if juntas[-1][0].get("confira_periodo"):                 # ou a linha de cima no mesmo print
+            d["confira_periodo"] = True
+        return juntas[-1][0]["periodo"]
+    igual = next((x for x, a, _ in juntas if a != arquivo and mesma_disciplina(x, d)), None)
+    if igual is not None:
+        return igual["periodo"]                                  # sobreposição com o print anterior
+    if juntas:
+        ultimo = juntas[-1][0]["periodo"]
+        andamento_do_ultimo = any(em_andamento(x["situacao"]) for x, _, _ in juntas if x["periodo"] == ultimo)
+        if not d["situacao"] or em_andamento(d["situacao"]) == andamento_do_ultimo:
+            return ultimo
+    d["confira_periodo"] = True
+    if primeiro_do_print:
+        return semestre_anterior(primeiro_do_print)
+    return juntas[-1][0]["periodo"] if juntas else ""
 
 
 def ler_espelho(arquivo):

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load espelho_extras %}
 
 {% block title %}Meu perfil - grade.puc{% endblock %}
 
@@ -115,6 +116,9 @@
                 <input type="hidden" name="acao" value="enviar_espelho">
                 <label for="espelho">PDF do espelho (até 5 MB) ou prints da tela em PNG/JPG (até 8 MB cada). Se o espelho não couber num print, escolha vários de uma vez, em ordem.</label>
                 <input type="file" name="espelho" id="espelho" multiple accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" required>
+                {% ocr_instalado as tem_ocr %}{% if not tem_ocr %}
+                <p class="perfil__aviso-sem-ocr">A leitura de prints não está instalada neste computador: envie o PDF do espelho (no SAU, Imprimir → Salvar como PDF).</p>
+                {% endif %}
                 <button type="submit" class="perfil__botao">Enviar</button>
                 <p class="perfil__carregando" id="aviso-lendo" role="status" hidden>
                     Lendo o arquivo... isso pode levar até 1 minuto se forem vários prints. Não feche nem recarregue a página.
@@ -151,7 +155,7 @@
                 <tbody>
                     {% for item in periodo.linhas %}
                     <tr>
-                        <td class="perfil__codigo">{{ item.linha.codigo }}{% if item.confira %} <span class="perfil__confira">confira o código</span>{% endif %}</td>
+                        <td class="perfil__codigo">{{ item.linha.codigo }}{% if item.confira %} <span class="perfil__confira">confira {{ item.confira }}</span>{% endif %}</td>
                         <td>{{ item.linha.nome }}{% if item.conta_como %} <span class="perfil__conta-como">conta como {{ item.conta_como }}</span>{% elif item.linha.grupo and item.linha.grupo != '-' %} <span class="perfil__grupo">(equivale a {{ item.linha.grupo }})</span>{% endif %}
                         <details class="perfil__corrigir">
                             <summary>Corrigir</summary>

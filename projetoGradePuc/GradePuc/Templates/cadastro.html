@@ -1,4 +1,5 @@
 {% load static %}
+{% load espelho_extras %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -48,6 +49,9 @@
             disciplinas que você já fez. Você também pode enviar depois, no seu perfil.
         </small>
         <small>O PDF não é guardado: só lemos os dados e descartamos o arquivo.</small>
+        {% ocr_instalado as tem_ocr %}{% if not tem_ocr %}
+        <small class="aviso-sem-ocr">A leitura de prints não está instalada neste computador: envie o PDF do espelho (no SAU, Imprimir → Salvar como PDF).</small>
+        {% endif %}
     </div>
 
     <button type="submit">Cadastrar</button>

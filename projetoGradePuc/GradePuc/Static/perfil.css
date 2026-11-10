@@ -401,3 +401,14 @@
     font-size: 13px;
     font-weight: 700;
 }
+
+/* Leitura de prints (OCR) não instalada neste computador */
+.perfil__aviso-sem-ocr {
+    flex-basis: 100%;
+    margin: 0;
+    padding: var(--espaco-2) var(--espaco-3);
+    background-color: var(--cor-superficie-aviso);
+    border-left: 4px solid var(--cor-aviso);
+    border-radius: var(--raio-pequeno);
+    font-size: 14px;
+}
