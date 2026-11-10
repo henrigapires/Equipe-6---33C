@@ -1,4 +1,5 @@
 {% load static %}
+{% load espelho_extras %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -12,7 +13,7 @@
 <body class="auth-page">
 <h1>Cadastre-se no Grade.puc</h1>
 
-<form method="POST">
+<form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
 
     <div>
@@ -40,6 +41,19 @@
         <input type="password" name="confirmar_senha" required>
     </div>
 
+    <div>
+        <label for="espelho">Espelho do histórico (PDF do SAU ou prints da tela, opcional):</label>
+        <input type="file" name="espelho" id="espelho" multiple accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg">
+        <small>
+            No SAU, abra o Espelho do Histórico e salve em PDF. Assim o grade.puc não sugere
+            disciplinas que você já fez. Você também pode enviar depois, no seu perfil.
+        </small>
+        <small>O PDF não é guardado: só lemos os dados e descartamos o arquivo.</small>
+        {% ocr_instalado as tem_ocr %}{% if not tem_ocr %}
+        <small class="aviso-sem-ocr">A leitura de prints não está instalada neste computador: envie o PDF do espelho (no SAU, Imprimir → Salvar como PDF).</small>
+        {% endif %}
+    </div>
+
     <button type="submit">Cadastrar</button>
 
     <p class="auth-error">{{ error_msg }}</p>
@@ -49,5 +63,23 @@
     Já tem uma conta?
     <a href="{% url 'login' %}">Faça login</a>
 </p>
+<script>
+    // Se mandou o espelho, a leitura (OCR) pode demorar: avisa e trava o botão.
+    (function () {
+        var form = document.querySelector('form');
+        var arquivo = document.getElementById('espelho');
+        var botao = form.querySelector('button[type="submit"]');
+        form.addEventListener('submit', function () {
+            if (arquivo.files.length) {
+                botao.disabled = true;
+                botao.textContent = 'Lendo o espelho... pode levar até 1 minuto';
+            }
+        });
+        window.addEventListener('pageshow', function () {
+            botao.disabled = false;
+            botao.textContent = 'Cadastrar';
+        });
+    })();
+</script>
 </body>
 </html>

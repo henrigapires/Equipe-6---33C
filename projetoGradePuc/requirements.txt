@@ -1,0 +1,13 @@
+Django==6.1.2
+pandas
+openpyxl
+pdfplumber
+requests
+beautifulsoup4
+
+# OCR do espelho escaneado ou de print (opcional: o site funciona sem).
+# O rapidocr-onnxruntime só tem versão para Python < 3.13; em Python mais novo
+# o pip pula esta linha e o site mostra "envie o PDF original do SAU".
+pypdfium2
+pillow
+rapidocr-onnxruntime; python_version < "3.13"

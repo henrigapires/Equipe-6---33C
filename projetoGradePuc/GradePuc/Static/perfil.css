@@ -1,0 +1,414 @@
+.perfil {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: var(--espaco-6) var(--espaco-4) var(--espaco-8);
+    box-sizing: border-box;
+}
+
+.perfil__titulo {
+    margin: 0;
+    color: var(--cor-terracota);
+}
+
+.perfil__subtitulo {
+    margin: var(--espaco-1) 0 var(--espaco-5);
+    color: var(--cor-tinta-secundaria);
+}
+
+.perfil__cartao {
+    margin-bottom: var(--espaco-5);
+    padding: var(--espaco-5);
+    background-color: var(--cor-superficie);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-medio);
+    box-shadow: var(--sombra-cartao);
+}
+
+.perfil__cartao h2 {
+    margin: 0 0 var(--espaco-3);
+    font-size: 22px;
+}
+
+.perfil__cartao p {
+    margin: 0 0 var(--espaco-3);
+}
+
+.perfil__dados {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--espaco-3);
+    margin: 0 0 var(--espaco-4);
+}
+
+.perfil__dados dt {
+    color: var(--cor-tinta-secundaria);
+    font-size: 14px;
+}
+
+.perfil__dados dd {
+    margin: 0;
+    font-weight: 700;
+}
+
+.perfil__sigla,
+.perfil__codigo,
+.perfil__periodo {
+    font-family: var(--fonte-dados);
+}
+
+.perfil__curso {
+    padding: var(--espaco-3) var(--espaco-4);
+    background-color: var(--cor-superficie-suave);
+    border-left: 4px solid var(--cor-sucesso);
+    border-radius: var(--raio-pequeno);
+}
+
+.perfil__confirmar {
+    padding: var(--espaco-4);
+    background-color: var(--cor-superficie-aviso);
+    border-left: 4px solid var(--cor-aviso);
+    border-radius: var(--raio-pequeno);
+}
+
+.perfil__confirmar h3 {
+    margin: 0 0 var(--espaco-2);
+}
+
+.perfil__confirmar label,
+.perfil__envio label {
+    display: block;
+    margin-bottom: var(--espaco-1);
+    font-weight: 700;
+}
+
+.perfil__confirmar select {
+    display: block;
+    width: 100%;
+    max-width: 520px;
+    margin-bottom: var(--espaco-3);
+    padding: var(--espaco-2);
+    background-color: var(--cor-superficie);
+}
+
+.perfil__envio {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--espaco-3);
+}
+
+.perfil__envio label {
+    flex-basis: 100%;
+    margin-bottom: 0;
+}
+
+.perfil__botao {
+    background-color: var(--cor-terracota);
+    color: var(--cor-superficie);
+}
+
+.perfil__botao:hover {
+    background-color: var(--cor-terracota-escura);
+}
+
+.perfil__botao--secundario {
+    background-color: var(--cor-superficie);
+    color: var(--cor-terracota);
+}
+
+.perfil__botao--secundario:hover {
+    background-color: var(--cor-superficie-suave);
+}
+
+.perfil__vazio {
+    color: var(--cor-tinta-secundaria);
+}
+
+.perfil__pendentes {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.perfil__pendentes li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-3);
+    padding: var(--espaco-2) 0;
+    border-bottom: 1px solid var(--cor-borda);
+}
+
+.perfil__pendentes li:last-child {
+    border-bottom: none;
+}
+
+.perfil__pendentes .perfil__periodo {
+    margin-left: auto;
+    color: var(--cor-tinta-secundaria);
+    font-size: 14px;
+}
+
+.perfil__periodo-titulo {
+    margin: var(--espaco-4) 0 var(--espaco-2);
+    font-size: 17px;
+    color: var(--cor-tinta-secundaria);
+}
+
+.perfil__tabela {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.perfil__tabela th,
+.perfil__tabela td {
+    padding: var(--espaco-2);
+    border-bottom: 1px solid var(--cor-borda);
+    text-align: left;
+    vertical-align: top;
+}
+
+.perfil__tabela th {
+    color: var(--cor-tinta-secundaria);
+    font-size: 14px;
+}
+
+.perfil__grupo {
+    color: var(--cor-tinta-secundaria);
+    font-size: 14px;
+}
+
+.perfil__situacao {
+    display: inline-block;
+    padding: 2px var(--espaco-2);
+    border-radius: var(--raio-pequeno);
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.perfil__situacao--cursada {
+    color: var(--cor-sucesso);
+    background-color: var(--cor-superficie-suave);
+}
+
+.perfil__situacao--em_andamento {
+    color: var(--cor-aviso);
+    background-color: var(--cor-superficie-aviso);
+}
+
+.perfil__situacao--pode_cursar {
+    color: var(--cor-erro);
+    background-color: var(--cor-superficie-erro);
+}
+
+.perfil__confirmacao {
+    display: flex;
+    align-items: center;
+    gap: var(--espaco-2);
+    margin-bottom: var(--espaco-3);
+}
+
+@media (max-width: 640px) {
+    .perfil__cartao {
+        padding: var(--espaco-4);
+    }
+
+    .perfil__tabela th:nth-child(3),
+    .perfil__tabela td:nth-child(3) {
+        display: none;
+    }
+}
+
+.perfil__privacidade {
+    margin: var(--espaco-2) 0 0;
+    color: var(--cor-tinta-secundaria);
+    font-size: 14px;
+}
+
+.perfil__cartao .perfil__substituir {
+    padding: var(--espaco-2) var(--espaco-3);
+    background-color: var(--cor-superficie-aviso);
+    border-left: 4px solid var(--cor-aviso);
+    border-radius: var(--raio-pequeno);
+}
+
+.perfil__proximo-passo {
+    margin: 0 0 var(--espaco-5);
+}
+
+.perfil__link-grades {
+    color: var(--cor-terracota);
+    font-family: var(--fonte-interface);
+    font-weight: 600;
+}
+
+.perfil__passos {
+    margin: var(--espaco-2) 0 0;
+    padding-left: var(--espaco-5);
+    color: var(--cor-tinta-secundaria);
+}
+
+/* Conferência da leitura por OCR */
+.perfil__aviso-ocr {
+    margin: 0 0 var(--espaco-4);
+    padding: var(--espaco-3) var(--espaco-4);
+    background-color: var(--cor-superficie-aviso);
+    border-left: 4px solid var(--cor-aviso);
+    border-radius: var(--raio-pequeno);
+    font-weight: 700;
+}
+
+.perfil__aviso-faltando {
+    margin: 0 0 var(--espaco-4);
+    padding: var(--espaco-3) var(--espaco-4);
+    background-color: var(--cor-superficie-erro);
+    border-left: 4px solid var(--cor-erro);
+    border-radius: var(--raio-pequeno);
+}
+
+.perfil__acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-3);
+}
+
+/* Conferência da leitura por OCR, no mesmo layout do perfil */
+.perfil__situacao--nao-lida {
+    color: var(--cor-erro);
+    background-color: var(--cor-superficie-erro);
+    font-style: italic;
+}
+
+.perfil__acoes + .perfil__cartao,
+.perfil__cartao + .perfil__acoes {
+    margin-top: var(--espaco-4);
+}
+
+/* Aviso enquanto o OCR lê os arquivos enviados */
+.perfil__carregando {
+    margin: var(--espaco-3) 0 0;
+    padding: var(--espaco-3) var(--espaco-4);
+    background-color: var(--cor-superficie-aviso);
+    border-left: 4px solid var(--cor-aviso);
+    border-radius: var(--raio-pequeno);
+    font-weight: 700;
+}
+
+.perfil__carregando[hidden] {
+    display: none;
+}
+
+/* Correções à mão no histórico (adicionar, remover, trocar a situação) */
+.perfil__confira {
+    display: inline-block;
+    margin-top: var(--espaco-1);
+    padding: 0 var(--espaco-2);
+    border-radius: var(--raio-pequeno);
+    background-color: var(--cor-superficie-aviso);
+    color: var(--cor-aviso);
+    font-family: var(--fonte-interface);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.perfil__corrigir {
+    margin-top: var(--espaco-1);
+}
+
+.perfil__corrigir summary {
+    display: inline-block;
+    color: var(--cor-terracota);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.perfil__corrigir[open] summary {
+    margin-bottom: var(--espaco-2);
+}
+
+.perfil__corrigir-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-1);
+    align-items: center;
+    margin: 0 0 var(--espaco-2);
+}
+
+.perfil__corrigir select {
+    width: 9.5em;
+    font-size: 14px;
+}
+
+.perfil__botao--pequeno {
+    padding: var(--espaco-1) var(--espaco-2);
+    font-size: 13px;
+}
+
+.perfil__oculto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.perfil__adicionar {
+    margin-top: var(--espaco-5);
+    padding-top: var(--espaco-4);
+    border-top: 1px solid var(--cor-borda);
+}
+
+.perfil__adicionar-campos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-3);
+    align-items: flex-end;
+}
+
+.perfil__adicionar-campos label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--espaco-1);
+    font-weight: 700;
+}
+
+.perfil__adicionar-campos input {
+    width: 9em;
+}
+
+/* Banco sem currículos: aviso no lugar do "Confirme seu curso" */
+.perfil__sem-curriculos {
+    padding: var(--espaco-4);
+    background-color: var(--cor-superficie-aviso);
+    border-left: 4px solid var(--cor-aviso);
+    border-radius: var(--raio-pequeno);
+}
+
+/* Optativa que ocupa uma vaga de grupo do currículo ("conta como INF0307") */
+.perfil__conta-como {
+    display: inline-block;
+    padding: 0 var(--espaco-2);
+    border-radius: var(--raio-pequeno);
+    background-color: var(--cor-superficie-suave);
+    color: var(--cor-tinta-secundaria);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.perfil__corrigir-form label {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* Leitura de prints (OCR) não instalada neste computador */
+.perfil__aviso-sem-ocr {
+    flex-basis: 100%;
+    margin: 0;
+    padding: var(--espaco-2) var(--espaco-3);
+    background-color: var(--cor-superficie-aviso);
+    border-left: 4px solid var(--cor-aviso);
+    border-radius: var(--raio-pequeno);
+    font-size: 14px;
+}

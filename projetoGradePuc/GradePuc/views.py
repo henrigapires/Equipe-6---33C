@@ -8,6 +8,17 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from .gerador_grades import gerar_grades
+from django.contrib import messages
+from .espelho import EspelhoInvalido, EspelhoSemTexto, classificar_situacao, ler_espelho
+from .historico import curriculo_do_aluno, remover_historico, salvar_espelho
+from .historico import (
+    SEM_VAGA, SITUACOES_DA_CORRECAO, CorrecaoInvalida, adicionar_ao_historico, curriculo_das_siglas,
+    disciplina_digitada, ocupacao_das_vagas, remover_do_historico, trocar_situacao_no_historico,
+    trocar_vaga_no_historico, vagas_do_curriculo,
+)
+from .ligacao import confirmar_curso, deduzir_curriculos
+from .models import Curriculo
+from .ocr import MENSAGEM_SEM_OCR, OcrIndisponivel, eh_imagem, ler_espelho_por_ocr
 
 def obter_aluno(request):
     aluno, criado = Aluno.objects.get_or_create(
@@ -70,11 +81,39 @@ def create_user(request):
                 aluno.senha = ''
                 aluno.save()
             else:
-                Aluno.objects.create(
+                aluno = Aluno.objects.create(
                     usuario=usuario,
                     matricula=matricula,
                     senha=''
                 )
+
+        # O espelho é opcional e um erro nele nunca impede o cadastro: a conta já existe aqui.
+        arquivos = request.FILES.getlist('espelho')
+        if arquivos:
+            # Com espelho, o aluno já entra logado e vai direto para "Meu perfil": lá ele vê o
+            # histórico salvo, a conferência da leitura por OCR ou o erro com o formulário
+            # para enviar de novo. A leitura fica na sessão de quem acabou de entrar.
+            login(request, usuario)
+            try:
+                situacao, mensagem = importar_espelho_enviado(request, aluno, arquivos)
+            except Exception:
+                situacao, mensagem = 'erro', 'Não conseguimos ler este arquivo.'
+            if situacao == 'salvo':
+                messages.success(request, 'Conta criada! ' + mensagem)
+                request.session['acabou_de_importar_espelho'] = True
+            elif situacao == 'conferir':
+                messages.success(
+                    request,
+                    'Conta criada! Lemos o seu arquivo por OCR: confira as disciplinas abaixo '
+                    'e clique em "Confirmar e salvar".'
+                )
+            else:
+                messages.warning(
+                    request,
+                    'Conta criada, mas o espelho não foi importado: ' + mensagem
+                    + ' Envie de novo aqui embaixo.'
+                )
+            return redirect('perfil')
 
         return redirect('home')
 
@@ -167,7 +206,7 @@ def ajuda(request):
 @login_required
 def pre_requisitos(request):
     disciplinas = list(Disciplina.objects.prefetch_related('pre_requisitos').order_by('codigo'))
-    aluno = Aluno.objects.first()
+    aluno = obter_aluno(request)
     concluidas = set(aluno.disciplinas_cursadas.values_list('id', flat=True)) if aluno else set()
 
     # Organiza as disciplinas por nível de dependência sem pressupor uma grade fixa.
@@ -454,3 +493,315 @@ def gradessugeridas(request):
     return render(request, 'grades-sugeridas.html', {
         'opcoes': opcoes,
     })
+
+
+TAMANHO_MAXIMO_ESPELHO = 5 * 1024 * 1024  # 5 MB (PDF)
+TAMANHO_MAXIMO_IMAGEM = 8 * 1024 * 1024   # 8 MB (print da tela, lido por OCR)
+MAXIMO_DE_ARQUIVOS = 6                    # o OCR leva uns 10 s por imagem
+
+NOMES_DAS_SITUACOES = {
+    'cursada': 'Cursada',
+    'em_andamento': 'Em andamento',
+    'pode_cursar': 'Pode cursar de novo',
+}
+
+
+CHAVE_LEITURA_OCR = 'espelho_lido_por_ocr'
+
+
+def ler_arquivo_enviado(arquivos):
+    """Um PDF com texto: leitura direta. PDF sem texto ou imagens (um ou vários prints,
+    em ordem): OCR. Devolve (dados, lido_por_ocr) ou levanta EspelhoInvalido com uma
+    mensagem amigável."""
+    if len(arquivos) == 1 and not eh_imagem(arquivos[0].name):
+        try:
+            return ler_espelho(arquivos[0]), False
+        except EspelhoSemTexto:
+            pass
+    try:
+        return ler_espelho_por_ocr(arquivos), True
+    except OcrIndisponivel:
+        # OCR não instalado (Python 3.13+ ou requirements não instalados): mensagem própria,
+        # que manda enviar o PDF, em vez do "não conseguimos ler" de uma leitura que falhou
+        raise EspelhoInvalido(MENSAGEM_SEM_OCR)
+
+
+def importar_espelho_enviado(request, aluno, arquivos):
+    """Lê o(s) arquivo(s) enviado(s). Nada fica salvo no servidor: só os dados lidos.
+    Devolve (situacao, mensagem), com situacao 'salvo', 'conferir' (leitura por OCR,
+    guardada na sessão até o aluno confirmar) ou 'erro'."""
+    if not isinstance(arquivos, (list, tuple)):
+        arquivos = [arquivos]
+    if len(arquivos) > MAXIMO_DE_ARQUIVOS:
+        return 'erro', f'Envie no máximo {MAXIMO_DE_ARQUIVOS} arquivos de uma vez.'
+    for arquivo in arquivos:
+        if eh_imagem(arquivo.name):
+            if arquivo.size > TAMANHO_MAXIMO_IMAGEM:
+                return 'erro', 'A imagem tem mais de 8 MB. Envie um print menor ou o PDF do SAU.'
+        elif arquivo.name.lower().endswith('.pdf'):
+            if arquivo.size > TAMANHO_MAXIMO_ESPELHO:
+                return 'erro', 'O arquivo tem mais de 5 MB. Envie o PDF do espelho baixado do SAU.'
+            if len(arquivos) > 1:
+                return 'erro', 'Para enviar vários arquivos, use só prints (PNG ou JPG). O PDF vai sozinho.'
+        else:
+            return 'erro', 'Envie o espelho em PDF, PNG ou JPG.'
+
+    try:
+        dados, lido_por_ocr = ler_arquivo_enviado(arquivos)
+    except (EspelhoInvalido, EspelhoSemTexto) as erro:
+        return 'erro', str(erro)
+    except Exception:
+        return 'erro', 'Não conseguimos ler este PDF. Envie o PDF original baixado do SAU.'
+
+    if lido_por_ocr:
+        request.session[CHAVE_LEITURA_OCR] = {'aluno': aluno.id, 'dados': dados}
+        return 'conferir', 'Lemos o arquivo por OCR: confira as disciplinas antes de salvar.'
+
+    reconhecido = salvar_espelho(aluno, dados)
+    mensagem = f"Histórico importado: {len(dados['disciplinas'])} disciplinas."
+    if not reconhecido:
+        mensagem += ' Confirme seu curso no seu perfil.'
+    return 'salvo', mensagem
+
+
+def leitura_ocr_pendente(request, aluno):
+    """A leitura por OCR que espera conferência, só se for deste aluno."""
+    pendente = request.session.get(CHAVE_LEITURA_OCR)
+    if pendente and pendente.get('aluno') != aluno.id:
+        request.session.pop(CHAVE_LEITURA_OCR)
+        return None
+    return pendente
+
+
+def formatar_periodo(periodo):
+    """'20261' -> '2026.1'"""
+    if len(periodo) == 5 and periodo.isdigit():
+        return periodo[:4] + '.' + periodo[4]
+    return periodo
+
+
+@login_required
+def perfil(request):
+    aluno = obter_aluno(request)
+
+    if request.method == 'POST':
+        acao = request.POST.get('acao')
+
+        if acao == 'enviar_espelho':
+            arquivos = request.FILES.getlist('espelho')
+            if not arquivos:
+                messages.error(request, 'Escolha o arquivo do espelho para enviar.')
+            else:
+                situacao, mensagem = importar_espelho_enviado(request, aluno, arquivos)
+                if situacao == 'salvo':
+                    messages.success(request, mensagem)
+                    request.session['acabou_de_importar_espelho'] = True
+                elif situacao == 'conferir':
+                    messages.info(request, mensagem)
+                else:
+                    messages.error(request, mensagem)
+
+        elif acao == 'confirmar_ocr':
+            pendente = leitura_ocr_pendente(request, aluno)
+            if pendente:
+                request.session.pop(CHAVE_LEITURA_OCR)
+                reconhecido = salvar_espelho(aluno, pendente['dados'])
+                mensagem = f"Histórico importado: {len(pendente['dados']['disciplinas'])} disciplinas."
+                if not reconhecido:
+                    mensagem += ' Confirme seu curso abaixo.'
+                messages.success(request, mensagem)
+                request.session['acabou_de_importar_espelho'] = True
+
+        elif acao == 'descartar_ocr':
+            request.session.pop(CHAVE_LEITURA_OCR, None)
+            messages.info(request, 'Leitura descartada. Envie outro arquivo.')
+
+        elif acao == 'confirmar_curso':
+            curriculo = Curriculo.objects.filter(id=request.POST.get('curriculo') or 0).first()
+            if curriculo is None or not aluno.curso_sigla:
+                messages.error(request, 'Escolha um curso da lista.')
+            elif confirmar_curso(aluno, curriculo):
+                messages.success(request, f'Curso confirmado: {curriculo}.')
+            else:
+                messages.error(request, 'O curso desta sigla já foi definido pela administração do site.')
+
+        elif acao == 'remover_historico':
+            if request.POST.get('confirmo') == 'sim':
+                remover_historico(aluno)
+                messages.success(request, 'Seu histórico foi removido.')
+            else:
+                messages.error(request, 'Marque a confirmação para remover o histórico.')
+
+        elif acao in ('adicionar_disciplina', 'remover_disciplina', 'trocar_situacao', 'conta_como'):
+            corrigir_historico(request, aluno, acao)
+            resposta = redirect('perfil')
+            resposta['Location'] += '#historico'      # volta para a lista que estava sendo corrigida
+            return resposta
+
+        return redirect('perfil')
+
+    pendente = leitura_ocr_pendente(request, aluno)
+    if pendente:
+        # Prévia da leitura por OCR com a mesma cara do perfil: grava dentro de uma
+        # transação, monta a página e desfaz tudo. Só fica salvo em "Confirmar e salvar".
+        dados = pendente['dados']
+        contagem = dados.get('ocr', {})
+        with transaction.atomic():
+            salvar_espelho(aluno, dados)
+            # as linhas foram criadas na ordem da leitura: o id de cada uma leva à posição
+            # dela na lista da sessão, que é o que as correções à mão usam
+            ids = aluno.historico.order_by('id').values_list('id', flat=True)
+            chaves = {id_linha: posicao for posicao, id_linha in enumerate(ids)}
+            # o que conferir em cada linha: o código (letra perdida) ou o período (print cortado)
+            para_conferir = {
+                i: 'o código' if d.get('confira') else 'o período'
+                for i, d in enumerate(dados['disciplinas']) if d.get('confira') or d.get('confira_periodo')
+            }
+            contexto = contexto_do_perfil(request, aluno, chaves, para_conferir)
+            contexto['conferencia'] = {
+                'contagem': contagem,
+                'pode_ter_faltado': not dados.get('corrigido_a_mao') and (
+                    contagem.get('codigos') != contagem.get('situacoes')
+                    or any(not d['situacao'] or not d['periodo'] for d in dados['disciplinas'])
+                ),
+                'total': len(dados['disciplinas']),
+            }
+            contexto['mostrar_link_grades'] = False
+            resposta = render(request, 'perfil.html', contexto)
+            transaction.set_rollback(True)
+        aluno.refresh_from_db()
+        return resposta
+
+    return render(request, 'perfil.html', contexto_do_perfil(request, aluno))
+
+
+def contexto_do_perfil(request, aluno, chaves=None, para_conferir=None):
+    """Dados da página do perfil. Na conferência do OCR, 'chaves' leva o id de cada linha
+    à posição dela na leitura da sessão e 'para_conferir' diz o que conferir em cada linha incerta."""
+    curriculo = curriculo_do_aluno(aluno)
+    pendentes, conta_como = ocupacao_das_vagas(aluno, curriculo)
+    vagas = vagas_do_curriculo(curriculo) if curriculo else []
+    codigos_das_vagas = {codigo for codigo, _ in vagas}
+    itens_do_curriculo = set(curriculo.itens.filter(eh_grupo=False).values_list('codigo', flat=True)) if curriculo else set()
+
+    def pode_contar_como(linha):
+        """Mostra o "Conta como" para optativas: quem já ocupa uma vaga, ou quem não é item
+        do currículo e não tem equivalência do SAU para um item (como MAT4181 -> MAT4161)."""
+        if not vagas:
+            return False
+        if linha.id in conta_como:
+            return True
+        return linha.codigo not in itens_do_curriculo and (
+            not linha.grupo or linha.grupo == SEM_VAGA or linha.grupo in codigos_das_vagas
+        )
+
+    periodos = []
+    for linha in aluno.historico.all():
+        if not periodos or periodos[-1]['periodo'] != linha.periodo:
+            periodos.append({'periodo': linha.periodo, 'nome': formatar_periodo(linha.periodo), 'linhas': []})
+        if linha.situacao:
+            situacao = classificar_situacao(linha.situacao)
+            nome_situacao = NOMES_DAS_SITUACOES[situacao]
+        else:
+            situacao, nome_situacao = 'nao-lida', 'Não lida'   # só acontece na leitura por OCR
+        chave = chaves[linha.id] if chaves is not None else linha.id
+        periodos[-1]['linhas'].append({
+            'linha': linha,
+            'classe': situacao,
+            'situacao': nome_situacao,
+            'chave': chave,
+            'confira': (para_conferir or {}).get(chave, ''),
+            'conta_como': conta_como.get(linha.id, ''),
+            'pode_contar_como': pode_contar_como(linha),
+        })
+
+    sugestoes = deduzir_curriculos(aluno) if aluno.precisa_confirmar_curso else []
+
+    return {
+        'aluno': aluno,
+        'curriculo': curriculo,
+        'periodos': periodos,
+        'pendentes': pendentes[:10],
+        'vagas': vagas,
+        'sugestoes': sugestoes,
+        'sugerido': sugestoes[0]['curriculo'] if sugestoes else None,
+        'curriculos': Curriculo.objects.all(),
+        # o link para as grades aparece uma vez, logo depois de importar
+        'mostrar_link_grades': request.session.pop('acabou_de_importar_espelho', False),
+        # correções à mão: período sugerido para uma disciplina nova e situações possíveis
+        'ultimo_periodo': max((p['periodo'] for p in periodos), default=''),
+        'situacoes_da_correcao': SITUACOES_DA_CORRECAO.items(),
+    }
+
+
+def corrigir_historico(request, aluno, acao):
+    """Correções à mão: adicionar, remover ou trocar a situação de uma disciplina.
+    Na conferência do OCR mexem na leitura guardada na sessão (nada vai para o banco antes
+    de "Confirmar e salvar"); no perfil já salvo mexem no histórico do banco."""
+    pendente = leitura_ocr_pendente(request, aluno)
+    try:
+        if acao == 'adicionar_disciplina':
+            d = disciplina_digitada(
+                request.POST.get('codigo'), request.POST.get('situacao'), request.POST.get('periodo')
+            )
+            if pendente:
+                linhas = pendente['dados']['disciplinas']
+                if any(x['periodo'] == d['periodo'] and x['codigo'] == d['codigo'] for x in linhas):
+                    raise CorrecaoInvalida(f"{d['codigo']} já está na lista em {d['periodo']}.")
+                linhas.append(d)
+            else:
+                adicionar_ao_historico(aluno, d)
+            mensagem = f"{d['codigo']} adicionada."
+        else:
+            chave = request.POST.get('linha', '')
+            situacao = request.POST.get('situacao')
+            if acao == 'trocar_situacao' and situacao not in SITUACOES_DA_CORRECAO:
+                raise CorrecaoInvalida('Escolha uma situação da lista.')
+            if acao == 'conta_como':
+                # "Conta como": uma vaga de optativa do currículo, ou "nenhum" (SEM_VAGA)
+                if pendente:
+                    d = pendente['dados']
+                    curriculo = curriculo_das_siglas(d['curso'], d['habilitacao'], d['enfase'])
+                else:
+                    curriculo = curriculo_do_aluno(aluno)
+                escolhido = (request.POST.get('grupo') or '').strip().upper()
+                validos = {codigo for codigo, _ in vagas_do_curriculo(curriculo)} if curriculo else set()
+                if escolhido and escolhido not in validos:
+                    raise CorrecaoInvalida('Escolha uma vaga de optativa do seu currículo.')
+                grupo = escolhido or SEM_VAGA
+            if pendente:
+                linhas = pendente['dados']['disciplinas']
+                if not chave.isdigit() or int(chave) >= len(linhas):
+                    raise CorrecaoInvalida('Não encontramos essa disciplina na lista.')
+                linha = linhas[int(chave)]
+                if acao == 'remover_disciplina':
+                    linhas.remove(linha)
+                elif acao == 'conta_como':
+                    linha['grupo'] = grupo
+                else:
+                    linha['situacao'] = situacao
+                codigo = linha['codigo']
+            else:
+                linha = aluno.historico.filter(id=int(chave) if chave.isdigit() else 0).first()
+                if linha is None:
+                    raise CorrecaoInvalida('Não encontramos essa disciplina no seu histórico.')
+                codigo = linha.codigo
+                if acao == 'remover_disciplina':
+                    remover_do_historico(aluno, linha.id)
+                elif acao == 'conta_como':
+                    trocar_vaga_no_historico(aluno, linha.id, grupo)
+                else:
+                    trocar_situacao_no_historico(aluno, linha.id, situacao)
+            if acao == 'remover_disciplina':
+                mensagem = f'{codigo} removida.'
+            elif acao == 'conta_como':
+                mensagem = f'{codigo} agora conta como {escolhido}.' if escolhido else f'{codigo} não ocupa vaga de optativa.'
+            else:
+                mensagem = f'Situação de {codigo} trocada.'
+    except CorrecaoInvalida as erro:
+        messages.error(request, str(erro))
+        return
+    if pendente:
+        pendente['dados']['corrigido_a_mao'] = True
+        request.session[CHAVE_LEITURA_OCR] = pendente
+    messages.success(request, mensagem)

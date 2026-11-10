@@ -4,7 +4,14 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Aluno, Disciplina
+from .models import Aluno, Disciplina, RotinaPreferencias
+
+
+def criar_preferencias_completas(aluno):
+	RotinaPreferencias.objects.create(
+		aluno=aluno, turno='sem_preferencia', modalidade='hibrido',
+		distribuicao_aulas='tanto_faz', janelas='tanto_faz', carga_disciplinas='media',
+	)
 
 
 class PreRequisitosApiTests(TestCase):
@@ -70,7 +77,8 @@ class TransicoesEntreTelasTests(TestCase):
 
 	def setUp(self):
 		usuario = User.objects.create_user(username='9999999', password='Senha!123', first_name='Teste')
-		Aluno.objects.create(usuario=usuario, matricula='9999999', senha='')
+		aluno = Aluno.objects.create(usuario=usuario, matricula='9999999', senha='')
+		criar_preferencias_completas(aluno)
 		self.client.force_login(usuario)
 
 	def destinos_internos(self, html):
@@ -106,7 +114,8 @@ class TransicoesEntreTelasTests(TestCase):
 class BaseHtmlTests(TestCase):
 	def setUp(self):
 		usuario = User.objects.create_user(username='8888888', password='Senha!123', first_name='Teste')
-		Aluno.objects.create(usuario=usuario, matricula='8888888', senha='')
+		aluno = Aluno.objects.create(usuario=usuario, matricula='8888888', senha='')
+		criar_preferencias_completas(aluno)
 		self.client.force_login(usuario)
 
 	def conferir(self, pagina, item_ativo):

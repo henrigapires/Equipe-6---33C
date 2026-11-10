@@ -34,15 +34,28 @@
 
         <div class="site-header__usuario">
             <span class="site-header__ola">Olá, {{ user.first_name|default:user.username }}</span>
-            <form action="{% url 'logout' %}" method="post" class="site-header__sair">
-                {% csrf_token %}
-                <button type="submit" class="btn-sair">Sair</button>
-            </form>
+            <div class="site-header__botoes">
+                <a href="{% url 'perfil' %}"
+                    class="btn-sair btn-perfil{% if atual == 'perfil' %} ativo{% endif %}"
+                    {% if atual == 'perfil' %}aria-current="page"{% endif %}
+                    {% if user.aluno.precisa_confirmar_curso %}title="Confirme seu curso no perfil"{% endif %}>Meu perfil{% if user.aluno.precisa_confirmar_curso %}<span class="site-header__aviso"> •<span class="site-header__aviso-texto"> confirmar curso</span></span>{% endif %}</a>
+                <form action="{% url 'logout' %}" method="post" class="site-header__sair">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-sair">Sair</button>
+                </form>
+            </div>
         </div>
     </header>
     {% endwith %}
 
     <div class="site-conteudo">
+        {% if messages %}
+        <div class="site-mensagens">
+            {% for mensagem in messages %}
+            <p class="site-mensagem site-mensagem--{{ mensagem.tags }}">{{ mensagem }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% block content %}{% endblock %}
     </div>
 

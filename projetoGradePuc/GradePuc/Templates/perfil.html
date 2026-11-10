@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load espelho_extras %}
+
+{% block title %}Meu perfil - grade.puc{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'perfil.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="perfil">
+        <h1 class="perfil__titulo">Meu perfil</h1>
+        {% if conferencia %}
+        <p class="perfil__aviso-ocr">Lido por OCR: confira antes de salvar.</p>
+        <p class="perfil__subtitulo">
+            Assim vai ficar o seu perfil com as {{ conferencia.total }} disciplinas lidas.
+            Ainda não salvamos nada: confira e clique em <strong>Confirmar e salvar</strong>.
+        </p>
+        {% if conferencia.pode_ter_faltado %}
+        <p class="perfil__aviso-faltando">
+            Lemos {{ conferencia.contagem.codigos }} código(s) de disciplina e {{ conferencia.contagem.situacoes }} situação(ões):
+            <strong>pode ter faltado alguma disciplina</strong>, ou alguma linha veio incompleta.
+            <a href="#adicionar">Faltou alguma? Adicione abaixo.</a>
+            Também dá para trocar a situação ou remover uma linha na lista, ou enviar outro arquivo
+            (o PDF original do SAU ou prints retos e nítidos da tela).
+        </p>
+        {% endif %}
+        <div class="perfil__acoes">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="confirmar_ocr">
+                <button type="submit" class="perfil__botao">Confirmar e salvar</button>
+            </form>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="descartar_ocr">
+                <button type="submit" class="perfil__botao perfil__botao--secundario">Enviar outro arquivo</button>
+            </form>
+        </div>
+        {% else %}
+        <p class="perfil__subtitulo">Envie o Espelho do Histórico do SAU para o grade.puc não sugerir disciplinas que você já fez.</p>
+        {% endif %}
+
+        {% if mostrar_link_grades %}
+        <p class="perfil__proximo-passo">
+            <a href="{% url 'grades_sugeridas' %}" class="perfil__link-grades">Ver grades sugeridas</a>
+        </p>
+        {% endif %}
+
+        <section class="perfil__cartao">
+            <h2>Meu curso</h2>
+            {% if aluno.espelho_importado_em %}
+            <dl class="perfil__dados">
+                <div><dt>Curso</dt><dd class="perfil__sigla">{{ aluno.curso_sigla|default:"-" }}</dd></div>
+                <div><dt>Habilitação</dt><dd class="perfil__sigla">{{ aluno.habilitacao_sigla|default:"-" }}</dd></div>
+                <div><dt>Ênfase</dt><dd class="perfil__sigla">{{ aluno.enfase_sigla|default:"-" }}</dd></div>
+                <div><dt>Ano do currículo</dt><dd class="perfil__sigla">{{ aluno.ano_curriculo|default:"-" }}</dd></div>
+                <div><dt>CR acumulado</dt><dd class="perfil__sigla">{{ aluno.cr|default:"-" }}</dd></div>
+                <div><dt>Espelho enviado em</dt><dd>{{ aluno.espelho_importado_em|date:"d/m/Y H:i" }}</dd></div>
+            </dl>
+
+            {% if curriculo %}
+            <p class="perfil__curso">Curso reconhecido: <strong>{{ curriculo }}</strong></p>
+            {% elif conferencia %}
+            <p class="perfil__curso">Ainda não sabemos qual é o seu curso: depois de salvar, você confirma aqui.</p>
+            {% elif not curriculos %}
+            <p class="perfil__sem-curriculos">
+                Ainda não sabemos a qual curso correspondem as siglas do seu espelho
+                (<span class="perfil__sigla">{{ aluno.curso_sigla }} / {{ aluno.habilitacao_sigla }} / {{ aluno.enfase_sigla|default:"-" }}</span>).
+                Os currículos ainda não foram carregados. Peça ao administrador para rodar
+                <code>python manage.py importar_curriculos</code>.
+            </p>
+            {% else %}
+            <form method="post" class="perfil__confirmar">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="confirmar_curso">
+                <h3>Confirme seu curso</h3>
+                <p>
+                    Ainda não sabemos a qual curso correspondem as siglas do seu espelho
+                    (<span class="perfil__sigla">{{ aluno.curso_sigla }} / {{ aluno.habilitacao_sigla }} / {{ aluno.enfase_sigla|default:"-" }}</span>).
+                    {% if sugerido %}Pelo seu histórico, o mais provável é <strong>{{ sugerido }}</strong>.{% endif %}
+                </p>
+                <label for="curriculo">Curso</label>
+                <select name="curriculo" id="curriculo" required>
+                    <option value="">Escolha seu curso</option>
+                    {% for opcao in curriculos %}
+                    <option value="{{ opcao.id }}" {% if opcao == sugerido %}selected{% endif %}>{{ opcao }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="perfil__botao">Confirmar curso</button>
+            </form>
+            {% endif %}
+            {% else %}
+            <p class="perfil__vazio">Você ainda não enviou o espelho do histórico.</p>
+            <ol class="perfil__passos">
+                <li>Entre no Portal SAU da PUC-Rio e abra o <strong>Espelho do Histórico</strong>.</li>
+                <li>Salve a página em PDF (Imprimir → Salvar como PDF) e envie o arquivo aqui embaixo.</li>
+            </ol>
+            {% endif %}
+        </section>
+
+        {% if not conferencia %}
+        <section class="perfil__cartao">
+            <h2>{% if aluno.espelho_importado_em %}Enviar o espelho de novo{% else %}Enviar o espelho do histórico{% endif %}</h2>
+            {% if aluno.espelho_importado_em %}
+            <p>
+                No SAU, abra o <strong>Espelho do Histórico</strong> e salve a página em PDF.
+            </p>
+            <p class="perfil__substituir">
+                Você já tem um histórico importado. Enviar um novo espelho <strong>substitui</strong> o histórico anterior.
+            </p>
+            {% endif %}
+            <form method="post" enctype="multipart/form-data" class="perfil__envio">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="enviar_espelho">
+                <label for="espelho">PDF do espelho (até 5 MB) ou prints da tela em PNG/JPG (até 8 MB cada). Se o espelho não couber num print, escolha vários de uma vez, em ordem.</label>
+                <input type="file" name="espelho" id="espelho" multiple accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" required>
+                {% ocr_instalado as tem_ocr %}{% if not tem_ocr %}
+                <p class="perfil__aviso-sem-ocr">A leitura de prints não está instalada neste computador: envie o PDF do espelho (no SAU, Imprimir → Salvar como PDF).</p>
+                {% endif %}
+                <button type="submit" class="perfil__botao">Enviar</button>
+                <p class="perfil__carregando" id="aviso-lendo" role="status" hidden>
+                    Lendo o arquivo... isso pode levar até 1 minuto se forem vários prints. Não feche nem recarregue a página.
+                </p>
+            </form>
+            <p class="perfil__privacidade">O PDF não é guardado: só lemos os dados e descartamos o arquivo.</p>
+        </section>
+        {% endif %}
+
+        {% if pendentes %}
+        <section class="perfil__cartao">
+            <h2>Próximas do seu currículo</h2>
+            <ul class="perfil__pendentes">
+                {% for item in pendentes %}
+                <li>
+                    <span class="perfil__codigo">{{ item.codigo }}</span>
+                    <span>{{ item.nome }}</span>
+                    <span class="perfil__periodo">{% if item.periodo %}{{ item.periodo }}º período{% else %}período livre{% endif %}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        {% if periodos or conferencia %}
+        <section class="perfil__cartao" id="historico">
+            <h2>Meu histórico</h2>
+            {% for periodo in periodos %}
+            <h3 class="perfil__periodo-titulo">{{ periodo.nome }}</h3>
+            <table class="perfil__tabela">
+                <thead>
+                    <tr><th>Código</th><th>Disciplina</th><th>Créditos</th><th>Situação</th></tr>
+                </thead>
+                <tbody>
+                    {% for item in periodo.linhas %}
+                    <tr>
+                        <td class="perfil__codigo">{{ item.linha.codigo }}{% if item.confira %} <span class="perfil__confira">confira {{ item.confira }}</span>{% endif %}</td>
+                        <td>{{ item.linha.nome }}{% if item.conta_como %} <span class="perfil__conta-como">conta como {{ item.conta_como }}</span>{% elif item.linha.grupo and item.linha.grupo != '-' %} <span class="perfil__grupo">(equivale a {{ item.linha.grupo }})</span>{% endif %}
+                        <details class="perfil__corrigir">
+                            <summary>Corrigir</summary>
+                            {% if item.pode_contar_como %}
+                            <form method="post" class="perfil__corrigir-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="acao" value="conta_como">
+                                <input type="hidden" name="linha" value="{{ item.chave }}">
+                                <label for="conta-como-{{ item.chave }}">Conta como</label>
+                                <select name="grupo" id="conta-como-{{ item.chave }}">
+                                    <option value="" {% if not item.conta_como %}selected{% endif %}>nenhum</option>
+                                    {% for codigo, nome in vagas %}
+                                    <option value="{{ codigo }}" {% if codigo == item.conta_como %}selected{% endif %}>{{ codigo }} – {{ nome }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="perfil__botao perfil__botao--pequeno">Salvar</button>
+                            </form>
+                            {% endif %}
+                            <form method="post" class="perfil__corrigir-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="acao" value="trocar_situacao">
+                                <input type="hidden" name="linha" value="{{ item.chave }}">
+                                <label for="situacao-{{ item.chave }}" class="perfil__oculto">Nova situação de {{ item.linha.codigo }}</label>
+                                <select name="situacao" id="situacao-{{ item.chave }}">
+                                    {% for valor, nome in situacoes_da_correcao %}
+                                    <option value="{{ valor }}" {% if valor == item.linha.situacao %}selected{% endif %}>{{ nome }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="perfil__botao perfil__botao--pequeno">Trocar</button>
+                            </form>
+                            <form method="post" class="perfil__corrigir-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="acao" value="remover_disciplina">
+                                <input type="hidden" name="linha" value="{{ item.chave }}">
+                                <button type="submit" class="perfil__botao perfil__botao--secundario perfil__botao--pequeno"
+                                        aria-label="Remover {{ item.linha.codigo }}">Remover</button>
+                            </form>
+                        </details>
+                        </td>
+                        <td class="perfil__codigo">{{ item.linha.creditos }}</td>
+                        <td><span class="perfil__situacao perfil__situacao--{{ item.classe }}">{{ item.situacao }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endfor %}
+
+            <form method="post" class="perfil__adicionar" id="adicionar">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="adicionar_disciplina">
+                <h3>Adicionar disciplina</h3>
+                <p>Faltou alguma? Digite o código: o nome e os créditos vêm do cadastro da PUC.</p>
+                <div class="perfil__adicionar-campos">
+                    <label>Código
+                        <input type="text" name="codigo" placeholder="MAT4161" maxlength="8" required>
+                    </label>
+                    <label>Situação
+                        <select name="situacao">
+                            <option value="AP">Cursada</option>
+                            <option value="EA">Em andamento</option>
+                        </select>
+                    </label>
+                    <label>Período
+                        <input type="text" name="periodo" value="{{ ultimo_periodo }}" placeholder="20261" maxlength="7" required>
+                    </label>
+                    <button type="submit" class="perfil__botao">Adicionar</button>
+                </div>
+            </form>
+        </section>
+
+        {% if periodos and not conferencia %}
+        <section class="perfil__cartao perfil__cartao--remover">
+            <h2>Remover meu histórico</h2>
+            <p>Apaga as disciplinas importadas do espelho e os dados do seu curso. Você pode enviar o espelho de novo depois.</p>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="remover_historico">
+                <label class="perfil__confirmacao">
+                    <input type="checkbox" name="confirmo" value="sim" required>
+                    Sim, quero remover meu histórico
+                </label>
+                <button type="submit" class="perfil__botao perfil__botao--secundario">Remover meu histórico</button>
+            </form>
+        </section>
+        {% endif %}
+        {% endif %}
+
+        {% if conferencia %}
+        <div class="perfil__acoes">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="confirmar_ocr">
+                <button type="submit" class="perfil__botao">Confirmar e salvar</button>
+            </form>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="descartar_ocr">
+                <button type="submit" class="perfil__botao perfil__botao--secundario">Enviar outro arquivo</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // O OCR demora: mostra o aviso e trava o botão para não enviar duas vezes.
+        (function () {
+            var form = document.querySelector('.perfil__envio');
+            if (!form) return;
+            var botao = form.querySelector('button[type="submit"]');
+            var aviso = document.getElementById('aviso-lendo');
+            form.addEventListener('submit', function () {
+                botao.disabled = true;
+                botao.textContent = 'Lendo...';
+                aviso.hidden = false;
+            });
+            // ao voltar pelo botão do navegador, a página volta ao normal
+            window.addEventListener('pageshow', function () {
+                botao.disabled = false;
+                botao.textContent = 'Enviar';
+                aviso.hidden = true;
+            });
+        })();
+    </script>
+{% endblock %}

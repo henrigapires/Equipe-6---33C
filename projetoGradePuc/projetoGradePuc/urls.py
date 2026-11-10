@@ -38,4 +38,5 @@ urlpatterns = [
     path('questionario/janelas/', questionario_janelas, name='questionario_janelas'),
     path('questionario/carga/', questionario_carga, name='questionario_carga'),
     path('grades-sugeridas/', gradessugeridas, name='grades_sugeridas'),
+    path('perfil/', perfil, name='perfil'),
 ]
