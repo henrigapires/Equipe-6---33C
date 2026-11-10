@@ -182,6 +182,18 @@ def dados_espelho(disciplinas, curso='CEG', habilitacao='BCO', enfase='CCB'):
 	}
 
 
+class SemCurriculosCarregados:
+	"""O migrate (0007) já carrega os currículos de verdade. Os testes desta classe montam
+	um universo pequeno de currículos à mão, então começam com as tabelas vazias
+	(o Django desfaz isso no fim da classe)."""
+
+	@classmethod
+	def setUpTestData(cls):
+		LigacaoHabilitacao.objects.all().delete()
+		DisciplinaCurriculo.objects.all().delete()
+		Curriculo.objects.all().delete()
+
+
 def criar_curriculo(nome, codigos, enfase='', ano=2023):
 	curriculo = Curriculo.objects.create(
 		curso_nome=nome, ano=ano, enfase=enfase, titulo=nome,
@@ -285,7 +297,7 @@ class GradesRespeitamHistoricoTests(TestCase):
 		self.assertTrue(sugeridos <= {'ADM9001', 'ECO9001', 'HIS9001', 'LET9001'})
 
 
-class LigacaoDeSiglasTests(TestCase):
+class LigacaoDeSiglasTests(SemCurriculosCarregados, TestCase):
 	def setUp(self):
 		self.computacao = criar_curriculo(
 			'Engenharia de Computação', [('MAT9161', 1), ('INF9009', 1), ('INF9037', 2), ('ELL0900', None)]
@@ -343,7 +355,7 @@ class LigacaoDeSiglasTests(TestCase):
 		self.assertEqual([i.codigo for i in pendentes_do_curriculo(aluno)], ['INF9037', 'ELL0900'])
 
 
-class DeducaoDeCurriculoTests(TestCase):
+class DeducaoDeCurriculoTests(SemCurriculosCarregados, TestCase):
 	def test_codigos_raros_pesam_mais(self):
 		comum = [('MAT9161', 1), ('MAT9162', 1), ('FIS9001', 1)]
 		computacao = criar_curriculo('Engenharia de Computação', comum + [('INF9009', 2), ('INF9037', 2)])
@@ -444,7 +456,7 @@ class LeituraDasPaginasDeCursoTests(TestCase):
 		self.assertEqual(escolher_mais_recentes(secoes), [secoes[0]])
 
 
-class ImportarCurriculosCommandTests(TestCase):
+class ImportarCurriculosCommandTests(SemCurriculosCarregados, TestCase):
 	def test_importa_do_cache_sem_internet_e_e_idempotente(self):
 		paginas = {
 			'cursos.html': '<div class="puc_layout_area-inicial_esquerda"><a href="eng_computacao.html">Computação</a>'
@@ -469,7 +481,7 @@ class ImportarCurriculosCommandTests(TestCase):
 		self.assertEqual((ligacao.curriculo, ligacao.origem), (computacao, 'pre_cadastro'))
 
 
-class PerfilViewTests(TestCase):
+class PerfilViewTests(SemCurriculosCarregados, TestCase):
 	def setUp(self):
 		self.aluno = criar_aluno('5000001')
 		self.client.force_login(self.aluno.usuario)

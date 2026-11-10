@@ -63,6 +63,13 @@
             <p class="perfil__curso">Curso reconhecido: <strong>{{ curriculo }}</strong></p>
             {% elif conferencia %}
             <p class="perfil__curso">Ainda não sabemos qual é o seu curso: depois de salvar, você confirma aqui.</p>
+            {% elif not curriculos %}
+            <p class="perfil__sem-curriculos">
+                Ainda não sabemos a qual curso correspondem as siglas do seu espelho
+                (<span class="perfil__sigla">{{ aluno.curso_sigla }} / {{ aluno.habilitacao_sigla }} / {{ aluno.enfase_sigla|default:"-" }}</span>).
+                Os currículos ainda não foram carregados. Peça ao administrador para rodar
+                <code>python manage.py importar_curriculos</code>.
+            </p>
             {% else %}
             <form method="post" class="perfil__confirmar">
                 {% csrf_token %}

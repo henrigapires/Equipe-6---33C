@@ -377,3 +377,11 @@
 .perfil__adicionar-campos input {
     width: 9em;
 }
+
+/* Banco sem currículos: aviso no lugar do "Confirme seu curso" */
+.perfil__sem-curriculos {
+    padding: var(--espaco-4);
+    background-color: var(--cor-superficie-aviso);
+    border-left: 4px solid var(--cor-aviso);
+    border-radius: var(--raio-pequeno);
+}
