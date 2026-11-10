@@ -10,10 +10,11 @@ from django.db import transaction
 from .gerador_grades import gerar_grades
 from django.contrib import messages
 from .espelho import EspelhoInvalido, EspelhoSemTexto, classificar_situacao, ler_espelho
-from .historico import curriculo_do_aluno, pendentes_do_curriculo, remover_historico, salvar_espelho
+from .historico import curriculo_do_aluno, remover_historico, salvar_espelho
 from .historico import (
-    SITUACOES_DA_CORRECAO, CorrecaoInvalida, adicionar_ao_historico, disciplina_digitada,
-    remover_do_historico, trocar_situacao_no_historico,
+    SEM_VAGA, SITUACOES_DA_CORRECAO, CorrecaoInvalida, adicionar_ao_historico, curriculo_das_siglas,
+    disciplina_digitada, ocupacao_das_vagas, remover_do_historico, trocar_situacao_no_historico,
+    trocar_vaga_no_historico, vagas_do_curriculo,
 )
 from .ligacao import confirmar_curso, deduzir_curriculos
 from .models import Curriculo
@@ -629,7 +630,7 @@ def perfil(request):
             else:
                 messages.error(request, 'Marque a confirmação para remover o histórico.')
 
-        elif acao in ('adicionar_disciplina', 'remover_disciplina', 'trocar_situacao'):
+        elif acao in ('adicionar_disciplina', 'remover_disciplina', 'trocar_situacao', 'conta_como'):
             corrigir_historico(request, aluno, acao)
             resposta = redirect('perfil')
             resposta['Location'] += '#historico'      # volta para a lista que estava sendo corrigida
@@ -671,6 +672,23 @@ def perfil(request):
 def contexto_do_perfil(request, aluno, chaves=None, para_conferir=()):
     """Dados da página do perfil. Na conferência do OCR, 'chaves' leva o id de cada linha
     à posição dela na leitura da sessão e 'para_conferir' marca as linhas de código incerto."""
+    curriculo = curriculo_do_aluno(aluno)
+    pendentes, conta_como = ocupacao_das_vagas(aluno, curriculo)
+    vagas = vagas_do_curriculo(curriculo) if curriculo else []
+    codigos_das_vagas = {codigo for codigo, _ in vagas}
+    itens_do_curriculo = set(curriculo.itens.filter(eh_grupo=False).values_list('codigo', flat=True)) if curriculo else set()
+
+    def pode_contar_como(linha):
+        """Mostra o "Conta como" para optativas: quem já ocupa uma vaga, ou quem não é item
+        do currículo e não tem equivalência do SAU para um item (como MAT4181 -> MAT4161)."""
+        if not vagas:
+            return False
+        if linha.id in conta_como:
+            return True
+        return linha.codigo not in itens_do_curriculo and (
+            not linha.grupo or linha.grupo == SEM_VAGA or linha.grupo in codigos_das_vagas
+        )
+
     periodos = []
     for linha in aluno.historico.all():
         if not periodos or periodos[-1]['periodo'] != linha.periodo:
@@ -687,15 +705,18 @@ def contexto_do_perfil(request, aluno, chaves=None, para_conferir=()):
             'situacao': nome_situacao,
             'chave': chave,
             'confira': chave in para_conferir,
+            'conta_como': conta_como.get(linha.id, ''),
+            'pode_contar_como': pode_contar_como(linha),
         })
 
     sugestoes = deduzir_curriculos(aluno) if aluno.precisa_confirmar_curso else []
 
     return {
         'aluno': aluno,
-        'curriculo': curriculo_do_aluno(aluno),
+        'curriculo': curriculo,
         'periodos': periodos,
-        'pendentes': pendentes_do_curriculo(aluno)[:10],
+        'pendentes': pendentes[:10],
+        'vagas': vagas,
         'sugestoes': sugestoes,
         'sugerido': sugestoes[0]['curriculo'] if sugestoes else None,
         'curriculos': Curriculo.objects.all(),
@@ -730,6 +751,18 @@ def corrigir_historico(request, aluno, acao):
             situacao = request.POST.get('situacao')
             if acao == 'trocar_situacao' and situacao not in SITUACOES_DA_CORRECAO:
                 raise CorrecaoInvalida('Escolha uma situação da lista.')
+            if acao == 'conta_como':
+                # "Conta como": uma vaga de optativa do currículo, ou "nenhum" (SEM_VAGA)
+                if pendente:
+                    d = pendente['dados']
+                    curriculo = curriculo_das_siglas(d['curso'], d['habilitacao'], d['enfase'])
+                else:
+                    curriculo = curriculo_do_aluno(aluno)
+                escolhido = (request.POST.get('grupo') or '').strip().upper()
+                validos = {codigo for codigo, _ in vagas_do_curriculo(curriculo)} if curriculo else set()
+                if escolhido and escolhido not in validos:
+                    raise CorrecaoInvalida('Escolha uma vaga de optativa do seu currículo.')
+                grupo = escolhido or SEM_VAGA
             if pendente:
                 linhas = pendente['dados']['disciplinas']
                 if not chave.isdigit() or int(chave) >= len(linhas):
@@ -737,6 +770,8 @@ def corrigir_historico(request, aluno, acao):
                 linha = linhas[int(chave)]
                 if acao == 'remover_disciplina':
                     linhas.remove(linha)
+                elif acao == 'conta_como':
+                    linha['grupo'] = grupo
                 else:
                     linha['situacao'] = situacao
                 codigo = linha['codigo']
@@ -747,9 +782,16 @@ def corrigir_historico(request, aluno, acao):
                 codigo = linha.codigo
                 if acao == 'remover_disciplina':
                     remover_do_historico(aluno, linha.id)
+                elif acao == 'conta_como':
+                    trocar_vaga_no_historico(aluno, linha.id, grupo)
                 else:
                     trocar_situacao_no_historico(aluno, linha.id, situacao)
-            mensagem = f'{codigo} removida.' if acao == 'remover_disciplina' else f'Situação de {codigo} trocada.'
+            if acao == 'remover_disciplina':
+                mensagem = f'{codigo} removida.'
+            elif acao == 'conta_como':
+                mensagem = f'{codigo} agora conta como {escolhido}.' if escolhido else f'{codigo} não ocupa vaga de optativa.'
+            else:
+                mensagem = f'Situação de {codigo} trocada.'
     except CorrecaoInvalida as erro:
         messages.error(request, str(erro))
         return

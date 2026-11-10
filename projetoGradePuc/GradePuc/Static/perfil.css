@@ -385,3 +385,19 @@
     border-left: 4px solid var(--cor-aviso);
     border-radius: var(--raio-pequeno);
 }
+
+/* Optativa que ocupa uma vaga de grupo do currículo ("conta como INF0307") */
+.perfil__conta-como {
+    display: inline-block;
+    padding: 0 var(--espaco-2);
+    border-radius: var(--raio-pequeno);
+    background-color: var(--cor-superficie-suave);
+    color: var(--cor-tinta-secundaria);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.perfil__corrigir-form label {
+    font-size: 13px;
+    font-weight: 700;
+}

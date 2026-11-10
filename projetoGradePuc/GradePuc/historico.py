@@ -13,6 +13,12 @@ from .models import Disciplina, DisciplinaCurriculo, HistoricoDisciplina, Ligaca
 # cursada: não é sugerida de novo e vale como pré-requisito.
 EM_ANDAMENTO_CONTA_COMO_CURSADA = True
 
+# Escolha manual "Conta como: nenhum" gravada no campo grupo da linha: a disciplina não
+# ocupa vaga de optativa (e a regra automática não a coloca de volta).
+SEM_VAGA = '-'
+# Tipos de disciplina do SAU que são do próprio currículo: nunca ocupam vaga de optativa.
+TIPOS_DO_CURRICULO = {'OB', 'OC'}
+
 
 def situacoes_que_bloqueiam():
     situacoes = set(SITUACOES_CURSADAS)
@@ -29,7 +35,7 @@ def codigos_bloqueados(aluno):
     for linha in aluno.historico.all():
         if linha.situacao in bloqueiam:
             codigos.add(linha.codigo)
-            if linha.grupo:
+            if linha.grupo and linha.grupo != SEM_VAGA:
                 codigos.add(linha.grupo)
     return codigos
 
@@ -139,6 +145,15 @@ def remover_do_historico(aluno, linha_id):
     return apagadas > 0
 
 
+def trocar_vaga_no_historico(aluno, linha_id, grupo):
+    """'Conta como': grava no grupo da linha a vaga de optativa que ela ocupa (ou SEM_VAGA)."""
+    with transaction.atomic():
+        codigos_antigos = codigos_bloqueados(aluno)
+        trocadas = aluno.historico.filter(id=linha_id).update(grupo=grupo)
+        sincronizar_cursadas(aluno, codigos_antigos)
+    return trocadas > 0
+
+
 def trocar_situacao_no_historico(aluno, linha_id, situacao):
     if situacao not in SITUACOES_DA_CORRECAO:
         raise CorrecaoInvalida('Escolha uma situação da lista.')
@@ -167,23 +182,93 @@ def remover_historico(aluno):
         aluno.save()
 
 
-def curriculo_do_aluno(aluno):
-    if not aluno.curso_sigla:
+def curriculo_das_siglas(curso, habilitacao, enfase):
+    if not curso:
         return None
-    ligacao = LigacaoHabilitacao.para_siglas(aluno.curso_sigla, aluno.habilitacao_sigla, aluno.enfase_sigla)
+    ligacao = LigacaoHabilitacao.para_siglas(curso, habilitacao, enfase)
     return ligacao.curriculo if ligacao else None
+
+
+def curriculo_do_aluno(aluno):
+    return curriculo_das_siglas(aluno.curso_sigla, aluno.habilitacao_sigla, aluno.enfase_sigla)
+
+
+def ordem_do_curriculo(item):
+    return (item.periodo is None, item.periodo or 0, item.ordem)
+
+
+def ocupacao_das_vagas(aluno, curriculo=None):
+    """Liga as disciplinas feitas (ou em andamento) às vagas de optativa do currículo.
+
+    Os itens de grupo do currículo (4º caractere do código = 0: INF0307, ENG0561...) são
+    vagas a preencher, e o histórico traz a disciplina real (INF1026), nunca o código do
+    grupo. Uma disciplina ocupa no máximo uma vaga, quando:
+      (a) o campo grupo da linha é o código da vaga (escolha manual em "Conta como", ou o
+          próprio SAU); ou
+      (b) automático: ela NÃO é item do currículo, o tipo dela (se o SAU trouxer) não é
+          OB/OC e as 3 letras do código batem com as da vaga (INF1026 -> INF0307).
+          Nas linhas em andamento (EA) o SAU deixa Tipo e Grupo vazios, por isso a regra
+          não depende do tipo.
+    Se o currículo tem mais de um grupo com as mesmas 3 letras (ENG0561, ENG0562...), a
+    escolha é ambígua: nada é adivinhado, a vaga fica pendente até o aluno escolher.
+
+    Item do currículo nunca ocupa vaga: em Engenharia de Produção 2023, por exemplo,
+    CRE1200 (O Humano e o Fenômeno Religioso) é disciplina do 1º período, então não fecha
+    a vaga CRE0712 (Optativas de Cristianismo).
+
+    Devolve (pendentes, conta_como): os itens do currículo que faltam, na ordem do
+    currículo, e {id da linha do histórico: código da vaga que ela ocupa}."""
+    curriculo = curriculo or curriculo_do_aluno(aluno)
+    if curriculo is None:
+        return [], {}
+    itens = sorted(curriculo.itens.all(), key=ordem_do_curriculo)
+    codigos_dos_itens = {item.codigo for item in itens if not item.eh_grupo}
+    grupos_por_prefixo = {}
+    for item in itens:
+        if item.eh_grupo:
+            grupos_por_prefixo.setdefault(item.codigo[:3], set()).add(item.codigo)
+
+    bloqueiam = situacoes_que_bloqueiam()
+    linhas = [linha for linha in aluno.historico.order_by('periodo', 'id') if linha.situacao in bloqueiam]
+    livres = [item for item in itens if item.eh_grupo]     # vagas, na ordem do currículo
+    conta_como = {}
+
+    def ocupar(linha, codigo_da_vaga):
+        vaga = next((v for v in livres if v.codigo == codigo_da_vaga), None)
+        if vaga is not None:
+            livres.remove(vaga)
+            conta_como[linha.id] = vaga.codigo
+
+    for linha in linhas:                                    # (a) grupo da linha
+        if linha.grupo:
+            ocupar(linha, linha.grupo)
+    for linha in linhas:                                    # (b) automático pelo prefixo
+        if linha.grupo or linha.codigo in codigos_dos_itens or linha.tipo in TIPOS_DO_CURRICULO:
+            continue
+        grupos = grupos_por_prefixo.get(linha.codigo[:3], set())
+        if len(grupos) == 1:
+            ocupar(linha, next(iter(grupos)))
+
+    feitos = codigos_bloqueados(aluno)
+    pendentes = [
+        item for item in itens
+        if ((item in livres) if item.eh_grupo else (item.codigo not in feitos))
+    ]
+    return pendentes, conta_como
 
 
 def pendentes_do_curriculo(aluno):
     """Itens do currículo do aluno que ainda não foram cumpridos, pelo período recomendado
-    (os de período indeterminado ficam no fim)."""
-    curriculo = curriculo_do_aluno(aluno)
-    if curriculo is None:
-        return []
-    feitos = codigos_bloqueados(aluno)
-    itens = [item for item in curriculo.itens.all() if item.codigo not in feitos]
-    itens.sort(key=lambda item: (item.periodo is None, item.periodo or 0, item.ordem))
-    return itens
+    (os de período indeterminado ficam no fim). Cada optativa feita fecha uma vaga de grupo."""
+    return ocupacao_das_vagas(aluno)[0]
+
+
+def vagas_do_curriculo(curriculo):
+    """[(código, nome)] dos grupos de optativa do currículo, sem repetir, na ordem do currículo."""
+    vistas = {}
+    for item in sorted(curriculo.itens.filter(eh_grupo=True), key=ordem_do_curriculo):
+        vistas.setdefault(item.codigo, item.nome)
+    return list(vistas.items())
 
 
 def dados_oficiais(codigo):

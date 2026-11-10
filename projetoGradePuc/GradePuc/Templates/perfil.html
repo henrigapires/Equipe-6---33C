@@ -152,9 +152,24 @@
                     {% for item in periodo.linhas %}
                     <tr>
                         <td class="perfil__codigo">{{ item.linha.codigo }}{% if item.confira %} <span class="perfil__confira">confira o código</span>{% endif %}</td>
-                        <td>{{ item.linha.nome }}{% if item.linha.grupo %} <span class="perfil__grupo">(equivale a {{ item.linha.grupo }})</span>{% endif %}
+                        <td>{{ item.linha.nome }}{% if item.conta_como %} <span class="perfil__conta-como">conta como {{ item.conta_como }}</span>{% elif item.linha.grupo and item.linha.grupo != '-' %} <span class="perfil__grupo">(equivale a {{ item.linha.grupo }})</span>{% endif %}
                         <details class="perfil__corrigir">
                             <summary>Corrigir</summary>
+                            {% if item.pode_contar_como %}
+                            <form method="post" class="perfil__corrigir-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="acao" value="conta_como">
+                                <input type="hidden" name="linha" value="{{ item.chave }}">
+                                <label for="conta-como-{{ item.chave }}">Conta como</label>
+                                <select name="grupo" id="conta-como-{{ item.chave }}">
+                                    <option value="" {% if not item.conta_como %}selected{% endif %}>nenhum</option>
+                                    {% for codigo, nome in vagas %}
+                                    <option value="{{ codigo }}" {% if codigo == item.conta_como %}selected{% endif %}>{{ codigo }} – {{ nome }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="perfil__botao perfil__botao--pequeno">Salvar</button>
+                            </form>
+                            {% endif %}
                             <form method="post" class="perfil__corrigir-form">
                                 {% csrf_token %}
                                 <input type="hidden" name="acao" value="trocar_situacao">
