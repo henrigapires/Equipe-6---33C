@@ -154,9 +154,9 @@ OPCOES_JANELAS = [
 ]
 
 OPCOES_CARGA = [
-    {'valor': 'leve', 'nome': 'Leve', 'icone': '📗', 'descricao': '3 a 4 disciplinas'},
-    {'valor': 'media', 'nome': 'Média', 'icone': '📚', 'descricao': '5 a 6 disciplinas'},
-    {'valor': 'pesada', 'nome': 'Pesada', 'icone': '🏋️', 'descricao': '7 ou mais disciplinas'},
+    {'valor': 'leve', 'nome': 'Leve', 'icone': '📗', 'descricao': 'Menos de 20 créditos'},
+    {'valor': 'media', 'nome': 'Média', 'icone': '📚', 'descricao': '20 a 25 créditos'},
+    {'valor': 'pesada', 'nome': 'Pesada', 'icone': '🏋️', 'descricao': 'Mais de 25 créditos'},
 ]
 
 OPCOES_GRADE = [
@@ -282,14 +282,17 @@ def resumo_da_grade(request):
         )
 
     cursadas = set(aluno.disciplinas_cursadas.all())
+    total_creditos = 0
 
     for t in turmas:
         pre = set(t.disciplina.pre_requisitos.all())
         t.pendente = not pre.issubset(cursadas)
+        total_creditos += t.disciplina.creditos or 0
 
     return render(request, 'resumo_da_grade.html', {
         'form': form,
         'turmas': turmas,
+        'total_creditos': total_creditos
     })
 
 @login_required
