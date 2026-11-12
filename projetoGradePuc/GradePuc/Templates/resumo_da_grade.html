@@ -26,27 +26,52 @@
                         <thead>
                             <tr>
                                 <th>Horários</th>
-                                <th>Segunda</th>
-                                <th>Terça</th>
-                                <th>Quarta</th>
-                                <th>Quinta</th>
-                                <th>Sexta</th>
+                                {% for sigla, nome in dias %}
+                                    <th>{{ nome }}</th>
+                                {% endfor %}
                             </tr>
                         </thead>
 
+
                         <tbody>
-                            {% for turma in turmas %}
+                            {% for linha in grade_linhas %}
                                 <tr>
-                                    <td>{{ turma.dias_horarios }}</td>
-                                    <td colspan="5">
-                                        <div class="disciplina verde">
-                                            <strong>{{ turma.disciplina.nome }}</strong><br>
-                                            {{ turma.disciplina.codigo }} — {{ turma.professor.nome }}
-                                            <br>
-                                            Sala: {{ turma.sala }}
-                                        </div>
-                                    </td>
+                                    <th class="horario">{{ linha.horario }}</th>
+
+                                    {% for celula in linha.celulas %}
+
+                                        {% if celula %}
+
+                                            {% if celula.vazia %}
+                                                <td class="celula-vazia"></td>
+
+                                            {% else %}
+                                                <td class="celula-aula"
+                                                    rowspan="{{ celula.rowspan }}">
+
+                                                    <div class="disciplina verde">
+                                                        <strong>
+                                                            {{ celula.turma.disciplina.nome }}
+                                                        </strong>
+
+                                                        <span>
+                                                            {{ celula.turma.disciplina.codigo }}
+                                                            — {{ celula.turma.professor.nome }}
+                                                        </span>
+
+                                                        <span>
+                                                            Sala: {{ celula.turma.sala }}
+                                                        </span>
+                                                    </div>
+
+                                                </td>
+                                            {% endif %}
+
+                                        {% endif %}
+
+                                    {% endfor %}
                                 </tr>
+
                             {% empty %}
                                 <tr>
                                     <td colspan="6">
@@ -55,6 +80,7 @@
                                 </tr>
                             {% endfor %}
                         </tbody>
+
                     </table>
                 </div>
 

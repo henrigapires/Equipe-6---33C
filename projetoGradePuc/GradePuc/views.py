@@ -272,7 +272,10 @@ def api_disciplina(request, disciplina_id):
 def resumo_da_grade(request):
     aluno = obter_aluno(request)
     grade = Grade.objects.filter(aluno=aluno).last()
-    turmas = grade.turmas.select_related('disciplina') if grade else []
+    turmas = (
+        grade.turmas.select_related('disciplina', 'professor') 
+        if grade else []
+    )
 
     form = BuscaDisciplinaForm(request.GET)
 
@@ -284,15 +287,83 @@ def resumo_da_grade(request):
     cursadas = set(aluno.disciplinas_cursadas.all())
     total_creditos = 0
 
-    for t in turmas:
+    turmas_lista = list(turmas)
+
+    for t in turmas_lista:
         pre = set(t.disciplina.pre_requisitos.all())
         t.pendente = not pre.issubset(cursadas)
         total_creditos += t.disciplina.creditos or 0
 
+    dias = [
+        ('SEG', 'Segunda'),
+        ('TER', 'Terça'), 
+        ('QUA', 'Quarta'),
+        ('QUI', 'Quinta'), 
+        ('SEX', 'Sexta'),
+    ]
+
+    aulas_por_dia = {sigla: {} for sigla, nome in dias}
+    limites_horarios = []
+
+    for turma in turmas_lista:
+        ocorrencias = (turma.dias_horarios or '').split(';')
+
+        for ocorrencia in ocorrencias:
+            partes = ocorrencia.strip().split()
+
+            if len(partes) != 2:
+                continue
+
+            dia, intervalo = partes
+
+            if dia not in aulas_por_dia:
+                continue
+
+            try:
+                inicio, fim = map(int, intervalo.split('-'))
+            except ValueError:
+                continue
+
+            if fim <= inicio:
+                continue
+            limites_horarios.extend([inicio, fim])
+
+            aulas_por_dia[dia][inicio] = {
+                'turma': turma,
+                'rowspan': fim - inicio,
+                'vazia': False,
+            }
+
+            for hora in range(inicio + 1, fim):
+                aulas_por_dia[dia][hora] = None
+
+    grade_linhas = []
+
+    if limites_horarios:
+        primeira_hora = min(limites_horarios)
+        ultima_hora = max(limites_horarios)
+
+        for hora in range(primeira_hora, ultima_hora):
+            celulas = []
+
+            for sigla, nome in dias:
+                celula = aulas_por_dia[sigla].get(
+                    hora,
+                    {'vazia': True}
+                )
+                celulas.append(celula)
+
+            grade_linhas.append({
+                'horario': f'{hora:02d}-{hora + 1:02d}',
+                'celulas': celulas,
+            })
+
     return render(request, 'resumo_da_grade.html', {
         'form': form,
         'turmas': turmas,
-        'total_creditos': total_creditos
+        'total_creditos': total_creditos,
+        'dias': dias,
+        'grade_linhas': grade_linhas,
     })
 
 @login_required
