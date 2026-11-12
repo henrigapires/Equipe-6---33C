@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="conteudo">
+<div class="pagina-detalhes">
   <div>
     <h1>Eletivas sugeridas</h1>
     <p class="subtitulo">Com base no seu perfil e na sua grade atual, selecionamos disciplinas que podem te interessar.</p>
@@ -40,7 +40,9 @@
       <p><span>Sala</span> <span>{{ item.turma.sala }}</span></p>
       <p><span>Vagas disponíveis</span> <span>{{ item.turma.vagas }}</span></p>
     </div>
-    <a href="#" class="botao-borda">Ver disciplina →</a>
+    <a href="{% url 'detalhes_eletiva' item.turma.disciplina.codigo %}" class="botao-borda">
+      Ver disciplina →
+    </a>
   </div>
   {% empty %}
   <p>Nenhuma eletiva encontrada.</p>

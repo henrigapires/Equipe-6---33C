@@ -1,0 +1,56 @@
+/* PÁGINA DE DETALHES DA DISCIPLINA */
+
+.pagina-detalhes {
+    width: 100%;
+    max-width: 1400px;
+    box-sizing: border-box;
+    margin: 0 auto;
+    padding: 32px 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+}
+
+.pagina-detalhes h1 {
+    color: var(--cor-terracota);
+    margin: 0;
+}
+
+.pagina-detalhes .caixa {
+    width: 100%;
+    max-width: none;
+    flex-grow: 0;
+    box-sizing: border-box;
+    padding: 32px;
+}
+
+.pagina-detalhes .caixa h2 {
+    font-family: var(--fonte-interface);
+    color: var(--cor-tinta);
+    margin-top: 20px;
+}
+
+.pagina-detalhes .caixa h3 {
+    margin-top: 24px;
+    margin-bottom: 12px;
+}
+
+.pagina-detalhes .caixa p {
+    line-height: 1.6;
+}
+
+.pagina-detalhes .botao-borda {
+    align-self: flex-start;
+    min-width: 180px;
+}
+
+@media (max-width: 768px) {
+    .pagina-detalhes {
+        padding: 24px 16px;
+    }
+
+    .pagina-detalhes .caixa {
+        padding: 20px;
+    }
+}
