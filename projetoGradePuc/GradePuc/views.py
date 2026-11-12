@@ -19,6 +19,58 @@ from .historico import (
 from .ligacao import confirmar_curso, deduzir_curriculos
 from .models import Curriculo
 from .ocr import MENSAGEM_SEM_OCR, OcrIndisponivel, eh_imagem, ler_espelho_por_ocr
+from urllib.request import urlopen, Request
+from urllib.error import URLError, HTTPError
+from html.parser import HTMLParser
+
+class ExtratorEmenta(HTMLParser):
+
+    def __init__(self):
+        super().__init__()
+        self.dados = {}
+        self.campos = {
+            "hCodigo": "codigo",
+            "hTitulo": "nome",
+            "hCreditos": "creditos",
+            "pEmenta": "ementa",
+            "bibliografia": "bibliografia",
+            "bibliografiaComplementar": "bibliografia_complementar",
+            "prerequisito": "pre_requisitos",
+            "corequisito": "co_requisitos",
+            "pUltimaAtualizacao": "atualizacao",
+        }
+        self.campo_atual = None
+        self.tag_atual = None
+        self.profundidade = 0
+        self.texto_atual = []
+
+    def handle_starttag(self, tag, attrs):
+        atributos = dict(attrs)
+        identificador = atributos.get("id", "")
+
+        if self.campo_atual is None and identificador in self.campos:
+            self.campo_atual = self.campos[identificador]
+            self.tag_atual = tag
+            self.profundidade = 1
+
+        elif self.campo_atual is not None:
+            self.profundidade += 1
+
+    def handle_data(self, dado):
+        if self.campo_atual and dado.strip():
+            self.texto_atual.append(dado.strip())
+
+    def handle_endtag(self, tag):
+        if self.campo_atual is None:
+            return
+
+        self.profundidade -= 1
+
+        if self.profundidade == 0:
+            self.dados[self.campo_atual] = " ".join(self.texto_atual)
+            self.campo_atual = None
+            self.tag_atual = None
+            self.texto_atual = []
 
 def obter_aluno(request):
     aluno, criado = Aluno.objects.get_or_create(
@@ -412,6 +464,51 @@ def eletiva(request):
         'busca': busca,
         'filtro': filtro,
         'filtros': FILTROS_ELETIVAS,
+    })
+
+@login_required
+def detalhes_eletiva(request, codigo):
+
+    codigo = codigo.upper()
+
+    # Verifica se o código é válido
+    if not codigo.isalnum():
+        return render(request, "detalhes_eletiva.html", {
+            "erro": "Código de disciplina inválido."
+        })
+
+    # Monta o endereço da página oficial da PUC
+    url = f"https://www.puc-rio.br/ferramentas/ementas/ementa.aspx?cd={codigo}"
+
+    try:
+        requisicao = Request(
+            url,
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+
+        resposta = urlopen(requisicao, timeout=15)
+
+        html = resposta.read().decode("cp1252", errors="replace")
+
+    except (HTTPError, URLError, TimeoutError):
+        return render(request, "detalhes_eletiva.html", {
+            "erro": "Não foi possível acessar a página de ementas da PUC."
+        })
+
+    # Extrai as informações da disciplina
+    extrator = ExtratorEmenta()
+    extrator.feed(html)
+
+    dados = extrator.dados
+
+    # Verifica se a PUC encontrou a disciplina
+    if not dados.get("codigo"):
+        return render(request, "detalhes_eletiva.html", {
+            "erro": "Não encontramos a ementa dessa disciplina na PUC."
+        })
+
+    return render(request, "detalhes_eletiva.html", {
+        "disciplina": dados
     })
 
 @login_required

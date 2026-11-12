@@ -1,0 +1,62 @@
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Detalhes da disciplina{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'eletivas.css' %}">
+<link rel="stylesheet" href="{% static 'detalhes_eletiva.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="pagina-detalhes">
+    <h1>Detalhes da disciplina</h1>
+
+    {% if erro %}
+        <div class="aviso">
+            <p>{{ erro }}</p>
+        </div>
+
+    {% else %}
+        <div class="caixa">
+            <span class="etiqueta">Disciplina</span>
+
+            <h2>{{ disciplina.nome }}</h2>
+
+            <p class="codigo">{{ disciplina.codigo }}</p>
+
+            <div class="info">
+                <p>
+                    <span>Créditos</span>
+                    <span>{{ disciplina.creditos }}</span>
+                </p>
+            </div>
+
+            <h3>Ementa</h3>
+            <p>{{ disciplina.ementa }}</p>
+
+            <h3>Bibliografia</h3>
+            <p>{{ disciplina.bibliografia }}</p>
+
+            <h3>Bibliografia complementar</h3>
+            <p>{{ disciplina.bibliografia_complementar }}</p>
+
+            <h3>Pré-requisitos</h3>
+            <p>{{ disciplina.pre_requisitos }}</p>
+
+            <h3>Co-requisitos</h3>
+            <p>{{ disciplina.co_requisitos }}</p>
+
+            <h3>Última atualização</h3>
+            <p>{{ disciplina.atualizacao }}</p>
+        </div>
+    {% endif %}
+
+    <a href="{% url 'eletivas' %}" class="botao-borda">
+        ← Voltar às eletivas
+    </a>
+</div>
+
+{% endblock %}
