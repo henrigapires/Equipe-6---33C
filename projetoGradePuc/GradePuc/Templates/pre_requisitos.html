@@ -125,7 +125,10 @@
                 const resposta = await fetch(apiUrl.replace('/0/', `/${cartao.dataset.disciplinaId}/`));
                 if (!resposta.ok) throw new Error('Não foi possível carregar os detalhes.');
                 const disciplina = await resposta.json();
-                const requisitos = disciplina.pre_requisitos.length
+                // Das ementas da PUC: alternativas ligadas por "ou"; dentro de cada uma, "e".
+                const requisitos = disciplina.alternativas && disciplina.alternativas.length
+                    ? disciplina.alternativas.map((alternativa) => alternativa.map((item) => item.codigo).join(' e ')).join(' ou ')
+                    : disciplina.pre_requisitos.length
                     ? disciplina.pre_requisitos.map((item) => `${item.codigo} — ${item.nome}`).join(', ')
                     : 'Nenhum';
                 detalhe.textContent = `Pré-requisitos de ${disciplina.codigo}: ${requisitos}.`;

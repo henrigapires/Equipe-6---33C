@@ -13,7 +13,7 @@ from .eletivas import horarios_da_turma, sugerir_eletivas, sugerir_para_grades, 
 from .grupos import eletivas_do_curriculo, interpretar_ementa_do_grupo
 from .models import (
 	Curriculo, Disciplina, DisciplinaCurriculo, DisciplinaDoGrupo, HistoricoDisciplina,
-	LigacaoHabilitacao, Professor, RotinaPreferencias, Turma,
+	LigacaoHabilitacao, Professor, Requisito, RotinaPreferencias, Turma,
 )
 from .tests import criar_preferencias_completas
 from .tests_espelho import criar_aluno
@@ -95,6 +95,9 @@ class EletivasTestCase(TestCase):
 		DisciplinaCurriculo.objects.all().delete()
 		Curriculo.objects.all().delete()
 		DisciplinaDoGrupo.objects.all().delete()
+		# Os requisitos de verdade (migration 0011) também saem: códigos daqui, como ENG9500,
+		# existem na PUC e têm pré-requisito. Cada teste cria os requisitos de que precisa.
+		Requisito.objects.all().delete()
 
 	def setUp(self):
 		self.curriculo = Curriculo.objects.create(
@@ -341,3 +344,38 @@ class TelaDeEletivasTests(EletivasTestCase):
 		criar_preferencias_completas(self.aluno)
 		self.client.force_login(self.aluno.usuario)
 		self.assertContains(self.client.get('/eletivas/'), 'Nenhuma eletiva encontrada.')
+
+
+class EletivasComRequisitosDasEmentasTests(EletivasTestCase):
+	"""Mesma regra do gerador (requisitos.py): pré-requisito das ementas e co-requisito
+	cumprido por já ter cursado ou pela própria grade."""
+
+	def requisito(self, disciplina, tipo, *alternativas):
+		Requisito.objects.filter(disciplina=disciplina, tipo=tipo).delete()
+		for numero, codigos in enumerate(alternativas):
+			for codigo in codigos:
+				Requisito.objects.create(disciplina=disciplina, tipo=tipo, alternativa=numero, codigo=codigo)
+
+	def test_pre_requisito_nao_cumprido_nunca_e_sugerido(self):
+		obrigatoria = self.criar_turma('ENG9001', 'SEG 07-09')
+		self.criar_turma('FIL9001', 'TER 07-09')
+		self.requisito('FIL9001', 'pre', ['ABC9000'], ['ABC8000'])   # outro prefixo: não ocupa vaga de FIL0300
+		grade = self.grade(obrigatoria)
+		self.assertEqual(sugerir_eletivas(self.aluno, self.preferencias(), grade), [])
+		HistoricoDisciplina.objects.create(aluno=self.aluno, periodo='20251', codigo='ABC8000', nome='X', situacao='AP')
+		self.assertEqual(self.codigos(sugerir_eletivas(self.aluno, self.preferencias(), grade)), ['FIL9001'])
+
+	def test_co_requisito_cumprido_pela_propria_grade(self):
+		sem_o_par = self.criar_turma('ENG9001', 'SEG 07-09')
+		self.criar_turma('FIL9001', 'TER 07-09')
+		self.requisito('FIL9001', 'co', ['ENG9001'])
+		self.assertEqual(self.codigos(sugerir_eletivas(self.aluno, self.preferencias(), self.grade(sem_o_par))), ['FIL9001'])
+		outra = self.criar_turma('MAT9161', 'QUA 07-09')
+		self.assertEqual(sugerir_eletivas(self.aluno, self.preferencias(), self.grade(outra)), [])
+
+	def test_co_requisito_cumprido_por_ja_ter_cursado(self):
+		grade = self.grade(self.criar_turma('MAT9161', 'QUA 07-09'))
+		self.criar_turma('FIL9001', 'TER 07-09')
+		self.requisito('FIL9001', 'co', ['ENG9001'])
+		HistoricoDisciplina.objects.create(aluno=self.aluno, periodo='20251', codigo='ENG9001', nome='X', situacao='AP')
+		self.assertEqual(self.codigos(sugerir_eletivas(self.aluno, self.preferencias(), grade)), ['FIL9001'])

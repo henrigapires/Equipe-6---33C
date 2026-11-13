@@ -4,6 +4,10 @@ from collections import defaultdict
 
 from .models import Turma
 from .historico import curriculo_do_aluno
+from .requisitos import (
+    TabelaDeRequisitos, classe_de, classes_de_equivalencia, co_requisitos_cumpridos, codigos_feitos,
+    pre_requisitos_cumpridos,
+)
 
 
 CARGAS = {
@@ -90,6 +94,20 @@ def pontuar_grade(turmas, preferencias):
     return pontos
 
 
+def sem_co_requisito_faltando(escolhidas, feitos, tabela):
+    """Tira da grade as disciplinas cujo co-requisito não está feito nem na própria grade
+    (repete porque tirar uma pode deixar outra sem o co-requisito dela)."""
+    while True:
+        codigos = {turma.disciplina.codigo for turma, _ in escolhidas}
+        restantes = [
+            (turma, horarios) for turma, horarios in escolhidas
+            if co_requisitos_cumpridos(turma.disciplina.codigo, feitos, codigos, tabela)
+        ]
+        if len(restantes) == len(escolhidas):
+            return escolhidas
+        escolhidas = restantes
+
+
 def gerar_grades(aluno, preferencias, limite=4):
     """Gera até quatro grades sem conflitos conhecidos."""
     cursadas = set(
@@ -102,6 +120,12 @@ def gerar_grades(aluno, preferencias, limite=4):
     if curriculo is None:
         return []
 
+    # Pré/co-requisitos das ementas da PUC (requisitos.py) e o que conta como feito,
+    # com as equivalências (quem fez MAT4181 não recebe MAT1161 nem MAT4161).
+    classes = classes_de_equivalencia()
+    feitos = codigos_feitos(aluno, classes)
+    tabela = TabelaDeRequisitos()
+
     codigos_curriculo = set(
         curriculo.itens
         .filter(eh_grupo=False)
@@ -111,12 +135,12 @@ def gerar_grades(aluno, preferencias, limite=4):
     turmas = (
         Turma.objects
         .select_related("disciplina", "professor")
-        .prefetch_related("disciplina__pre_requisitos")
         .filter(
     vagas__gt=0,
     disciplina__codigo__in=codigos_curriculo
 )
         .exclude(disciplina_id__in=cursadas)
+        .exclude(disciplina__codigo__in=feitos)
         .order_by("disciplina__codigo", "codigo_turma")
     )
     if preferencias.modalidade == 'online':
@@ -125,10 +149,7 @@ def gerar_grades(aluno, preferencias, limite=4):
         turmas = turmas.exclude(sala__icontains='VIRTUAL')
 
     for turma in turmas:
-        requisitos = {
-            d.id for d in turma.disciplina.pre_requisitos.all()
-        }
-        if not requisitos.issubset(cursadas):
+        if not pre_requisitos_cumpridos(turma.disciplina.codigo, feitos, tabela):
             continue
 
         horarios = interpretar_horarios(turma.dias_horarios)
@@ -152,6 +173,13 @@ def gerar_grades(aluno, preferencias, limite=4):
 
         candidatos[turma.disciplina_id].append((turma, horarios))
 
+    # Co-requisito: precisa estar feito ou poder entrar na mesma grade.
+    codigos_candidatos = {grupo[0][0].disciplina.codigo for grupo in candidatos.values()}
+    candidatos = {
+        disciplina: grupo for disciplina, grupo in candidatos.items()
+        if co_requisitos_cumpridos(grupo[0][0].disciplina.codigo, feitos, codigos_candidatos, tabela)
+    }
+
     grupos = sorted(
         candidatos.values(),
         key=lambda grupo: len(grupo)
@@ -169,6 +197,11 @@ def gerar_grades(aluno, preferencias, limite=4):
         ordem = grupos[deslocamento:] + grupos[:deslocamento]
 
         for grupo in ordem:
+            # nunca duas disciplinas da mesma classe de equivalência (nem o mesmo código duas vezes)
+            classes_na_grade = {classe_de(turma.disciplina.codigo, classes) for turma, _ in escolhidas}
+            if classe_de(grupo[0][0].disciplina.codigo, classes) in classes_na_grade:
+                continue
+
             melhor = None
             melhor_pontuacao = float("-inf")
 
@@ -190,6 +223,8 @@ def gerar_grades(aluno, preferencias, limite=4):
 
             if len(escolhidas) >= quantidade:
                 break
+
+        escolhidas = sem_co_requisito_faltando(escolhidas, feitos, tabela)
 
         if len(escolhidas) != quantidade:
             continue

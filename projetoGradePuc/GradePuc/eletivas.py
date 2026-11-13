@@ -9,6 +9,10 @@ from .gerador_grades import interpretar_horarios, pontuar_grade, tem_conflito
 from .grupos import eletivas_do_curriculo
 from .historico import curriculo_do_aluno, ocupacao_das_vagas
 from .models import Turma
+from .requisitos import (
+    TabelaDeRequisitos, classe_de, classes_de_equivalencia, co_requisitos_cumpridos, codigos_feitos,
+    pre_requisitos_cumpridos,
+)
 
 # Teto de créditos de cada opção de carga do questionário
 # (Leve: menos de 20; Média: 20 a 25; Pesada: mais de 25).
@@ -85,13 +89,16 @@ def turmas_candidatas(aluno, preferencias):
 
     eletivas = eletivas_do_curriculo(curriculo, grupos=periodo_do_grupo)
     cursadas = set(aluno.disciplinas_cursadas.values_list("id", flat=True))
+    # mesma regra do gerador de grades (requisitos.py), com as equivalências
+    feitos = codigos_feitos(aluno)
+    tabela = TabelaDeRequisitos()
 
     turmas = (
         Turma.objects
         .select_related("disciplina", "professor")
-        .prefetch_related("disciplina__pre_requisitos")
         .filter(disciplina__in=list(eletivas), vagas__gt=0)
         .exclude(disciplina_id__in=cursadas)
+        .exclude(disciplina__codigo__in=feitos)
         .order_by("disciplina__codigo", "codigo_turma", "-vagas")
     )
     if preferencias.modalidade == "online":
@@ -109,10 +116,7 @@ def turmas_candidatas(aluno, preferencias):
             continue
         vistas.append(chave)
 
-        requisitos = set()
-        for requisito in turma.disciplina.pre_requisitos.all():
-            requisitos.add(requisito.id)
-        if not requisitos.issubset(cursadas):
+        if not pre_requisitos_cumpridos(turma.disciplina.codigo, feitos, tabela):
             continue
 
         horarios = horarios_da_turma(turma)
@@ -133,6 +137,8 @@ def turmas_candidatas(aluno, preferencias):
             "horarios": horarios,
             "grupos": nomes,
             "periodo": periodo,
+            "feitos": feitos,
+            "tabela": tabela,
         })
     return candidatas
 
@@ -173,10 +179,20 @@ def sugerir_eletivas(aluno, preferencias, grade, candidatas=None):
     limite = LIMITE_DE_CREDITOS.get(preferencias.carga_disciplinas, LIMITE_DE_CREDITOS["media"])
     pontos_da_grade = pontuar_grade(turmas_da_grade, preferencias)
 
+    # co-requisito: vale o que o aluno já fez ou o que está na própria grade; e nunca duas
+    # disciplinas da mesma classe de equivalência na grade
+    classes = classes_de_equivalencia()
+    codigos_da_grade = {turma.disciplina.codigo for turma in grade["turmas"]}
+    classes_da_grade = {classe_de(codigo, classes) for codigo in codigos_da_grade}
+
     sugestoes = []
     for candidata in candidatas:
         turma = candidata["turma"]
         if turma.disciplina_id in disciplinas_da_grade:
+            continue
+        if classe_de(turma.disciplina.codigo, classes) in classes_da_grade:
+            continue
+        if not co_requisitos_cumpridos(turma.disciplina.codigo, candidata["feitos"], codigos_da_grade, candidata["tabela"]):
             continue
         if creditos + turma.disciplina.creditos > limite:
             continue
