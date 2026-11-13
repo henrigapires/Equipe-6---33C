@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Professor, Disciplina, Turma, Aluno, RotinaPreferencias, Grade, Pergunta,
-    HistoricoDisciplina, Curriculo, DisciplinaCurriculo, LigacaoHabilitacao,
+    HistoricoDisciplina, Curriculo, DisciplinaCurriculo, LigacaoHabilitacao, DisciplinaDoGrupo,
 )
 
 admin.site.register(Professor)
@@ -49,6 +49,12 @@ class CurriculoAdmin(admin.ModelAdmin):
     list_filter = ('curso_nome', 'ano')
     search_fields = ('curso_nome', 'enfase')
     inlines = [DisciplinaCurriculoInline]
+
+
+@admin.register(DisciplinaDoGrupo)
+class DisciplinaDoGrupoAdmin(admin.ModelAdmin):
+    list_display = ('grupo', 'codigo', 'nome')
+    search_fields = ('grupo', 'codigo', 'nome')
 
 
 class SemLigacaoFilter(admin.SimpleListFilter):

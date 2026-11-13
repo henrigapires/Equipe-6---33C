@@ -155,6 +155,23 @@ class DisciplinaCurriculo(models.Model):
         return f"{self.codigo} - {self.nome} ({periodo})"
 
 
+class DisciplinaDoGrupo(models.Model):
+    """Uma disciplina que conta para um grupo de optativas do currículo (ENG0561 -> ENG4500).
+
+    Lida da ementa do grupo no site da PUC. As turmas e horários continuam em Turma:
+    a ligação é pelo código da disciplina."""
+    grupo = models.CharField(max_length=20)
+    codigo = models.CharField(max_length=20)
+    nome = models.CharField(max_length=200)
+
+    class Meta:
+        ordering = ['grupo', 'codigo']
+        unique_together = ('grupo', 'codigo')
+
+    def __str__(self):
+        return f"{self.grupo} -> {self.codigo} - {self.nome}"
+
+
 class LigacaoHabilitacao(models.Model):
     """Liga as siglas do SAU (curso/habilitação/ênfase) a um currículo do site."""
     ORIGENS = [
