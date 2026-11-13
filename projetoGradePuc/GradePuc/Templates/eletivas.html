@@ -44,7 +44,7 @@
       <p><span>Professor</span> <span>{{ item.turma.professor.nome }}</span></p>
       <p><span>Sala</span> <span>{{ item.turma.sala }}</span></p>
       <p><span>Vagas disponíveis</span> <span>{{ item.turma.vagas }}</span></p>
-      <p><span>Conta como</span> <span>{{ item.grupos }}</span></p>
+      <p><span>Conta como</span> <span>{{ item.grupos }}{% if item.rotulo %} · {{ item.rotulo }}{% endif %}</span></p>
     </div>
     <a href="{% url 'detalhes_eletiva' item.turma.disciplina.codigo %}" class="botao-borda">
       Ver disciplina →

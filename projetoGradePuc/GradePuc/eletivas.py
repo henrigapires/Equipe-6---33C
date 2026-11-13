@@ -26,6 +26,12 @@ LIMITE_DE_CREDITOS = {
 # Período usado para grupos de "período indeterminado": ficam depois dos outros.
 PERIODO_INDETERMINADO = 99
 
+# Faixas da ordem das sugestões (vêm antes dos pontos do questionário).
+FAIXA_DO_PERIODO = 0        # grupo no período de referência da grade (o "nativo")
+FAIXA_ATRASADA = 1          # grupo de período até o atual: vaga que já devia estar preenchida
+FAIXA_A_FRENTE = 2          # grupo de período mais à frente
+FAIXA_SEM_PERIODO = 3       # grupo de período indeterminado
+
 # Só a hora, sem dia nem sala: "13-16".
 SO_HORA = re.compile(r"^\d{1,2}-\d{1,2}$")
 
@@ -73,7 +79,7 @@ def turmas_candidatas(aluno, preferencias):
     Entram só as disciplinas dos grupos de optativa que o aluno ainda tem para preencher,
     que ele não cursou e cujos pré-requisitos já cumpriu, em turmas com vaga, com horário
     conhecido, na modalidade e no turno do questionário.
-    Cada candidata é um dicionário {turma, horarios, grupos, periodo}."""
+    Cada candidata é um dicionário {turma, horarios, grupos, periodo, periodos}."""
     curriculo = curriculo_do_aluno(aluno)
     if curriculo is None:
         return []
@@ -128,8 +134,10 @@ def turmas_candidatas(aluno, preferencias):
         grupos = eletivas[turma.disciplina]
         periodo = PERIODO_INDETERMINADO
         nomes = []
+        periodos = set()        # de todos os grupos a que ela serve
         for grupo in grupos:
             periodo = min(periodo, periodo_do_grupo[grupo])
+            periodos.add(periodo_do_grupo[grupo])
             nomes.append(nome_do_grupo[grupo])
 
         candidatas.append({
@@ -137,15 +145,43 @@ def turmas_candidatas(aluno, preferencias):
             "horarios": horarios,
             "grupos": nomes,
             "periodo": periodo,
+            "periodos": periodos,
             "feitos": feitos,
             "tabela": tabela,
         })
     return candidatas
 
 
+def faixa_da_optativa(periodos, referencia, atual):
+    """Do período nativo (algum grupo no período de referência) > atrasada (grupo de período
+    até o atual) > à frente > período indeterminado. `referencia` e `atual` vêm da grade
+    (periodos_do_aluno, no gerador); sem período atual, "atrasada" é antes da referência."""
+    conhecidos = {p for p in periodos if p != PERIODO_INDETERMINADO}
+    if referencia is not None and referencia in conhecidos:
+        return FAIXA_DO_PERIODO
+    if not conhecidos:
+        return FAIXA_SEM_PERIODO
+    limite = atual if atual is not None else (referencia - 1 if referencia is not None else None)
+    if limite is not None and min(conhecidos) <= limite:
+        return FAIXA_ATRASADA
+    return FAIXA_A_FRENTE
+
+
+def rotulo_da_faixa(faixa, referencia):
+    if faixa == FAIXA_DO_PERIODO:
+        return f"Optativa do {referencia}º período"
+    if faixa == FAIXA_ATRASADA:
+        return "Optativa de período anterior"
+    if faixa == FAIXA_A_FRENTE:
+        return "Optativa de período à frente"
+    return ""
+
+
 def ordem_da_sugestao(sugestao):
-    """Mais pontos primeiro; empate: grupo de período mais cedo no currículo, depois o código."""
+    """Primeiro a faixa (as do período nativo na frente); dentro dela, mais pontos primeiro;
+    empate: grupo de período mais cedo no currículo, depois o código."""
     return (
+        sugestao["faixa"],
         -sugestao["pontos"],
         sugestao["periodo"],
         sugestao["turma"].disciplina.codigo,
@@ -154,8 +190,9 @@ def ordem_da_sugestao(sugestao):
 
 
 def sugerir_eletivas(aluno, preferencias, grade, candidatas=None):
-    """Turmas de eletivas que cabem em uma grade sugerida, da que mais combina com o
-    questionário para a que menos combina.
+    """Turmas de eletivas que cabem em uma grade sugerida: primeiro as optativas do período
+    de referência da grade, depois as atrasadas, as de períodos à frente e as sem período;
+    dentro de cada faixa, da que mais combina com o questionário para a que menos combina.
 
     `grade` é um dos resultados de gerar_grades ({"turmas": [...], "pontuacao": ...}).
     Uma eletiva cabe quando não bate horário com nenhuma aula da grade, não é disciplina
@@ -185,6 +222,10 @@ def sugerir_eletivas(aluno, preferencias, grade, candidatas=None):
     codigos_da_grade = {turma.disciplina.codigo for turma in grade["turmas"]}
     classes_da_grade = {classe_de(codigo, classes) for codigo in codigos_da_grade}
 
+    # período de referência e atual: os da própria grade (gerador_grades.periodos_do_aluno)
+    referencia = grade.get("periodo_referencia")
+    atual = grade.get("periodo_atual")
+
     sugestoes = []
     for candidata in candidatas:
         turma = candidata["turma"]
@@ -200,10 +241,13 @@ def sugerir_eletivas(aluno, preferencias, grade, candidatas=None):
             continue
 
         com_a_eletiva = turmas_da_grade + [(turma, candidata["horarios"])]
+        faixa = faixa_da_optativa(candidata.get("periodos", {candidata["periodo"]}), referencia, atual)
         sugestoes.append({
             "turma": turma,
             "grupos": candidata["grupos"],
             "periodo": candidata["periodo"],
+            "faixa": faixa,
+            "rotulo": rotulo_da_faixa(faixa, referencia),
             "pontos": pontuar_grade(com_a_eletiva, preferencias) - pontos_da_grade,
         })
 

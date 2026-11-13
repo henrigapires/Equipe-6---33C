@@ -385,3 +385,92 @@ class EletivasComRequisitosDasEmentasTests(EletivasTestCase):
 		self.requisito('FIL9001', 'co', ['ENG9001'])
 		HistoricoDisciplina.objects.create(aluno=self.aluno, periodo='20251', codigo='ENG9001', nome='X', situacao='AP')
 		self.assertEqual(self.codigos(sugerir_eletivas(self.aluno, self.preferencias(), grade)), ['FIL9001'])
+
+
+class OptativasDoPeriodoPrimeiroTests(EletivasTestCase):
+	"""Faixas da ordem: do período de referência da grade > atrasada > à frente > sem período.
+
+	Além dos grupos do EletivasTestCase (ENG0561 e CRE0712 no 3º, FIL0300 no 6º):
+	ADM0200 (2º período): ADM9201 e DUA9001
+	ENG0561 (3º período): também DUA9001, que serve aos dois grupos
+	A grade é do aluno no 2º período (referência: 3º)."""
+
+	def setUp(self):
+		super().setUp()
+		DisciplinaCurriculo.objects.create(curriculo=self.curriculo, periodo=2, codigo='ADM0200',
+		                                   nome='Item ADM0200', eh_grupo=True, ordem=10)
+		for grupo, codigo in (('ADM0200', 'ADM9201'), ('ADM0200', 'DUA9001'), ('ENG0561', 'DUA9001')):
+			DisciplinaDoGrupo.objects.create(grupo=grupo, codigo=codigo, nome='Disciplina ' + codigo)
+		self.obrigatoria = self.criar_turma('ENG9001', 'SEG 07-09')
+
+	def grade_do_periodo(self, *turmas, referencia=3, atual=2):
+		return {'turmas': list(turmas), 'pontuacao': 0, 'periodo_referencia': referencia, 'periodo_atual': atual}
+
+	def sugerir(self, distribuicao='dia_livre'):
+		return sugerir_eletivas(self.aluno, self.preferencias(distribuicao=distribuicao),
+		                        self.grade_do_periodo(self.obrigatoria))
+
+	def test_a_do_periodo_nativo_vem_primeiro_mesmo_com_menos_pontos(self):
+		self.criar_turma('ENG9500', 'TER 07-09')     # 3º período, mas tira o dia livre de terça
+		self.criar_turma('FIL9002', 'SEG 09-11')     # 6º período, no dia que já tem aula
+		sugestoes = self.sugerir()
+		self.assertEqual(self.codigos(sugestoes), ['ENG9500', 'FIL9002'])
+		self.assertLess(sugestoes[0]['pontos'], sugestoes[1]['pontos'])
+		self.assertEqual([s['faixa'] for s in sugestoes], [0, 2])
+
+	def test_atrasada_fica_entre_a_nativa_e_as_de_periodos_a_frente(self):
+		self.criar_turma('FIL9002', 'SEG 09-11')     # à frente
+		self.criar_turma('ADM9201', 'SEG 11-13')     # 2º período: vaga que já devia estar preenchida
+		self.criar_turma('ENG9500', 'TER 07-09')     # nativa
+		sugestoes = self.sugerir()
+		self.assertEqual(self.codigos(sugestoes), ['ENG9500', 'ADM9201', 'FIL9002'])
+		self.assertEqual([s['faixa'] for s in sugestoes], [0, 1, 2])
+
+	def test_sem_periodo_atual_atrasada_e_antes_da_referencia(self):
+		self.criar_turma('ADM9201', 'SEG 11-13')
+		grade = self.grade_do_periodo(self.obrigatoria, referencia=3, atual=None)
+		sugestoes = sugerir_eletivas(self.aluno, self.preferencias(), grade)
+		self.assertEqual([(self.codigos([s])[0], s['faixa']) for s in sugestoes], [('ADM9201', 1)])
+
+	def test_disciplina_de_dois_grupos_conta_como_nativa(self):
+		self.criar_turma('ADM9201', 'SEG 11-13')     # só do 2º período
+		self.criar_turma('DUA9001', 'TER 07-09')     # 2º e 3º: conta como do 3º
+		sugestoes = self.sugerir()
+		self.assertEqual(self.codigos(sugestoes), ['DUA9001', 'ADM9201'])
+		self.assertEqual(sugestoes[0]['rotulo'], 'Optativa do 3º período')
+
+	def test_nativa_que_bate_horario_sai_e_a_proxima_sobe(self):
+		self.criar_turma('ENG9500', 'SEG 08-10')     # nativa, mas bate com a obrigatória
+		self.criar_turma('ADM9201', 'TER 07-09')
+		self.criar_turma('FIL9002', 'QUA 07-09')
+		sugestoes = self.sugerir(distribuicao='tanto_faz')
+		self.assertEqual(self.codigos(sugestoes), ['ADM9201', 'FIL9002'])
+
+	def test_rotulos(self):
+		self.criar_turma('ENG9500', 'TER 07-09')
+		self.criar_turma('ADM9201', 'QUA 07-09')
+		self.criar_turma('FIL9002', 'QUI 07-09')
+		rotulos = {self.codigos([s])[0]: s['rotulo'] for s in self.sugerir(distribuicao='tanto_faz')}
+		self.assertEqual(rotulos, {
+			'ENG9500': 'Optativa do 3º período',
+			'ADM9201': 'Optativa de período anterior',
+			'FIL9002': 'Optativa de período à frente',
+		})
+
+	def test_grade_sem_periodo_de_referencia_mantem_a_ordem_por_pontos(self):
+		self.criar_turma('ENG9500', 'TER 07-09')
+		self.criar_turma('FIL9002', 'SEG 09-11')
+		sugestoes = sugerir_eletivas(self.aluno, self.preferencias(distribuicao='dia_livre'), self.grade(self.obrigatoria))
+		self.assertEqual(self.codigos(sugestoes), ['FIL9002', 'ENG9500'])
+
+	def test_rotulo_aparece_na_tela(self):
+		# sem histórico, a referência é o 1º período: os grupos do 3º e do 6º estão à frente
+		RotinaPreferencias.objects.create(
+			aluno=self.aluno, turno='sem_preferencia', modalidade='hibrido',
+			distribuicao_aulas='tanto_faz', janelas='tanto_faz', carga_disciplinas='leve',
+		)
+		self.criar_turma('MAT9161', 'TER 07-09')
+		self.criar_turma('ENG9500', 'QUI 07-09')
+		self.client.force_login(self.aluno.usuario)
+		html = self.client.get('/eletivas/').content.decode()
+		self.assertIn('Item ENG0561 · Optativa de período à frente', html)

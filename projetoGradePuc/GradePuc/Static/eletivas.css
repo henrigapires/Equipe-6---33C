@@ -104,6 +104,16 @@ h1 {
   margin: var(--espaco-2) 0;
 }
 
+/* o nome do campo não quebra ("Conta como" com o rótulo do período ao lado) */
+.info p span:first-child {
+  white-space: nowrap;
+  margin-right: var(--espaco-2);
+}
+
+.info p span:last-child {
+  text-align: right;
+}
+
 .botao-borda {
   display: block;
   text-align: center;

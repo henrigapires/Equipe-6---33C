@@ -443,6 +443,7 @@ def eletiva(request):
                     'turma': turma,
                     'etiqueta': etiqueta,
                     'grupos': ', '.join(sugestao['grupos']),
+                    'rotulo': sugestao.get('rotulo', ''),
                 })
 
         lista_de_grades.append({
