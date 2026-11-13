@@ -19,6 +19,58 @@ from .historico import (
 from .ligacao import confirmar_curso, deduzir_curriculos
 from .models import Curriculo
 from .ocr import MENSAGEM_SEM_OCR, OcrIndisponivel, eh_imagem, ler_espelho_por_ocr
+from urllib.request import urlopen, Request
+from urllib.error import URLError, HTTPError
+from html.parser import HTMLParser
+
+class ExtratorEmenta(HTMLParser):
+
+    def __init__(self):
+        super().__init__()
+        self.dados = {}
+        self.campos = {
+            "hCodigo": "codigo",
+            "hTitulo": "nome",
+            "hCreditos": "creditos",
+            "pEmenta": "ementa",
+            "bibliografia": "bibliografia",
+            "bibliografiaComplementar": "bibliografia_complementar",
+            "prerequisito": "pre_requisitos",
+            "corequisito": "co_requisitos",
+            "pUltimaAtualizacao": "atualizacao",
+        }
+        self.campo_atual = None
+        self.tag_atual = None
+        self.profundidade = 0
+        self.texto_atual = []
+
+    def handle_starttag(self, tag, attrs):
+        atributos = dict(attrs)
+        identificador = atributos.get("id", "")
+
+        if self.campo_atual is None and identificador in self.campos:
+            self.campo_atual = self.campos[identificador]
+            self.tag_atual = tag
+            self.profundidade = 1
+
+        elif self.campo_atual is not None:
+            self.profundidade += 1
+
+    def handle_data(self, dado):
+        if self.campo_atual and dado.strip():
+            self.texto_atual.append(dado.strip())
+
+    def handle_endtag(self, tag):
+        if self.campo_atual is None:
+            return
+
+        self.profundidade -= 1
+
+        if self.profundidade == 0:
+            self.dados[self.campo_atual] = " ".join(self.texto_atual)
+            self.campo_atual = None
+            self.tag_atual = None
+            self.texto_atual = []
 
 def obter_aluno(request):
     aluno, criado = Aluno.objects.get_or_create(
@@ -154,9 +206,9 @@ OPCOES_JANELAS = [
 ]
 
 OPCOES_CARGA = [
-    {'valor': 'leve', 'nome': 'Leve', 'icone': '📗', 'descricao': '3 a 4 disciplinas'},
-    {'valor': 'media', 'nome': 'Média', 'icone': '📚', 'descricao': '5 a 6 disciplinas'},
-    {'valor': 'pesada', 'nome': 'Pesada', 'icone': '🏋️', 'descricao': '7 ou mais disciplinas'},
+    {'valor': 'leve', 'nome': 'Leve', 'icone': '📗', 'descricao': 'Menos de 20 créditos'},
+    {'valor': 'media', 'nome': 'Média', 'icone': '📚', 'descricao': '20 a 25 créditos'},
+    {'valor': 'pesada', 'nome': 'Pesada', 'icone': '🏋️', 'descricao': 'Mais de 25 créditos'},
 ]
 
 OPCOES_GRADE = [
@@ -272,7 +324,10 @@ def api_disciplina(request, disciplina_id):
 def resumo_da_grade(request):
     aluno = obter_aluno(request)
     grade = Grade.objects.filter(aluno=aluno).last()
-    turmas = grade.turmas.select_related('disciplina') if grade else []
+    turmas = (
+        grade.turmas.select_related('disciplina', 'professor') 
+        if grade else []
+    )
 
     form = BuscaDisciplinaForm(request.GET)
 
@@ -282,14 +337,85 @@ def resumo_da_grade(request):
         )
 
     cursadas = set(aluno.disciplinas_cursadas.all())
+    total_creditos = 0
 
-    for t in turmas:
+    turmas_lista = list(turmas)
+
+    for t in turmas_lista:
         pre = set(t.disciplina.pre_requisitos.all())
         t.pendente = not pre.issubset(cursadas)
+        total_creditos += t.disciplina.creditos or 0
+
+    dias = [
+        ('SEG', 'Segunda'),
+        ('TER', 'Terça'), 
+        ('QUA', 'Quarta'),
+        ('QUI', 'Quinta'), 
+        ('SEX', 'Sexta'),
+    ]
+
+    aulas_por_dia = {sigla: {} for sigla, nome in dias}
+    limites_horarios = []
+
+    for turma in turmas_lista:
+        ocorrencias = (turma.dias_horarios or '').split(';')
+
+        for ocorrencia in ocorrencias:
+            partes = ocorrencia.strip().split()
+
+            if len(partes) != 2:
+                continue
+
+            dia, intervalo = partes
+
+            if dia not in aulas_por_dia:
+                continue
+
+            try:
+                inicio, fim = map(int, intervalo.split('-'))
+            except ValueError:
+                continue
+
+            if fim <= inicio:
+                continue
+            limites_horarios.extend([inicio, fim])
+
+            aulas_por_dia[dia][inicio] = {
+                'turma': turma,
+                'rowspan': fim - inicio,
+                'vazia': False,
+            }
+
+            for hora in range(inicio + 1, fim):
+                aulas_por_dia[dia][hora] = None
+
+    grade_linhas = []
+
+    if limites_horarios:
+        primeira_hora = min(limites_horarios)
+        ultima_hora = max(limites_horarios)
+
+        for hora in range(primeira_hora, ultima_hora):
+            celulas = []
+
+            for sigla, nome in dias:
+                celula = aulas_por_dia[sigla].get(
+                    hora,
+                    {'vazia': True}
+                )
+                celulas.append(celula)
+
+            grade_linhas.append({
+                'horario': f'{hora:02d}-{hora + 1:02d}',
+                'celulas': celulas,
+            })
 
     return render(request, 'resumo_da_grade.html', {
         'form': form,
         'turmas': turmas,
+        'total_creditos': total_creditos,
+        'dias': dias,
+        'grade_linhas': grade_linhas,
     })
 
 @login_required
@@ -338,6 +464,51 @@ def eletiva(request):
         'busca': busca,
         'filtro': filtro,
         'filtros': FILTROS_ELETIVAS,
+    })
+
+@login_required
+def detalhes_eletiva(request, codigo):
+
+    codigo = codigo.upper()
+
+    # Verifica se o código é válido
+    if not codigo.isalnum():
+        return render(request, "detalhes_eletiva.html", {
+            "erro": "Código de disciplina inválido."
+        })
+
+    # Monta o endereço da página oficial da PUC
+    url = f"https://www.puc-rio.br/ferramentas/ementas/ementa.aspx?cd={codigo}"
+
+    try:
+        requisicao = Request(
+            url,
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+
+        resposta = urlopen(requisicao, timeout=15)
+
+        html = resposta.read().decode("cp1252", errors="replace")
+
+    except (HTTPError, URLError, TimeoutError):
+        return render(request, "detalhes_eletiva.html", {
+            "erro": "Não foi possível acessar a página de ementas da PUC."
+        })
+
+    # Extrai as informações da disciplina
+    extrator = ExtratorEmenta()
+    extrator.feed(html)
+
+    dados = extrator.dados
+
+    # Verifica se a PUC encontrou a disciplina
+    if not dados.get("codigo"):
+        return render(request, "detalhes_eletiva.html", {
+            "erro": "Não encontramos a ementa dessa disciplina na PUC."
+        })
+
+    return render(request, "detalhes_eletiva.html", {
+        "disciplina": dados
     })
 
 @login_required
