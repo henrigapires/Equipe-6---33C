@@ -69,6 +69,18 @@ python manage.py importar_requisitos --cache cache_ementas
   ementa e os que deram erro. Commite o `requisitos.json` para o time receber.
 - `python manage.py importar_requisitos --so-exportar` só regrava o arquivo com o que está no banco.
 
+Para conferir que nenhuma grade sugerida (nem eletiva) fura um pré/co-requisito, com as
+turmas reais do micro-horário:
+
+```
+python manage.py auditar_requisitos
+```
+
+Roda para cada aluno com espelho importado e para cada currículo com históricos inventados
+(desfeitos no fim, nada fica gravado) e termina com "N turmas verificadas, 0 violações" ou a
+lista do que faltou. O teste `tests_propriedade_requisitos` faz a mesma conferência para todos
+os currículos no banco de teste (é o teste mais demorado da suíte, uns 6 minutos).
+
 **Limitação conhecida (requisitos):** algumas disciplinas existem na PUC, mas a página de
 ementa vem sem texto ("Disciplina sem ementa cadastrada", como ENG4418): sem descrição, sem
 bibliografia e sem o quadro de requisitos. Para essas, não sabemos os pré/co-requisitos, e o
