@@ -3,6 +3,7 @@ import re
 from collections import defaultdict
 
 from .models import Turma
+from .historico import curriculo_do_aluno
 
 
 CARGAS = {
@@ -96,12 +97,25 @@ def gerar_grades(aluno, preferencias, limite=4):
     )
 
     candidatos = defaultdict(list)
+    curriculo = curriculo_do_aluno(aluno)
+
+    if curriculo is None:
+        return []
+
+    codigos_curriculo = set(
+        curriculo.itens
+        .filter(eh_grupo=False)
+        .values_list("codigo", flat=True)
+    )
 
     turmas = (
         Turma.objects
         .select_related("disciplina", "professor")
         .prefetch_related("disciplina__pre_requisitos")
-        .filter(vagas__gt=0)
+        .filter(
+    vagas__gt=0,
+    disciplina__codigo__in=codigos_curriculo
+)
         .exclude(disciplina_id__in=cursadas)
         .order_by("disciplina__codigo", "codigo_turma")
     )

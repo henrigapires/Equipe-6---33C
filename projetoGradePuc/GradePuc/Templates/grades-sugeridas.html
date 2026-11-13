@@ -17,7 +17,21 @@
 </div>
 
 <div class="grades">
-    {% for o in opcoes %}
+    {% if not opcoes %}
+        <div class="caixa">
+            <h3>Não foi possível gerar grades</h3>
+            <p>
+                Não encontramos turmas disponíveis que atendam às
+                preferências selecionadas no questionário.
+                Tente alterar o turno ou a modalidade para
+                encontrar outras opções de grade.
+            </p>
+            <a href="{% url 'questionario' %}" class="botao-borda">
+                Refazer questionário
+            </a>
+        </div>
+    {% else %}
+        {% for o in opcoes %}
         <div class="caixa">
             <div class="topo-caixa">
                 <div class="titulo-opcao">
@@ -56,6 +70,7 @@
                 <p><b>Por que sugerimos?</b> Esta combinação respeita seu turno e distribui bem as disciplinas durante a semana.</p>
             </div>
         </div>
-    {% endfor %}
+            {% endfor %}
+    {% endif %}
 </div>
 {% endblock %}
