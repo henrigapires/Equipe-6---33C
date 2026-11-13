@@ -98,3 +98,20 @@ Quem fez uma conta como tendo feito todas da classe, e uma grade nunca recebe du
 - `python manage.py sugerir_equivalencias --cache cache_ementas` gera
   `revisao/equivalencias_sugeridas.txt`, só para revisão: o site não lê esse arquivo.
   Para ativar uma classe, revise e copie para `EQUIVALENCIAS_CONFIRMADAS`.
+
+**Grades sugeridas (como são montadas):** partem da grade que a PUC recomenda (periodização
+do currículo do aluno), guiadas pelo histórico do espelho.
+
+- **Período atual** = o período do currículo da maioria das disciplinas em andamento (EA).
+  **Período de referência** = atual + 1 (sem nada em andamento: o menor período com
+  pendência). A tela mostra os dois.
+- Cada disciplina pendente que o aluno pode cursar (pré/co-requisitos, vagas, turno,
+  modalidade, horário) é **atrasada** (período ≤ atual), **do período** (= referência) ou
+  **adiantada** (> referência), e ganha uma importância: 10 / 6 / 3 + 4 por disciplina
+  pendente que depende dela. Gargalos (Cálculo, Física...) pesam mais; atraso não é
+  prioridade absoluta.
+- As quatro opções seguem estratégias diferentes: "Segue a grade da PUC", "Em dia +
+  recupera atrasada", "Só o período, outra combinação" e "Variação: adianta ..." (sem teto
+  de adiantadas). Quando uma não existe, entra uma variação com outras turmas. A escolha das
+  turmas é a de sempre (`pontuar_grade`, sem conflito). Sem disciplinas suficientes, vem
+  uma grade menor com aviso.
