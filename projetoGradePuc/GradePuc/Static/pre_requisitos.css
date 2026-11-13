@@ -528,6 +528,38 @@ svg.setas path {
     color: var(--cor-tinta);
 }
 
+/* detalhes de um resultado da busca: dentro do próprio bloco, abaixo da lista */
+.detalhes-busca {
+    margin-top: var(--espaco-4);
+    padding: var(--espaco-5);
+    background-color: var(--cor-superficie-suave);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-medio);
+    scroll-margin: var(--espaco-4);
+}
+
+.detalhes-busca[hidden] {
+    display: none;
+}
+
+.detalhes-busca:focus-visible {
+    outline: 3px solid var(--cor-terracota);
+    outline-offset: 3px;
+}
+
+.detalhes-busca-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--espaco-3);
+    margin-bottom: var(--espaco-3);
+}
+
+.detalhes-busca-topo h3 {
+    color: var(--cor-tinta);
+    font-size: 19px;
+}
+
 .botao-detalhes {
     padding: var(--espaco-1) var(--espaco-3);
     background-color: var(--cor-superficie);
@@ -603,6 +635,13 @@ svg.setas path {
 @media (max-width: 480px) {
     .conteudo {
         padding: var(--espaco-5) var(--espaco-4);
+    }
+
+    /* no celular o painel da busca ocupa a largura do bloco */
+    .detalhes-busca {
+        margin-left: 0;
+        margin-right: 0;
+        padding: var(--espaco-4) var(--espaco-3);
     }
 
     .titulo h1 {

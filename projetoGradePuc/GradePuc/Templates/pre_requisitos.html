@@ -156,6 +156,13 @@
                 <label class="busca-filtro"><input type="checkbox" id="busca-sem-pre"> Só sem pré-requisito</label>
             </div>
             <ul class="busca-resultados" aria-live="polite"></ul>
+            <div class="detalhes-busca" tabindex="-1" aria-label="Detalhes da disciplina buscada" hidden>
+                <div class="detalhes-busca-topo">
+                    <h3>Detalhes</h3>
+                    <button type="button" class="botao-detalhes fechar-detalhes">Fechar</button>
+                </div>
+                <div class="detalhes-disciplina" aria-live="polite"></div>
+            </div>
         </div>
 
         {% url 'resumo_da_grade' as url_minha_grade %}
@@ -169,7 +176,7 @@
 
 {% block extra_js %}
     <script>
-        const detalhe = document.querySelector('.detalhes-disciplina');
+        const detalhe = document.querySelector('.lateral .detalhes-disciplina');
         const busca = document.querySelector('.busca-disciplinas');
         const urlPorCodigo = (codigo) => busca.dataset.apiCodigo.replace('XXX0000', encodeURIComponent(codigo));
         const fluxo = document.querySelector('.fluxogramas:not(.sem-curriculo)');
@@ -187,12 +194,15 @@
             return alternativas.map((alt) => alt.map((item) => `${item.marca} ${item.codigo}`).join(' e ')).join('  ou  ');
         }
 
-        async function mostrarDetalhes(codigo) {
-            detalhe.replaceChildren(elemento('p', 'Carregando detalhes…'));
+        // destino: o painel lateral (cartões do fluxograma) ou o painel dentro da busca
+        async function mostrarDetalhes(codigo, destino = detalhe) {
+            destino.dataset.pedido = codigo;
+            destino.replaceChildren(elemento('p', 'Carregando detalhes…'));
             try {
                 const resposta = await fetch(urlPorCodigo(codigo));
                 if (!resposta.ok) throw new Error();
                 const d = await resposta.json();
+                if (destino.dataset.pedido !== codigo) return;     // já pediram outra
                 const partes = [elemento('h3', `${d.codigo} — ${d.nome || ''}`)];
                 const info = [d.status_legivel];
                 if (d.creditos) info.push(`${d.creditos} créditos`);
@@ -222,17 +232,17 @@
                 const paragrafo = elemento('p');
                 paragrafo.appendChild(link);
                 partes.push(paragrafo);
-                detalhe.replaceChildren(...partes);
+                destino.replaceChildren(...partes);
                 carregarEmenta(codigo, secaoEmenta);
             } catch (erro) {
-                detalhe.replaceChildren(elemento('p', 'Não foi possível carregar os detalhes. Tente novamente.'));
+                if (destino.dataset.pedido !== codigo) return;
+                destino.replaceChildren(elemento('p', 'Não foi possível carregar os detalhes. Tente novamente.'));
             }
         }
 
         // ---------- ementa no painel ----------
         const urlDaEmenta = (codigo) => busca.dataset.apiEmenta.replace('XXX0000', encodeURIComponent(codigo));
         const EMENTA_LONGA = 450;      // caracteres; acima disso o texto começa recolhido
-        let ementaPedida = null;
 
         function secaoRecolhivel(titulo, texto) {
             const caixa = elemento('details');
@@ -242,7 +252,7 @@
         }
 
         async function carregarEmenta(codigo, secao) {
-            ementaPedida = codigo;
+            secao.dataset.pedido = codigo;
             secao.replaceChildren(elemento('h4', 'Ementa'), elemento('p', 'Carregando ementa…'));
             let e = null;
             try {
@@ -251,7 +261,7 @@
             } catch (erro) {
                 e = { erro_de_rede: true };
             }
-            if (ementaPedida !== codigo || !secao.isConnected) return;   // já clicaram em outra
+            if (secao.dataset.pedido !== codigo || !secao.isConnected) return;   // já clicaram em outra
             const partes = [elemento('h4', 'Ementa')];
             if (e.erro_de_rede) {
                 partes.push(elemento('p', 'Não foi possível carregar a ementa agora.'));
@@ -385,7 +395,7 @@
                     item.appendChild(elemento('span', r.status_legivel, 'status'));
                     const botao = elemento('button', 'Detalhes', 'botao-detalhes');
                     botao.type = 'button';
-                    botao.addEventListener('click', () => { limpar(); mostrarDetalhes(r.codigo); });
+                    botao.addEventListener('click', () => abrirDetalhesDaBusca(r.codigo));
                     item.appendChild(botao);
                     return item;
                 }));
@@ -394,7 +404,27 @@
             }
         }
 
-        campo.addEventListener('input', () => { clearTimeout(espera); espera = setTimeout(buscar, 250); });
-        semPre.addEventListener('change', buscar);
+        // painel de detalhes dentro do bloco da busca (o lateral fica lá em cima, fora da tela)
+        const painelDaBusca = busca.querySelector('.detalhes-busca');
+        const detalheDaBusca = painelDaBusca.querySelector('.detalhes-disciplina');
+        const semMovimento = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+        function abrirDetalhesDaBusca(codigo) {
+            limpar();
+            painelDaBusca.hidden = false;
+            mostrarDetalhes(codigo, detalheDaBusca);
+            painelDaBusca.scrollIntoView({ behavior: semMovimento.matches ? 'auto' : 'smooth', block: 'nearest' });
+            painelDaBusca.focus({ preventScroll: true });
+        }
+
+        function fecharDetalhesDaBusca() {
+            painelDaBusca.hidden = true;
+            delete detalheDaBusca.dataset.pedido;
+            detalheDaBusca.replaceChildren();
+        }
+
+        painelDaBusca.querySelector('.fechar-detalhes').addEventListener('click', fecharDetalhesDaBusca);
+        campo.addEventListener('input', () => { fecharDetalhesDaBusca(); clearTimeout(espera); espera = setTimeout(buscar, 250); });
+        semPre.addEventListener('change', () => { fecharDetalhesDaBusca(); buscar(); });
     </script>
 {% endblock %}

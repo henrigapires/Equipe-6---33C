@@ -143,3 +143,14 @@ class ApiDaEmentaTests(TestCase):
         resposta = self.client.get("/pre-requisitos/")
         self.assertContains(resposta, 'data-api-ementa="/api/ementas/XXX0000/"')
         self.assertContains(resposta, "Ver página completa")
+
+    def test_busca_tem_painel_de_detalhes_proprio(self):
+        # "Detalhes" de um resultado da busca abre dentro do bloco da busca, não no lateral
+        resposta = self.client.get("/pre-requisitos/")
+        html = resposta.content.decode()
+        bloco = html[html.index('class="dica busca-disciplinas"'):html.index('Voltar para minha grade')]
+        self.assertIn('class="detalhes-busca" tabindex="-1"', bloco)
+        self.assertIn('class="botao-detalhes fechar-detalhes">Fechar</button>', bloco)
+        self.assertIn('class="detalhes-disciplina"', bloco)
+        self.assertLess(bloco.index('busca-resultados'), bloco.index('detalhes-busca'))
+        self.assertContains(resposta, "mostrarDetalhes(codigo, detalheDaBusca)")
