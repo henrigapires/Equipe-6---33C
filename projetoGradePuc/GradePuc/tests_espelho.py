@@ -267,12 +267,18 @@ class SalvarEspelhoTests(TestCase):
 		self.assertEqual(self.cursadas(), {'HIS9001'})
 
 
-class GradesRespeitamHistoricoTests(TestCase):
+class GradesRespeitamHistoricoTests(SemCurriculosCarregados, TestCase):
 	def test_nao_sugere_cursada_em_andamento_nem_equivalente(self):
 		aluno = criar_aluno('2222222')
 		professor = Professor.objects.create(nome='Professor Teste')
 		horarios = ['SEG 07-09', 'TER 07-09', 'QUA 07-09', 'QUI 07-09', 'SEX 07-09', 'SEG 09-11', 'TER 09-11']
 		codigos = ['MAT9161', 'INF9009', 'MAT9171', 'ADM9001', 'ECO9001', 'HIS9001', 'LET9001']
+		# O gerador só sugere disciplinas do currículo do aluno (CEG/BCO do espelho abaixo).
+		curriculo = criar_curriculo('Engenharia de Computação', [(codigo, 1) for codigo in codigos])
+		LigacaoHabilitacao.objects.create(
+			curso_sigla='CEG', habilitacao_sigla='BCO', enfase_sigla='',
+			curriculo=curriculo, origem='pre_cadastro',
+		)
 		for codigo, horario in zip(codigos, horarios):
 			disciplina = Disciplina.objects.create(codigo=codigo, nome='Disciplina ' + codigo)
 			Turma.objects.create(
