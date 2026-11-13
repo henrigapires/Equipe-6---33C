@@ -223,3 +223,6 @@ ENG-4021-2026-2-33c-DanPerelmuter/
 
 # HTML baixado pelo importar_curriculos --cache
 cache_curriculos/
+
+# HTML baixado pelo importar_requisitos --cache
+cache_ementas/

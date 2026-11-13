@@ -201,3 +201,42 @@ class LigacaoHabilitacao(models.Model):
     def __str__(self):
         siglas = f"{self.curso_sigla}/{self.habilitacao_sigla}/{self.enfase_sigla or '*'}"
         return f"{siglas} -> {self.curriculo or 'sem ligação'}"
+
+
+class Requisito(models.Model):
+    """Pré-requisito ou co-requisito de uma disciplina, lido da ementa no site da PUC.
+
+    A ementa traz alternativas ligadas por OU, e cada alternativa pode exigir vários
+    códigos ligados por E: (EMP1320 e INF1037) ou (EMP1320 e INF1026). Cada linha é um
+    código de uma alternativa. Os códigos ficam como texto: o código exigido pode nem
+    existir em Disciplina. A observação ("MATEMÁTICA (nivel 3)") é nivelamento, não
+    disciplina, e não bloqueia; uma alternativa só com observação fica com codigo vazio.
+    """
+    TIPOS = [('pre', 'Pré-requisito'), ('co', 'Co-requisito')]
+
+    disciplina = models.CharField(max_length=20, db_index=True)
+    tipo = models.CharField(max_length=3, choices=TIPOS)
+    alternativa = models.IntegerField()
+    codigo = models.CharField(max_length=20, blank=True)
+    observacao = models.CharField(max_length=200, blank=True)
+
+    class Meta:
+        ordering = ['disciplina', 'tipo', 'alternativa', 'codigo']
+
+    def __str__(self):
+        exigido = self.codigo or self.observacao
+        return f"{self.disciplina} {self.tipo} #{self.alternativa}: {exigido}"
+
+
+class EmentaLida(models.Model):
+    """Códigos cuja ementa já foi lida pelo importar_requisitos (com ou sem requisitos).
+    'encontrada' = False quando a PUC não tem ementa para o código."""
+    codigo = models.CharField(max_length=20, unique=True)
+    encontrada = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['codigo']
+
+    def __str__(self):
+        return self.codigo if self.encontrada else f"{self.codigo} (sem ementa)"
+
