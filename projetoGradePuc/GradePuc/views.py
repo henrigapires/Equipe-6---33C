@@ -7,6 +7,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from .gerador_grades import gerar_grades
+from .eletivas import sugerir_para_grades
 from .gerador_grades import gerar_grades, interpretar_horarios
 from django.contrib import messages
 from .espelho import EspelhoInvalido, EspelhoSemTexto, classificar_situacao, ler_espelho
@@ -407,12 +409,24 @@ def resumo_da_grade(request):
         'grade_linhas': grade_linhas,
     })
 
+ELETIVAS_POR_GRADE = 6
+
 @login_required
 def eletiva(request):
     aluno = obter_aluno(request)
-    turmas = Turma.objects.all()
-    if aluno != None:
-        turmas = turmas.exclude(disciplina__in=aluno.disciplinas_cursadas.all())
+
+    preferencias = RotinaPreferencias.objects.filter(
+        aluno=aluno
+    ).first()
+
+    if not preferencias or not all([
+        preferencias.turno,
+        preferencias.modalidade,
+        preferencias.distribuicao_aulas,
+        preferencias.janelas,
+        preferencias.carga_disciplinas,
+    ]):
+        return redirect('/questionario/')
 
     form = EletivasForm(request.GET)
     busca = ''
@@ -422,34 +436,58 @@ def eletiva(request):
         if form.cleaned_data['filtro'] != '':
             filtro = form.cleaned_data['filtro']
 
-    lista = []
-    for turma in turmas:
-        if turma.vagas <= 5:
-            tipo = 'alta_demanda'
-            etiqueta = 'Alta demanda'
-        elif turma.professor.avaliacoes >= 4.5:
-            tipo = 'popular'
-            etiqueta = 'Popular'
-        else:
-            tipo = 'recomendado'
-            etiqueta = 'Recomendado'
+    # As mesmas grades da tela Grades sugeridas; para cada uma, as eletivas que cabem nela.
+    grades = gerar_grades(aluno, preferencias)
+    sugestoes_por_grade = sugerir_para_grades(aluno, preferencias, grades)
 
-        if filtro != 'todas' and filtro != tipo:
-            mostrar = False
-        else:
-            mostrar = True
+    lista_de_grades = []
+    for indice in range(len(grades)):
+        lista = []
+        mostradas = []
+        for sugestao in sugestoes_por_grade[indice]:
+            turma = sugestao['turma']
 
-        if mostrar and busca != '':
-            nome = turma.disciplina.nome.lower()
-            codigo = turma.disciplina.codigo.lower()
-            if busca.lower() not in nome and busca.lower() not in codigo:
+            # Uma turma por disciplina (a mais bem colocada) e no máximo ELETIVAS_POR_GRADE.
+            if turma.disciplina_id in mostradas or len(lista) >= ELETIVAS_POR_GRADE:
+                continue
+
+            if turma.vagas <= 5:
+                tipo = 'alta_demanda'
+                etiqueta = 'Alta demanda'
+            elif turma.professor.avaliacoes >= 4.5:
+                tipo = 'popular'
+                etiqueta = 'Popular'
+            else:
+                tipo = 'recomendado'
+                etiqueta = 'Recomendado'
+
+            if filtro != 'todas' and filtro != tipo:
                 mostrar = False
+            else:
+                mostrar = True
 
-        if mostrar:
-            lista.append({'turma': turma, 'etiqueta': etiqueta})
+            if mostrar and busca != '':
+                nome = turma.disciplina.nome.lower()
+                codigo = turma.disciplina.codigo.lower()
+                if busca.lower() not in nome and busca.lower() not in codigo:
+                    mostrar = False
+
+            if mostrar:
+                mostradas.append(turma.disciplina_id)
+                lista.append({
+                    'turma': turma,
+                    'etiqueta': etiqueta,
+                    'grupos': ', '.join(sugestao['grupos']),
+                })
+
+        lista_de_grades.append({
+            'titulo': f'Grade sugerida {indice + 1}',
+            'turmas': grades[indice]['turmas'],
+            'eletivas': lista,
+        })
 
     return render(request, "eletivas.html", {
-        'eletivas': lista,
+        'grades': lista_de_grades,
         'busca': busca,
         'filtro': filtro,
         'filtros': FILTROS_ELETIVAS,

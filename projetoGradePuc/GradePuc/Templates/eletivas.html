@@ -24,9 +24,14 @@
   </form>
 </div>
 
+{% for grade in grades %}
+<div class="aviso">
+  <p><b>Para a {{ grade.titulo }}</b><br>{% for turma in grade.turmas %}{{ turma.disciplina.codigo }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+</div>
+
 <div class="eletivas">
 
-  {% for item in eletivas %}
+  {% for item in grade.eletivas %}
   <div class="caixa">
     <div class="topo-caixa">
       <span class="etiqueta">{{ item.etiqueta }}</span>
@@ -39,16 +44,22 @@
       <p><span>Professor</span> <span>{{ item.turma.professor.nome }}</span></p>
       <p><span>Sala</span> <span>{{ item.turma.sala }}</span></p>
       <p><span>Vagas disponíveis</span> <span>{{ item.turma.vagas }}</span></p>
+      <p><span>Conta como</span> <span>{{ item.grupos }}</span></p>
     </div>
     <a href="{% url 'detalhes_eletiva' item.turma.disciplina.codigo %}" class="botao-borda">
       Ver disciplina →
     </a>
   </div>
   {% empty %}
-  <p>Nenhuma eletiva encontrada.</p>
+  <p>Nenhuma eletiva cabe nesta grade.</p>
   {% endfor %}
 
 </div>
+{% empty %}
+<div class="eletivas">
+  <p>Nenhuma eletiva encontrada.</p>
+</div>
+{% endfor %}
 
 <div class="aviso">
   <p><b>Sugestões personalizadas</b><br>Baseadas no seu histórico acadêmico, interesses e disponibilidade de horários.</p>
