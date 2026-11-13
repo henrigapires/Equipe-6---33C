@@ -86,3 +86,15 @@ ementa vem sem texto ("Disciplina sem ementa cadastrada", como ENG4418): sem des
 bibliografia e sem o quadro de requisitos. Para essas, não sabemos os pré/co-requisitos, e o
 site as trata como **sem pré-requisito**. Elas ficam listadas em `sem_ementa` no
 `requisitos.json`, junto com os códigos que nem existem na PUC.
+
+**Equivalências (disciplinas que a PUC aceita uma no lugar da outra):** só as confirmadas.
+Quem fez uma conta como tendo feito todas da classe, e uma grade nunca recebe duas da mesma.
+
+- A lista confirmada fica em `GradePuc/requisitos.py` (`EQUIVALENCIAS_CONFIRMADAS`):
+  Cálculo 1, Física II e Álgebra Linear I. Mais os pares do campo "Grupo" dos espelhos
+  (ex.: MAT4181 com Grupo MAT4161).
+- INF1037, INF1007, INF1026 e INF1620 nunca são equivalentes (`NUNCA_EQUIVALENTES`): são
+  alternativas de co-requisito, não a mesma disciplina.
+- `python manage.py sugerir_equivalencias --cache cache_ementas` gera
+  `revisao/equivalencias_sugeridas.txt`, só para revisão: o site não lê esse arquivo.
+  Para ativar uma classe, revise e copie para `EQUIVALENCIAS_CONFIRMADAS`.

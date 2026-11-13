@@ -8,8 +8,12 @@ nenhum Requisito usa o M2M antigo Disciplina.pre_requisitos (dados de exemplo e 
 Os códigos "feitos" já vêm expandidos pelas equivalências (quem fez MAT4181 conta como
 tendo feito MAT4161, MAT1161...).
 """
+import re
+
 from .historico import codigos_bloqueados
 from .models import Disciplina, Requisito
+
+CODIGO = re.compile(r"^[A-Z]{3}\d{4}$")
 
 
 class TabelaDeRequisitos:
@@ -79,10 +83,59 @@ def alternativas_de_pre_requisito(codigo, tabela=None):
 
 # ---------- Equivalências ----------
 
+# Só equivalências confirmadas, revisadas à mão. Outras classes candidatas (regra estrita
+# sobre os requisitos + mesmo título) ficam em revisao/equivalencias_sugeridas.txt, fora do
+# site, até alguém revisar e trazer para cá.
+EQUIVALENCIAS_CONFIRMADAS = [
+    ["MAT1158", "MAT1161", "MAT1181", "MAT4161", "MAT4181"],              # Cálculo 1 (a uma variável)
+    ["FIS1041", "FIS1071", "FIS4002"],                                    # Física II
+    ["MAT1200", "MAT1250", "MAT1260", "MAT1280", "MAT4200", "MAT4280"],   # Álgebra Linear I (sem as "para Economia")
+]
+# Aparecem como alternativas de co-requisito (ENG4021: EMP1320 e INF1037 ou INF1026 ou
+# INF1007), mas são disciplinas diferentes: nunca entram em classe nenhuma.
+NUNCA_EQUIVALENTES = {"INF1037", "INF1007", "INF1026", "INF1620"}
+
+
 def classes_de_equivalencia():
     """{código: classe} das disciplinas que a PUC aceita uma no lugar da outra.
-    Por enquanto nenhuma: as classes ainda estão em revisão."""
-    return {}
+
+    Duas fontes: a lista confirmada acima e o campo grupo dos espelhos (o SAU marca
+    MAT4181 com Grupo MAT4161). Do espelho ficam de fora as vagas de optativa (INF0307,
+    4º caractere 0) e a escolha "nenhum" do perfil. A classe é o menor código dela."""
+    from .historico import SEM_VAGA
+    from .models import HistoricoDisciplina
+
+    pai = {}
+
+    def raiz(codigo):
+        pai.setdefault(codigo, codigo)
+        while pai[codigo] != codigo:
+            pai[codigo] = pai[pai[codigo]]
+            codigo = pai[codigo]
+        return codigo
+
+    def unir(a, b):
+        if a in NUNCA_EQUIVALENTES or b in NUNCA_EQUIVALENTES:
+            return
+        ra, rb = raiz(a), raiz(b)
+        if ra != rb:
+            pai[max(ra, rb)] = min(ra, rb)
+
+    for classe in EQUIVALENCIAS_CONFIRMADAS:
+        for outro in classe[1:]:
+            unir(classe[0], outro)
+    pares = HistoricoDisciplina.objects.exclude(grupo="").exclude(grupo=SEM_VAGA).values_list("codigo", "grupo").distinct()
+    for codigo, grupo in pares:
+        if CODIGO.match(codigo) and CODIGO.match(grupo) and grupo[3] != "0" and grupo != codigo:
+            unir(codigo, grupo)
+
+    classes = {}
+    for codigo in list(pai):
+        classes[codigo] = raiz(codigo)
+    tamanhos = {}
+    for classe in classes.values():
+        tamanhos[classe] = tamanhos.get(classe, 0) + 1
+    return {codigo: classe for codigo, classe in classes.items() if tamanhos[classe] > 1}
 
 
 def classe_de(codigo, classes=None):
