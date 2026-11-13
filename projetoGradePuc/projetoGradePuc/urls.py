@@ -32,6 +32,7 @@ urlpatterns = [
     path('api/disciplinas/<int:disciplina_id>/', api_disciplina, name='api_disciplina'),
     path('api/disciplinas/busca/', api_busca_disciplinas, name='api_busca_disciplinas'),
     path('api/disciplinas/codigo/<str:codigo>/', api_disciplina_codigo, name='api_disciplina_codigo'),
+    path('api/ementas/<str:codigo>/', api_ementa, name='api_ementa'),
     path('resumodagrade/', resumo_da_grade, name='resumo_da_grade'),
     path('eletivas/', eletiva, name='eletivas'),
     path('eletivas/<str:codigo>/', detalhes_eletiva, name='detalhes_eletiva'),

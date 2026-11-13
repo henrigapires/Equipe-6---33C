@@ -146,7 +146,8 @@
         </div>
 
         <div class="dica busca-disciplinas" data-api-busca="{% url 'api_busca_disciplinas' %}"
-             data-api-codigo="{% url 'api_disciplina_codigo' 'XXX0000' %}">
+             data-api-codigo="{% url 'api_disciplina_codigo' 'XXX0000' %}"
+             data-api-ementa="{% url 'api_ementa' 'XXX0000' %}">
             <h2>Buscar qualquer disciplina</h2>
             <p>Qualquer disciplina pode servir de eletiva. Busque por código ou nome.</p>
             <div class="busca-campos">
@@ -213,15 +214,79 @@
                     });
                     partes.push(lista);
                 }
-                const link = elemento('a', 'Ver ementa');
+                // a ementa vem depois, de outro endereço (a página da PUC pode demorar)
+                const secaoEmenta = elemento('div', '', 'ementa-painel');
+                partes.push(secaoEmenta);
+                const link = elemento('a', 'Ver página completa');
                 link.href = d.ementa_url;
                 const paragrafo = elemento('p');
                 paragrafo.appendChild(link);
                 partes.push(paragrafo);
                 detalhe.replaceChildren(...partes);
+                carregarEmenta(codigo, secaoEmenta);
             } catch (erro) {
                 detalhe.replaceChildren(elemento('p', 'Não foi possível carregar os detalhes. Tente novamente.'));
             }
+        }
+
+        // ---------- ementa no painel ----------
+        const urlDaEmenta = (codigo) => busca.dataset.apiEmenta.replace('XXX0000', encodeURIComponent(codigo));
+        const EMENTA_LONGA = 450;      // caracteres; acima disso o texto começa recolhido
+        let ementaPedida = null;
+
+        function secaoRecolhivel(titulo, texto) {
+            const caixa = elemento('details');
+            caixa.appendChild(elemento('summary', titulo));
+            caixa.appendChild(elemento('p', texto));
+            return caixa;
+        }
+
+        async function carregarEmenta(codigo, secao) {
+            ementaPedida = codigo;
+            secao.replaceChildren(elemento('h4', 'Ementa'), elemento('p', 'Carregando ementa…'));
+            let e = null;
+            try {
+                const resposta = await fetch(urlDaEmenta(codigo));
+                e = await resposta.json();
+            } catch (erro) {
+                e = { erro_de_rede: true };
+            }
+            if (ementaPedida !== codigo || !secao.isConnected) return;   // já clicaram em outra
+            const partes = [elemento('h4', 'Ementa')];
+            if (e.erro_de_rede) {
+                partes.push(elemento('p', 'Não foi possível carregar a ementa agora.'));
+                const botao = elemento('button', 'Tentar de novo', 'botao-detalhes');
+                botao.type = 'button';
+                botao.addEventListener('click', () => carregarEmenta(codigo, secao));
+                partes.push(botao);
+            } else if (e.sem_ementa) {
+                partes.push(elemento('p', 'Sem ementa disponibilizada no SAU.'));
+            } else if (e.erro) {
+                partes.push(elemento('p', e.erro));
+            } else {
+                if (e.ementa) {
+                    const texto = elemento('p', e.ementa, 'texto-ementa');
+                    partes.push(texto);
+                    if (e.ementa.length > EMENTA_LONGA) {
+                        texto.classList.add('recolhida');
+                        const mais = elemento('button', 'ver mais', 'ver-mais');
+                        mais.type = 'button';
+                        mais.setAttribute('aria-expanded', 'false');
+                        mais.addEventListener('click', () => {
+                            const recolhida = texto.classList.toggle('recolhida');
+                            mais.textContent = recolhida ? 'ver mais' : 'ver menos';
+                            mais.setAttribute('aria-expanded', String(!recolhida));
+                        });
+                        partes.push(mais);
+                    }
+                } else {
+                    partes.push(elemento('p', 'Sem ementa disponibilizada no SAU.'));
+                }
+                if (e.bibliografia) partes.push(secaoRecolhivel('Bibliografia', e.bibliografia));
+                if (e.bibliografia_complementar) partes.push(secaoRecolhivel('Bibliografia complementar', e.bibliografia_complementar));
+                if (e.atualizacao) partes.push(elemento('p', 'Última atualização: ' + e.atualizacao, 'atualizacao-ementa'));
+            }
+            secao.replaceChildren(...partes);
         }
 
         // ---------- destaque e setas ----------

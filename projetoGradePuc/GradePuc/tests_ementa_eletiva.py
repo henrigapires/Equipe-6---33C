@@ -5,6 +5,7 @@ Códigos e textos inventados (TST...), no formato das páginas de ementa da PUC.
 from unittest.mock import patch
 from urllib.error import URLError
 
+from django.core.cache import cache
 from django.test import TestCase
 
 from .models import Requisito
@@ -37,10 +38,11 @@ class RespostaFalsa:
 
 class PaginaDaEmentaTests(TestCase):
     def setUp(self):
+        cache.clear()       # a ementa fica no cache: cada teste começa sem nada guardado
         self.client.force_login(criar_aluno("9700001").usuario)
 
     def abrir(self, codigo, html=None, erro=None):
-        with patch("GradePuc.views.urlopen") as urlopen:
+        with patch("GradePuc.ementa_online.urlopen") as urlopen:
             if erro:
                 urlopen.side_effect = erro
             else:

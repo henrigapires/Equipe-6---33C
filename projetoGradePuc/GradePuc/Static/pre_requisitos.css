@@ -424,6 +424,56 @@ svg.setas path {
     font-size: 13px;
 }
 
+/* ementa (carregada depois dos detalhes) */
+.ementa-painel {
+    margin-top: var(--espaco-3);
+    padding-top: var(--espaco-3);
+    border-top: 1px solid var(--cor-borda);
+}
+
+.ementa-painel h4 {
+    color: var(--cor-tinta);
+    font-size: 15px;
+    margin-bottom: var(--espaco-2);
+}
+
+.ementa-painel .texto-ementa.recolhida {
+    max-height: 9.6em;      /* 6 linhas */
+    overflow: hidden;
+}
+
+.ementa-painel .ver-mais {
+    margin-bottom: var(--espaco-2);
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--cor-terracota);
+    font: inherit;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.ementa-painel details {
+    margin-bottom: var(--espaco-2);
+}
+
+.ementa-painel summary {
+    color: var(--cor-tinta);
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.ementa-painel details p {
+    margin-top: var(--espaco-1);
+    font-size: 13px;
+}
+
+.detalhes-disciplina p.atualizacao-ementa {
+    font-size: 12px;
+}
+
 /* ---------- busca de qualquer disciplina ---------- */
 
 .busca-disciplinas {
