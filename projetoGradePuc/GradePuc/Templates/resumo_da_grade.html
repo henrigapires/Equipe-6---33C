@@ -21,68 +21,7 @@
             <section class="painel-grade">
                 <h2>Horários da semana</h2>
 
-                <div class="grade">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Horários</th>
-                                {% for sigla, nome in dias %}
-                                    <th>{{ nome }}</th>
-                                {% endfor %}
-                            </tr>
-                        </thead>
-
-
-                        <tbody>
-                            {% for linha in grade_linhas %}
-                                <tr>
-                                    <th class="horario">{{ linha.horario }}</th>
-
-                                    {% for celula in linha.celulas %}
-
-                                        {% if celula %}
-
-                                            {% if celula.vazia %}
-                                                <td class="celula-vazia"></td>
-
-                                            {% else %}
-                                                <td class="celula-aula"
-                                                    rowspan="{{ celula.rowspan }}">
-
-                                                    <div class="disciplina verde">
-                                                        <strong>
-                                                            {{ celula.turma.disciplina.nome }}
-                                                        </strong>
-
-                                                        <span>
-                                                            {{ celula.turma.disciplina.codigo }}
-                                                            — {{ celula.turma.professor.nome }}
-                                                        </span>
-
-                                                        <span>
-                                                            Sala: {{ celula.turma.sala }}
-                                                        </span>
-                                                    </div>
-
-                                                </td>
-                                            {% endif %}
-
-                                        {% endif %}
-
-                                    {% endfor %}
-                                </tr>
-
-                            {% empty %}
-                                <tr>
-                                    <td colspan="6">
-                                        Nenhuma turma foi encontrada na sua grade.
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-
-                    </table>
-                </div>
+                {% include 'grade_semanal.html' %}
 
                 <div class="informacoes">
                     <p>Quantidade de créditos:
