@@ -23,7 +23,7 @@ from .requisitos import (
     TabelaDeRequisitos, alternativas_de_pre_requisito, codigos_feitos, pre_requisitos_cumpridos,
 )
 from .historico import dados_oficiais
-from .models import Curriculo
+from .models import Curriculo, Requisito
 from .fluxograma import buscar_disciplinas, detalhes_da_disciplina, fluxograma_do_aluno
 from .ocr import MENSAGEM_SEM_OCR, OcrIndisponivel, eh_imagem, ler_espelho_por_ocr
 from urllib.request import urlopen, Request
@@ -509,6 +509,52 @@ def eletiva(request):
         'filtros': FILTROS_ELETIVAS,
     })
 
+SEM_EMENTA_NO_SAU = "Disciplina sem ementa cadastrada"
+# rótulo que a página repete no começo de cada campo
+ROTULOS_DA_EMENTA = {
+    "bibliografia": "Bibliografia",
+    "bibliografia_complementar": "Bibliografia Complementar",
+    "pre_requisitos": "Pré-requisitos",
+    "co_requisitos": "Co-requisitos",
+    "atualizacao": "Última atualização da ementa:",
+}
+
+
+def requisitos_em_texto(codigo, tipo):
+    """"MAT1158 e MATEMÁTICA (nivel 3) ou MAT1181", da tabela Requisito; None se não há linha."""
+    alternativas = {}
+    for numero, exigido, observacao in Requisito.objects.filter(disciplina=codigo, tipo=tipo).order_by(
+            "alternativa", "id").values_list("alternativa", "codigo", "observacao"):
+        partes = alternativas.setdefault(numero, [])
+        for parte in (exigido, observacao):
+            if parte and parte not in partes:
+                partes.append(parte)
+    if not alternativas:
+        return None
+    return " ou ".join(" e ".join(partes) for partes in alternativas.values() if partes)
+
+
+def arrumar_dados_da_ementa(dados, codigo):
+    """Tira o rótulo repetido dos campos e põe os requisitos da tabela Requisito."""
+    for campo, rotulo in ROTULOS_DA_EMENTA.items():
+        texto = " ".join(dados.get(campo, "").split())
+        if texto.startswith(rotulo):
+            texto = texto[len(rotulo):].strip()
+        dados[campo] = texto
+    tem_requisito = Requisito.objects.filter(disciplina=codigo).exists()
+    for campo, tipo, nenhum in (("pre_requisitos", "pre", "Nenhum pré-requisito"),
+                                ("co_requisitos", "co", "Nenhum co-requisito")):
+        da_tabela = requisitos_em_texto(codigo, tipo)
+        if da_tabela:
+            dados[campo] = da_tabela
+        elif tem_requisito or dados[campo].lower().startswith(("nenhum pre", "nenhum pré", "nenhum co")):
+            # "Nenhum pre-requisito encontrado para INF1007" -> "Nenhum pré-requisito"
+            dados[campo] = nenhum
+    if not dados["pre_requisitos"] and not dados["co_requisitos"]:
+        dados["sem_informacao_de_requisitos"] = True
+    return dados
+
+
 @login_required
 def detalhes_eletiva(request, codigo):
 
@@ -549,6 +595,10 @@ def detalhes_eletiva(request, codigo):
         return render(request, "detalhes_eletiva.html", {
             "erro": "Não encontramos a ementa dessa disciplina na PUC."
         })
+
+    # Página sem ementa ("Disciplina sem ementa cadastrada."): mantém título, código e créditos
+    dados["sem_ementa"] = SEM_EMENTA_NO_SAU in html
+    arrumar_dados_da_ementa(dados, codigo)
 
     return render(request, "detalhes_eletiva.html", {
         "disciplina": dados

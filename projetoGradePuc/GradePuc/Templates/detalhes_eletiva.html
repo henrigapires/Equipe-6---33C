@@ -34,23 +34,42 @@
                 </p>
             </div>
 
+            {% if disciplina.sem_ementa %}
+            <div class="aviso">
+                <p>Sem ementa disponibilizada no SAU.</p>
+            </div>
+            {% endif %}
+
+            {% if disciplina.ementa %}
             <h3>Ementa</h3>
             <p>{{ disciplina.ementa }}</p>
+            {% endif %}
 
+            {% if disciplina.bibliografia %}
             <h3>Bibliografia</h3>
             <p>{{ disciplina.bibliografia }}</p>
+            {% endif %}
 
+            {% if disciplina.bibliografia_complementar %}
             <h3>Bibliografia complementar</h3>
             <p>{{ disciplina.bibliografia_complementar }}</p>
+            {% endif %}
 
+            {% if disciplina.sem_informacao_de_requisitos %}
+            <h3>Requisitos</h3>
+            <p>Sem informação de requisitos.</p>
+            {% else %}
             <h3>Pré-requisitos</h3>
-            <p>{{ disciplina.pre_requisitos }}</p>
+            <p>{{ disciplina.pre_requisitos|default:"Sem informação" }}</p>
 
             <h3>Co-requisitos</h3>
-            <p>{{ disciplina.co_requisitos }}</p>
+            <p>{{ disciplina.co_requisitos|default:"Sem informação" }}</p>
+            {% endif %}
 
+            {% if disciplina.atualizacao %}
             <h3>Última atualização</h3>
             <p>{{ disciplina.atualizacao }}</p>
+            {% endif %}
         </div>
     {% endif %}
 
