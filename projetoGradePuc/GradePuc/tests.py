@@ -29,7 +29,9 @@ class PreRequisitosApiTests(TestCase):
 		response = self.client.get(reverse('api_disciplina', args=[self.calculo.id]))
 
 		self.assertEqual(response.status_code, 200)
-		self.assertEqual(response.json(), {
+		dados = response.json()
+		# os campos de sempre continuam iguais...
+		self.assertEqual({chave: dados[chave] for chave in ('id', 'codigo', 'nome', 'pre_requisitos')}, {
 			'id': self.calculo.id,
 			'codigo': 'MAT200',
 			'nome': 'Cálculo',
@@ -39,20 +41,29 @@ class PreRequisitosApiTests(TestCase):
 				'nome': 'Introdução',
 			}],
 		})
+		# ...e chegam os do painel Detalhes
+		for chave in ('creditos', 'periodo', 'status', 'pre', 'co', 'libera', 'nivelamento', 'ementa_url'):
+			self.assertIn(chave, dados)
+		self.assertEqual(dados['ementa_url'], '/eletivas/MAT200/')
+
+	def test_api_exige_login(self):
+		self.client.logout()
+		response = self.client.get(reverse('api_disciplina', args=[self.calculo.id]))
+		self.assertEqual(response.status_code, 302)
 
 	def test_api_returns_404_for_unknown_discipline(self):
 		response = self.client.get(reverse('api_disciplina', args=[99999]))
 
 		self.assertEqual(response.status_code, 404)
 
-	def test_prerequisite_page_renders_dependency_stages(self):
+	def test_prerequisite_page_sem_curso_pede_o_perfil(self):
+		# sem curso conhecido não há fluxograma: aviso + botão para o perfil (a busca continua)
 		response = self.client.get('/pre-requisitos/')
 
 		self.assertEqual(response.status_code, 200)
-		self.assertContains(response, 'Introdução')
-		self.assertContains(response, 'Cálculo')
-		self.assertContains(response, 'Etapa 1')
-		self.assertContains(response, 'Etapa 2')
+		self.assertContains(response, 'Ainda não sabemos qual é o seu curso')
+		self.assertContains(response, 'Ir para o meu perfil')
+		self.assertContains(response, 'Buscar qualquer disciplina')
 
 	def test_distribution_questionnaire_renders_on_get(self):
 		response = self.client.get('/questionario/distribuicao/')

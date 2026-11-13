@@ -24,6 +24,7 @@ from .requisitos import (
 )
 from .historico import dados_oficiais
 from .models import Curriculo
+from .fluxograma import buscar_disciplinas, detalhes_da_disciplina, fluxograma_do_aluno
 from .ocr import MENSAGEM_SEM_OCR, OcrIndisponivel, eh_imagem, ler_espelho_por_ocr
 from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
@@ -263,99 +264,78 @@ def ajuda(request):
 
 @login_required
 def pre_requisitos(request):
-    disciplinas = list(Disciplina.objects.order_by('codigo'))
+    # O fluxograma do currículo do aluno (colunas por período), montado numa passada só.
     aluno = obter_aluno(request)
-    concluidas = set(aluno.disciplinas_cursadas.values_list('id', flat=True)) if aluno else set()
-    # Pré-requisitos das ementas da PUC (requisitos.py), com as equivalências.
-    feitos = codigos_feitos(aluno) if aluno else set()
-    tabela = TabelaDeRequisitos()
-    codigos_na_tela = {disciplina.codigo for disciplina in disciplinas}
-
-    def dependencias(disciplina):
-        # Para o nível do grafo vale a primeira alternativa do pré-requisito.
-        alternativas = alternativas_de_pre_requisito(disciplina.codigo, tabela)
-        primeira = alternativas[0] if alternativas else []
-        return {codigo for codigo in primeira if codigo in codigos_na_tela and codigo != disciplina.codigo}
-
-    # Organiza as disciplinas por nível de dependência sem pressupor uma grade fixa.
-    niveis = {}
-    pendentes = {disciplina.codigo: dependencias(disciplina) for disciplina in disciplinas}
-    while pendentes:
-        prontos = [codigo for codigo, pre in pendentes.items() if all(c in niveis for c in pre)]
-        if not prontos:  # Evita perder disciplinas caso existam dependências cíclicas.
-            prontos = list(pendentes)
-        for codigo in prontos:
-            niveis[codigo] = max((niveis.get(c, -1) + 1 for c in pendentes[codigo]), default=0)
-            del pendentes[codigo]
-
-    trilhas_por_nivel = {}
-    for disciplina in disciplinas:
-        if disciplina.id in concluidas or disciplina.codigo in feitos:
-            status = 'concluida'
-        elif pre_requisitos_cumpridos(disciplina.codigo, feitos, tabela):
-            status = 'disponivel'
-        else:
-            status = 'bloqueada'
-        nivel = niveis[disciplina.codigo]
-        trilhas_por_nivel.setdefault(nivel, []).append({
-            'id': disciplina.id,
-            'nome': disciplina.nome,
-            'codigo': disciplina.codigo,
-            'status': status,
-        })
-
-    trilhas = [
-        {'nome': f'Etapa {nivel + 1}', 'disciplinas': itens}
-        for nivel, itens in sorted(trilhas_por_nivel.items())
-    ]
-
-    return render(request, "pre_requisitos.html", {
-        'trilhas': trilhas,
-    })
+    contexto = fluxograma_do_aluno(aluno)
+    contexto['aluno'] = aluno
+    return render(request, "pre_requisitos.html", contexto)
 
 
+def json_da_disciplina(request, disciplina, codigo):
+    """Os campos de sempre (id, codigo, nome, pre_requisitos, alternativas) + os do painel."""
+    dados = detalhes_da_disciplina(codigo, obter_aluno(request), disciplina)
+    tabela = TabelaDeRequisitos([codigo])
+    if disciplina and codigo not in tabela.com_registro:
+        # sem requisito das ementas: o M2M antigo, no formato de sempre
+        dados['pre_requisitos'] = [
+            {'id': requisito.id, 'codigo': requisito.codigo, 'nome': requisito.nome}
+            for requisito in disciplina.pre_requisitos.all()
+        ]
+    else:
+        # Das ementas: alternativas ligadas por "ou"; dentro de cada uma, todas são exigidas ("e").
+        achadas = {
+            c: (id_, nome) for c, id_, nome in Disciplina.objects.filter(
+                codigo__in={c for a in alternativas_de_pre_requisito(codigo, tabela) for c in a}
+            ).values_list('codigo', 'id', 'nome')
+        }
+
+        def descrever(codigo_exigido):
+            if codigo_exigido in achadas:
+                id_, nome = achadas[codigo_exigido]
+                return {'id': id_, 'codigo': codigo_exigido, 'nome': nome}
+            oficial = dados_oficiais(codigo_exigido)
+            return {'id': None, 'codigo': codigo_exigido, 'nome': oficial[0] if oficial else ''}
+
+        alternativas = [
+            [descrever(c) for c in alternativa]
+            for alternativa in alternativas_de_pre_requisito(codigo, tabela)
+        ]
+        todos = []
+        for alternativa in alternativas:
+            for item in alternativa:
+                if item not in todos:
+                    todos.append(item)
+        dados['pre_requisitos'] = todos
+        dados['alternativas'] = alternativas
+    dados['id'] = disciplina.id if disciplina else None
+    return JsonResponse(dados)
+
+
+@login_required
 @require_GET
 def api_disciplina(request, disciplina_id):
     disciplina = get_object_or_404(
         Disciplina.objects.prefetch_related('pre_requisitos'), pk=disciplina_id
     )
-    tabela = TabelaDeRequisitos([disciplina.codigo])
-    if disciplina.codigo not in tabela.com_registro:
-        # sem requisito das ementas: o M2M antigo, no formato de sempre
-        return JsonResponse({
-            'id': disciplina.id,
-            'codigo': disciplina.codigo,
-            'nome': disciplina.nome,
-            'pre_requisitos': [
-                {'id': requisito.id, 'codigo': requisito.codigo, 'nome': requisito.nome}
-                for requisito in disciplina.pre_requisitos.all()
-            ],
-        })
+    return json_da_disciplina(request, disciplina, disciplina.codigo)
 
-    # Das ementas: alternativas ligadas por "ou"; dentro de cada uma, todas são exigidas ("e").
-    def descrever(codigo):
-        achada = Disciplina.objects.filter(codigo=codigo).first()
-        if achada:
-            return {'id': achada.id, 'codigo': codigo, 'nome': achada.nome}
-        oficial = dados_oficiais(codigo)
-        return {'id': None, 'codigo': codigo, 'nome': oficial[0] if oficial else ''}
 
-    alternativas = [
-        [descrever(codigo) for codigo in alternativa]
-        for alternativa in alternativas_de_pre_requisito(disciplina.codigo, tabela)
-    ]
-    todos = []
-    for alternativa in alternativas:
-        for item in alternativa:
-            if item not in todos:
-                todos.append(item)
-    return JsonResponse({
-        'id': disciplina.id,
-        'codigo': disciplina.codigo,
-        'nome': disciplina.nome,
-        'pre_requisitos': todos,
-        'alternativas': alternativas,
-    })
+@login_required
+@require_GET
+def api_disciplina_codigo(request, codigo):
+    # Por código: serve também para disciplinas que não estão na tabela Disciplina.
+    codigo = codigo.strip().upper()
+    disciplina = Disciplina.objects.filter(codigo=codigo).first()
+    return json_da_disciplina(request, disciplina, codigo)
+
+
+@login_required
+@require_GET
+def api_busca_disciplinas(request):
+    resultados = buscar_disciplinas(
+        request.GET.get('q', ''), obter_aluno(request), so_sem_pre=request.GET.get('sem_pre') == '1'
+    )
+    return JsonResponse({'resultados': resultados})
 
 def montar_grade_semanal(turmas_lista):
     dias = [

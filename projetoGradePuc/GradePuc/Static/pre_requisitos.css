@@ -230,7 +230,7 @@ body {
     font-size: 13px;
     margin-top: var(--espaco-1);
     line-height: 1.5;
-        border-radius: var(--raio-pequeno);
+}
 
 .icone {
     width: 38px;
@@ -301,6 +301,206 @@ body {
     box-shadow: 0 0 0 2px var(--cor-terracota);
 }
 
+/* ---------- fluxograma do currículo ---------- */
+
+.curso-do-aluno {
+    margin-top: var(--espaco-2);
+}
+
+.fluxogramas {
+    position: relative;
+    overflow-x: auto;
+    padding-bottom: var(--espaco-2);
+}
+
+.trilha {
+    min-width: 240px;
+}
+
+/* o título não passa por baixo do círculo do status (right 18px + 38px) */
+.disciplina h3 {
+    padding-right: 50px;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+
+.disciplina.andamento {
+    border-left-color: var(--cor-borda);
+}
+
+.andamento .status {
+    color: var(--cor-terracota);
+}
+
+.andamento .simbolo,
+.icone.andamento {
+    background-color: var(--cor-terracota);
+    color: white;
+}
+
+.disciplina p.falta {
+    color: var(--cor-erro);
+    font-size: 12px;
+    margin-top: -8px;
+    margin-bottom: var(--espaco-2);
+    padding-right: 52px;
+}
+
+.marca-atrasada {
+    display: inline-block;
+    margin-left: var(--espaco-1);
+    padding: 0 var(--espaco-2);
+    border-radius: var(--raio-pequeno);
+    background-color: var(--cor-superficie-erro);
+    color: var(--cor-erro);
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.disciplina.grupo {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+.grupo .status {
+    color: var(--cor-tinta-secundaria);
+    font-weight: bold;
+}
+
+.grupo:hover {
+    background-color: var(--cor-superficie-aviso);
+}
+
+/* destaque: a selecionada, o que ela exige e o que ela libera; o resto fica apagado */
+.com-selecao .disciplina:not(.selecionada):not(.relacionada) {
+    opacity: 0.35;
+}
+
+.disciplina.relacionada {
+    box-shadow: 0 0 0 2px var(--cor-ocre);
+}
+
+svg.setas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    overflow: visible;
+}
+
+svg.setas path {
+    fill: none;
+    stroke: var(--cor-terracota);
+    stroke-width: 2;
+}
+
+.fluxogramas.sem-curriculo .dica {
+    margin-top: 0;
+    flex: 1;
+}
+
+/* ---------- painel Detalhes ---------- */
+
+.detalhes-disciplina h3 {
+    font-size: 16px;
+    color: var(--cor-tinta);
+    margin-bottom: var(--espaco-2);
+}
+
+.detalhes-disciplina p {
+    margin-bottom: var(--espaco-2);
+}
+
+.detalhes-disciplina a {
+    color: var(--cor-terracota);
+    font-weight: bold;
+}
+
+.detalhes-disciplina .cadeia {
+    padding-left: var(--espaco-5);
+    margin-bottom: var(--espaco-2);
+    color: var(--cor-tinta-secundaria);
+    font-size: 13px;
+}
+
+/* ---------- busca de qualquer disciplina ---------- */
+
+.busca-disciplinas {
+    margin-top: var(--espaco-5);
+}
+
+.busca-campos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--espaco-3);
+    margin-top: var(--espaco-3);
+}
+
+.busca-campos input[type="search"] {
+    flex: 1;
+    min-width: 0;
+    padding: var(--espaco-2) var(--espaco-3);
+    background-color: var(--cor-fundo);
+    color: var(--cor-tinta);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-pequeno);
+    font: inherit;
+}
+
+.busca-filtro {
+    display: flex;
+    align-items: center;
+    gap: var(--espaco-2);
+    color: var(--cor-tinta-secundaria);
+    font-size: 14px;
+}
+
+.busca-resultados {
+    list-style: none;
+    margin-top: var(--espaco-3);
+}
+
+.busca-resultados li {
+    display: flex;
+    align-items: center;
+    gap: var(--espaco-3);
+    padding: var(--espaco-2) 0;
+    border-bottom: 1px solid var(--cor-borda);
+    color: var(--cor-tinta-secundaria);
+    font-size: 14px;
+}
+
+.busca-resultados li > span:first-child {
+    flex: 1;
+    min-width: 0;
+    color: var(--cor-tinta);
+}
+
+.botao-detalhes {
+    padding: var(--espaco-1) var(--espaco-3);
+    background-color: var(--cor-superficie);
+    color: var(--cor-terracota);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-pequeno);
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.botao-detalhes:hover {
+    background-color: var(--cor-borda);
+}
+
+.oculto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
 @media (max-width: 1100px) {
     .conteudo {
         padding: var(--espaco-5);
@@ -336,12 +536,17 @@ body {
         font-size: 28px;
     }
 
-    .fluxogramas {
-        flex-direction: column;
+    /* tela estreita: as colunas continuam lado a lado (largura de leitura), com rolagem horizontal */
+    .trilha {
+        min-width: 230px;
     }
 
-    .trilha {
-        flex: 1 1 auto;
+    svg.setas {
+        display: none;
+    }
+
+    .busca-resultados li {
+        flex-wrap: wrap;
     }
 }
 

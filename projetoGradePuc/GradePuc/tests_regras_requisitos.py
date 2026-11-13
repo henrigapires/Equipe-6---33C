@@ -170,8 +170,14 @@ class TelasComRequisitosTests(TestCase):
         Disciplina.objects.create(codigo="FIS4002", nome="Física II")
         Disciplina.objects.create(codigo="FIS4003", nome="Física III")
         Requisito.objects.filter(disciplina="FIS4002").delete()
+        # o fluxograma é o do currículo do aluno (colunas por período)
+        curriculo = criar_curriculo("Curso Requisitos", [("FIS4002", 1), ("FIS4003", 2)])
+        LigacaoHabilitacao.objects.create(curso_sigla="CEG", habilitacao_sigla="RQT", enfase_sigla="",
+                                          curriculo=curriculo, origem="pre_cadastro")
+        self.aluno.curso_sigla, self.aluno.habilitacao_sigla = "CEG", "RQT"
+        self.aluno.save()
         resposta = self.client.get("/pre-requisitos/")
         status = {d["codigo"]: d["status"] for trilha in resposta.context["trilhas"] for d in trilha["disciplinas"]}
         self.assertEqual((status["FIS4002"], status["FIS4003"]), ("disponivel", "bloqueada"))
-        etapas = {d["codigo"]: trilha["nome"] for trilha in resposta.context["trilhas"] for d in trilha["disciplinas"]}
-        self.assertNotEqual(etapas["FIS4002"], etapas["FIS4003"])
+        colunas = {d["codigo"]: trilha["nome"] for trilha in resposta.context["trilhas"] for d in trilha["disciplinas"]}
+        self.assertEqual((colunas["FIS4002"], colunas["FIS4003"]), ("1º período", "2º período"))

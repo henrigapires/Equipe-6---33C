@@ -14,6 +14,13 @@
             <div>
                 <h1>Fluxograma de pré-requisitos</h1>
                 <p>Visualize as disciplinas do seu curso e veja quais você já concluiu, pode cursar ou ainda precisa liberar.</p>
+                {% if curriculo %}
+                <p class="curso-do-aluno">
+                    <strong>{{ curriculo }}</strong>
+                    {% if aluno.curso_sigla %} · {{ aluno.curso_sigla }}/{{ aluno.habilitacao_sigla }}{% if aluno.enfase_sigla %}/{{ aluno.enfase_sigla }}{% endif %}{% endif %}
+                    {% if periodo_atual %} · período atual detectado: {{ periodo_atual }}º{% endif %}
+                </p>
+                {% endif %}
             </div>
 
             {% url 'eletivas' as url_eletivas %}
@@ -25,7 +32,9 @@
 
         <div class="parte-principal">
 
-            <div class="fluxogramas">
+            {% if curriculo %}
+            <div class="fluxogramas" data-api-codigo="{% url 'api_disciplina_codigo' 'XXX0000' %}">
+                <svg class="setas" aria-hidden="true"></svg>
 
                 {% for trilha in trilhas %}
                 <div class="trilha">
@@ -35,14 +44,18 @@
                     </div>
 
                     {% for d in trilha.disciplinas %}
-                    <div class="disciplina {{ d.status }}" data-disciplina-id="{{ d.id }}"
-                        role="button" tabindex="0" aria-label="Ver detalhes de {{ d.nome }}">
+                    <div class="disciplina {{ d.status }}" data-codigo="{{ d.codigo }}" data-exige="{{ d.exige }}"
+                        role="button" tabindex="0" aria-label="Ver detalhes de {{ d.nome }} ({{ d.status_legivel }})">
                         <h3>{{ d.nome }}</h3>
-                        <p>{{ d.codigo }}</p>
+                        <p>{{ d.codigo }}{% if d.atrasada %} <span class="marca-atrasada">atrasada</span>{% endif %}</p>
+                        {% if d.falta %}<p class="falta">{{ d.falta }}</p>{% endif %}
 
                         {% if d.status == 'concluida' %}
                             <span class="status">Concluída</span>
                             <span class="simbolo">&#10003;</span>
+                        {% elif d.status == 'andamento' %}
+                            <span class="status">Em andamento</span>
+                            <span class="simbolo">&#9680;</span>
                         {% elif d.status == 'disponivel' %}
                             <span class="status">Disponível</span>
                             <span class="simbolo">&#9654;</span>
@@ -57,7 +70,31 @@
                 </div>
                 {% endfor %}
 
+                {% if grupos %}
+                <div class="trilha">
+                    <div class="nome-trilha">Eletivas / optativas</div>
+                    {% for g in grupos %}
+                    <a class="disciplina grupo" href="{{ url_eletivas }}">
+                        <h3>{{ g.nome }}</h3>
+                        <p>{{ g.codigo }}</p>
+                        <span class="status">{% if g.faltam %}Faltam {{ g.faltam }}{% else %}Cumprido{% endif %}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
             </div>
+            {% else %}
+            <div class="fluxogramas sem-curriculo">
+                <div class="dica">
+                    <h2>Ainda não sabemos qual é o seu curso</h2>
+                    <p>Envie o Espelho do Histórico (ou confirme o curso) no seu perfil para ver o fluxograma do seu currículo.
+                       Enquanto isso, você pode buscar qualquer disciplina aqui embaixo.</p>
+                    {% url 'perfil' as url_perfil %}
+                    <button type="button" class="voltar" onclick="window.location.href='{{ url_perfil }}'">Ir para o meu perfil</button>
+                </div>
+            </div>
+            {% endif %}
 
             <div class="lateral">
 
@@ -69,6 +106,14 @@
                         <div>
                             <b>Concluída</b>
                             <p>Você já cursou a disciplina.</p>
+                        </div>
+                    </div>
+
+                    <div class="item-legenda">
+                        <span class="icone andamento">&#9680;</span>
+                        <div>
+                            <b>Em andamento</b>
+                            <p>Você está cursando neste período.</p>
                         </div>
                     </div>
 
@@ -91,13 +136,25 @@
 
                 <div class="dica">
                     <h2>Detalhes</h2>
-                    <p class="detalhes-disciplina" data-api-url="{% url 'api_disciplina' 0 %}">
-                        Selecione uma disciplina para consultar informações e seus pré-requisitos.
-                    </p>
+                    <div class="detalhes-disciplina" aria-live="polite">
+                        <p>Selecione uma disciplina para consultar informações e seus pré-requisitos.</p>
+                    </div>
                 </div>
 
             </div>
 
+        </div>
+
+        <div class="dica busca-disciplinas" data-api-busca="{% url 'api_busca_disciplinas' %}"
+             data-api-codigo="{% url 'api_disciplina_codigo' 'XXX0000' %}">
+            <h2>Buscar qualquer disciplina</h2>
+            <p>Qualquer disciplina pode servir de eletiva. Busque por código ou nome.</p>
+            <div class="busca-campos">
+                <label for="busca-texto" class="oculto">Código ou nome</label>
+                <input type="search" id="busca-texto" placeholder="Ex.: INF1007 ou Física">
+                <label class="busca-filtro"><input type="checkbox" id="busca-sem-pre"> Só sem pré-requisito</label>
+            </div>
+            <ul class="busca-resultados" aria-live="polite"></ul>
         </div>
 
         {% url 'resumo_da_grade' as url_minha_grade %}
@@ -112,39 +169,167 @@
 {% block extra_js %}
     <script>
         const detalhe = document.querySelector('.detalhes-disciplina');
-        const apiUrl = detalhe.dataset.apiUrl;
+        const busca = document.querySelector('.busca-disciplinas');
+        const urlPorCodigo = (codigo) => busca.dataset.apiCodigo.replace('XXX0000', encodeURIComponent(codigo));
+        const fluxo = document.querySelector('.fluxogramas:not(.sem-curriculo)');
+        const cartoes = Array.from(document.querySelectorAll('.disciplina[data-codigo]'));
 
-        async function carregarDetalhes(cartao) {
-            document.querySelectorAll('.disciplina[aria-pressed]').forEach((item) => {
-                item.removeAttribute('aria-pressed');
-            });
-            cartao.setAttribute('aria-pressed', 'true');
-            detalhe.textContent = 'Carregando detalhes…';
+        // ---------- painel Detalhes ----------
+        function elemento(tag, texto, classe) {
+            const novo = document.createElement(tag);
+            if (texto) novo.textContent = texto;
+            if (classe) novo.className = classe;
+            return novo;
+        }
 
+        function alternativasEmTexto(alternativas) {
+            return alternativas.map((alt) => alt.map((item) => `${item.marca} ${item.codigo}`).join(' e ')).join('  ou  ');
+        }
+
+        async function mostrarDetalhes(codigo) {
+            detalhe.replaceChildren(elemento('p', 'Carregando detalhes…'));
             try {
-                const resposta = await fetch(apiUrl.replace('/0/', `/${cartao.dataset.disciplinaId}/`));
-                if (!resposta.ok) throw new Error('Não foi possível carregar os detalhes.');
-                const disciplina = await resposta.json();
-                // Das ementas da PUC: alternativas ligadas por "ou"; dentro de cada uma, "e".
-                const requisitos = disciplina.alternativas && disciplina.alternativas.length
-                    ? disciplina.alternativas.map((alternativa) => alternativa.map((item) => item.codigo).join(' e ')).join(' ou ')
-                    : disciplina.pre_requisitos.length
-                    ? disciplina.pre_requisitos.map((item) => `${item.codigo} — ${item.nome}`).join(', ')
-                    : 'Nenhum';
-                detalhe.textContent = `Pré-requisitos de ${disciplina.codigo}: ${requisitos}.`;
+                const resposta = await fetch(urlPorCodigo(codigo));
+                if (!resposta.ok) throw new Error();
+                const d = await resposta.json();
+                const partes = [elemento('h3', `${d.codigo} — ${d.nome || ''}`)];
+                const info = [d.status_legivel];
+                if (d.creditos) info.push(`${d.creditos} créditos`);
+                if (d.periodo) info.push(`${d.periodo}º período do currículo`);
+                partes.push(elemento('p', info.join(' · ')));
+                if (d.sem_informacao) {
+                    partes.push(elemento('p', 'Sem informação de requisitos.'));
+                } else {
+                    partes.push(elemento('p', 'Pré-requisitos: ' + (d.pre.length ? alternativasEmTexto(d.pre) : 'nenhum')));
+                    if (d.co.length) partes.push(elemento('p', 'Co-requisitos: ' + alternativasEmTexto(d.co)));
+                }
+                if (d.nivelamento.length) partes.push(elemento('p', 'Nivelamento: ' + d.nivelamento.join('; ')));
+                if (d.libera.length) partes.push(elemento('p', 'Libera: ' + d.libera.map((x) => x.codigo).join(', ')));
+                if (d.cadeia.length && !d.periodo) {
+                    partes.push(elemento('p', `Cadeia de pré-requisitos (faltam ${d.faltam_na_cadeia}):`));
+                    const lista = elemento('ol', '', 'cadeia');
+                    d.cadeia.forEach((nivel) => {
+                        lista.appendChild(elemento('li', nivel.map((x) => `${x.codigo} (${x.status === 'concluida' ? '✓' : x.status === 'andamento' ? '▶' : '✗'})`).join(', ')));
+                    });
+                    partes.push(lista);
+                }
+                const link = elemento('a', 'Ver ementa');
+                link.href = d.ementa_url;
+                const paragrafo = elemento('p');
+                paragrafo.appendChild(link);
+                partes.push(paragrafo);
+                detalhe.replaceChildren(...partes);
             } catch (erro) {
-                detalhe.textContent = 'Não foi possível carregar os detalhes. Tente novamente.';
+                detalhe.replaceChildren(elemento('p', 'Não foi possível carregar os detalhes. Tente novamente.'));
             }
         }
 
-        document.querySelectorAll('.disciplina[data-disciplina-id]').forEach((cartao) => {
-            cartao.addEventListener('click', () => carregarDetalhes(cartao));
+        // ---------- destaque e setas ----------
+        const exige = {};
+        const libera = {};
+        cartoes.forEach((c) => {
+            exige[c.dataset.codigo] = (c.dataset.exige || '').split(' ').filter(Boolean);
+            exige[c.dataset.codigo].forEach((pre) => (libera[pre] = libera[pre] || []).push(c.dataset.codigo));
+        });
+        const porCodigo = Object.fromEntries(cartoes.map((c) => [c.dataset.codigo, c]));
+        const svg = document.querySelector('svg.setas');
+
+        function limpar() {
+            cartoes.forEach((c) => {
+                c.removeAttribute('aria-pressed');
+                c.classList.remove('selecionada', 'relacionada');
+            });
+            if (fluxo) fluxo.classList.remove('com-selecao');
+            if (svg) svg.replaceChildren();
+        }
+
+        function alcancados(codigo, mapa) {
+            const vistos = new Set();
+            const fila = [codigo];
+            while (fila.length) {
+                (mapa[fila.pop()] || []).forEach((proximo) => {
+                    if (!vistos.has(proximo)) { vistos.add(proximo); fila.push(proximo); }
+                });
+            }
+            return vistos;
+        }
+
+        function seta(de, para) {
+            const base = fluxo.getBoundingClientRect();
+            const a = de.getBoundingClientRect();
+            const b = para.getBoundingClientRect();
+            const x1 = a.right - base.left + fluxo.scrollLeft, y1 = a.top + a.height / 2 - base.top;
+            const x2 = b.left - base.left + fluxo.scrollLeft, y2 = b.top + b.height / 2 - base.top;
+            const caminho = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const meio = (x1 + x2) / 2;
+            caminho.setAttribute('d', `M${x1},${y1} C${meio},${y1} ${meio},${y2} ${x2},${y2}`);
+            svg.appendChild(caminho);
+        }
+
+        function selecionar(cartao) {
+            const codigo = cartao.dataset.codigo;
+            const jaEstava = cartao.classList.contains('selecionada');
+            limpar();
+            if (jaEstava) return;
+            cartao.setAttribute('aria-pressed', 'true');
+            cartao.classList.add('selecionada');
+            fluxo.classList.add('com-selecao');
+            const relacionados = new Set([...alcancados(codigo, exige), ...alcancados(codigo, libera)]);
+            relacionados.forEach((c) => porCodigo[c] && porCodigo[c].classList.add('relacionada'));
+            if (svg) {
+                svg.setAttribute('width', fluxo.scrollWidth);
+                svg.setAttribute('height', fluxo.scrollHeight);
+                exige[codigo].forEach((pre) => porCodigo[pre] && seta(porCodigo[pre], cartao));
+                (libera[codigo] || []).forEach((dep) => porCodigo[dep] && seta(cartao, porCodigo[dep]));
+            }
+            mostrarDetalhes(codigo);
+        }
+
+        cartoes.forEach((cartao) => {
+            cartao.addEventListener('click', () => selecionar(cartao));
             cartao.addEventListener('keydown', (evento) => {
                 if (evento.key === 'Enter' || evento.key === ' ') {
                     evento.preventDefault();
-                    carregarDetalhes(cartao);
+                    selecionar(cartao);
                 }
             });
         });
+        document.addEventListener('keydown', (evento) => { if (evento.key === 'Escape') limpar(); });
+
+        // ---------- busca ----------
+        const campo = document.getElementById('busca-texto');
+        const semPre = document.getElementById('busca-sem-pre');
+        const resultados = busca.querySelector('.busca-resultados');
+        let espera;
+
+        async function buscar() {
+            const texto = campo.value.trim();
+            if (!texto && !semPre.checked) { resultados.replaceChildren(); return; }
+            const url = `${busca.dataset.apiBusca}?q=${encodeURIComponent(texto)}${semPre.checked ? '&sem_pre=1' : ''}`;
+            try {
+                const resposta = await fetch(url);
+                if (!resposta.ok) throw new Error();
+                const dados = await resposta.json();
+                if (!dados.resultados.length) {
+                    resultados.replaceChildren(elemento('li', 'Nenhuma disciplina encontrada.'));
+                    return;
+                }
+                resultados.replaceChildren(...dados.resultados.map((r) => {
+                    const item = elemento('li', '', `resultado ${r.status}`);
+                    item.appendChild(elemento('span', `${r.codigo} — ${r.nome}`));
+                    item.appendChild(elemento('span', r.status_legivel, 'status'));
+                    const botao = elemento('button', 'Detalhes', 'botao-detalhes');
+                    botao.type = 'button';
+                    botao.addEventListener('click', () => { limpar(); mostrarDetalhes(r.codigo); });
+                    item.appendChild(botao);
+                    return item;
+                }));
+            } catch (erro) {
+                resultados.replaceChildren(elemento('li', 'Não foi possível buscar agora. Tente novamente.'));
+            }
+        }
+
+        campo.addEventListener('input', () => { clearTimeout(espera); espera = setTimeout(buscar, 250); });
+        semPre.addEventListener('change', buscar);
     </script>
 {% endblock %}
