@@ -248,6 +248,128 @@ def montar_grade(ordem, quantidade, preferencias, feitos, tabela, classes, todos
     return escolhidas
 
 
+# Só na grade da PUC, e só manhã e tarde: o turno vira pontuação em vez de filtro.
+# Noite e modalidade (online/presencial) continuam filtro em todas as grades.
+TURNOS_QUE_ESTICAM = ("manha", "tarde")
+NOME_DO_TURNO = {"manha": "da manhã", "tarde": "da tarde"}
+
+
+def turno_de(inicio):
+    """Mesma divisão de turnos do filtro do questionário (início em minutos)."""
+    if inicio < 12 * 60:
+        return "manha"
+    if inicio < 18 * 60:
+        return "tarde"
+    return "noite"
+
+
+def montar_grade_da_puc(pool, quantidade, preferencias, feitos, tabela, classes, referencia, motivos_do_periodo):
+    """Grade só com disciplinas do período de referência, as mais importantes até a carga.
+
+    Ordem: importância (as que destravam mais primeiro); entre iguais, a que tem turma no
+    turno pedido, depois a ordem do currículo. A turma de cada uma é a de sempre (a melhor
+    pela pontuar_grade, sem conflito). Se uma não cabe, tenta trocar a turma de uma já
+    escolhida para abrir espaço; se mesmo assim não der, ela fica de fora e o aviso diz por
+    quê. Co-requisito puxa o par do mesmo período. Devolve ([(turma, horarios)], aviso)."""
+    turno = preferencias.turno
+    estica = turno in TURNOS_QUE_ESTICAM
+
+    def tem_turma_no_turno(disciplina):
+        return not estica or any(all(turno_de(i) == turno for _, i, _ in h) for _, h in disciplina["turmas"])
+
+    ordem = sorted(pool, key=lambda d: (-d["importancia"], not tem_turma_no_turno(d), d["ordem"], d["codigo"]))
+    escolhidas, conflitos, sem_co, tentadas = [], [], [], set()
+
+    def ocupados(excluir=None):
+        return [h for j, (_, _, horarios) in enumerate(escolhidas) if j != excluir for h in horarios]
+
+    def melhor_turma(disciplina):
+        melhor, melhor_nota = None, float("-inf")
+        for turma, horarios in disciplina["turmas"]:
+            if tem_conflito(ocupados(), horarios):
+                continue
+            nota = pontuar_grade([(t, h) for _, t, h in escolhidas] + [(turma, horarios)], preferencias)
+            if nota > melhor_nota:
+                melhor, melhor_nota = (turma, horarios), nota
+        return melhor
+
+    def trocar_para_caber(disciplina):
+        """Troca a turma de UMA disciplina já escolhida para a nova caber."""
+        for turma, horarios in disciplina["turmas"]:
+            batem = [j for j, (_, _, h) in enumerate(escolhidas) if tem_conflito(h, horarios)]
+            if len(batem) != 1:
+                continue
+            j = batem[0]
+            outra = escolhidas[j][0]
+            for turma_nova, horarios_novos in outra["turmas"]:
+                livres = ocupados(excluir=j)
+                if not tem_conflito(livres, horarios_novos) and not tem_conflito(horarios_novos, horarios) \
+                        and not tem_conflito(livres, horarios):
+                    escolhidas[j] = (outra, turma_nova, horarios_novos)
+                    return turma, horarios
+        return None
+
+    fila = list(ordem)
+    for _ in range(3):
+        while fila and len(escolhidas) < quantidade:
+            disciplina = fila.pop(0)
+            if disciplina["chave"] in tentadas:
+                continue
+            tentadas.add(disciplina["chave"])
+            if classe_de(disciplina["codigo"], classes) in {classe_de(e["codigo"], classes) for e, _, _ in escolhidas}:
+                continue
+            achou = melhor_turma(disciplina) or trocar_para_caber(disciplina)
+            if achou is None:
+                bloqueou = [e["nome"] for e, _, h in escolhidas
+                            if any(tem_conflito(h, horarios) for _, horarios in disciplina["turmas"])]
+                conflitos.append((disciplina, bloqueou))
+                continue
+            escolhidas.append((disciplina,) + achou)
+
+            na_grade = {e["codigo"] for e, _, _ in escolhidas}
+            if not co_requisitos_cumpridos(disciplina["codigo"], feitos, na_grade, tabela):
+                for alternativa in tabela.de(disciplina["codigo"], "co"):
+                    faltam = [c for c in alternativa if c not in feitos and c not in na_grade]
+                    pares = [p for p in pool if p["codigo"] in faltam]
+                    if len(pares) == len(faltam):
+                        for par in reversed(pares):
+                            tentadas.discard(par["chave"])
+                            fila.insert(0, par)
+                        break
+
+        restantes = sem_co_requisito_faltando([(t, h) for _, t, h in escolhidas], feitos, tabela)
+        ficam = {t.id for t, _ in restantes}
+        sem_co += [e for e, t, _ in escolhidas if t.id not in ficam]
+        if len(ficam) == len(escolhidas):
+            break
+        escolhidas = [x for x in escolhidas if x[1].id in ficam]
+
+    # O que diverge do pedido, em português simples
+    partes = []
+    usadas = {e["chave"] for e, _, _ in escolhidas}
+    fora = {d["chave"] for d, _ in conflitos} | {d["chave"] for d in sem_co}
+    excedentes = [d for d in ordem if d["chave"] not in usadas and d["chave"] not in fora]
+    if excedentes and len(escolhidas) >= quantidade:
+        partes.append(
+            f"Segue a grade da PUC ({referencia}º período) com as {len(escolhidas)} disciplinas mais importantes; "
+            f"ficaram de fora: {', '.join(d['nome'] for d in excedentes)}"
+        )
+    if len(escolhidas) < quantidade:
+        partes.append(f"Só há {len(escolhidas)} disciplina(s) do {referencia}º período que você pode cursar "
+                      f"(você pediu {quantidade})")
+    if estica:
+        fora_do_turno = sum(1 for _, _, horarios in escolhidas for _, inicio, _ in horarios if turno_de(inicio) != turno)
+        if fora_do_turno:
+            partes.append(f"{fora_do_turno} aula(s) fora do turno {NOME_DO_TURNO[turno]}")
+    for disciplina, bloqueou in conflitos:
+        partes.append(f"{disciplina['nome']} não entra: as turmas batem com {', '.join(bloqueou) or 'outra disciplina'}")
+    for disciplina in sem_co:
+        partes.append(f"{disciplina['nome']} não entra: falta co-requisito")
+    partes += motivos_do_periodo
+    aviso = ". ".join(partes) + "." if partes else ""
+    return [(t, h) for _, t, h in escolhidas], aviso
+
+
 def gerar_grades(aluno, preferencias, limite=4):
     """Gera até quatro grades sem conflitos conhecidos, guiadas pela grade da PUC
     (periodização do currículo) e pelo histórico do aluno.
@@ -272,10 +394,19 @@ def gerar_grades(aluno, preferencias, limite=4):
             periodo_no_curriculo[item.codigo] = item.periodo
         nome_no_curriculo.setdefault(item.codigo, item.nome)
         creditos_no_curriculo.setdefault(item.codigo, item.creditos)
+    ordem_no_curriculo = {}
+    for item in sorted(itens, key=lambda i: (ordem_do_item(i.periodo), i.ordem)):
+        ordem_no_curriculo.setdefault(item.codigo, len(ordem_no_curriculo))
     pendentes = {c for c in periodo_no_curriculo if c not in feitos}
     pendentes_por_periodo = defaultdict(set)
     for codigo in pendentes:
         pendentes_por_periodo[periodo_no_curriculo[codigo]].add(codigo)
+    atual, referencia = periodos_do_aluno(aluno, curriculo, pendentes_por_periodo, classes)
+
+    # Grade da PUC: com turno manhã ou tarde, o turno deixa de ser filtro só nela e vira
+    # pontuação (pontuar_grade prefere o turno pedido). Noite e modalidade continuam filtro.
+    estica_o_turno = preferencias.turno in TURNOS_QUE_ESTICAM
+    candidatos_da_puc = defaultdict(list)
 
     candidatos = defaultdict(list)
     turmas = (
@@ -303,6 +434,9 @@ def gerar_grades(aluno, preferencias, limite=4):
             continue
         turno = preferencias.turno
 
+        if estica_o_turno and periodo_no_curriculo.get(turma.disciplina.codigo) == referencia:
+            candidatos_da_puc[turma.disciplina_id].append((turma, horarios))
+
         if turno != "sem_preferencia":
             def turno_do_horario(inicio):
                 if inicio < 12 * 60:
@@ -325,25 +459,40 @@ def gerar_grades(aluno, preferencias, limite=4):
         disciplina: grupo for disciplina, grupo in candidatos.items()
         if co_requisitos_cumpridos(grupo[0][0].disciplina.codigo, feitos, codigos_candidatos, tabela)
     }
-    if not candidatos:
+    if not estica_o_turno:
+        # sem esticar o turno, a grade da PUC usa as mesmas turmas das outras
+        candidatos_da_puc = {
+            chave: grupo for chave, grupo in candidatos.items()
+            if periodo_no_curriculo.get(grupo[0][0].disciplina.codigo) == referencia
+        }
+    # co-requisito da grade da PUC: feito ou outra disciplina do próprio período
+    codigos_da_puc = {grupo[0][0].disciplina.codigo for grupo in candidatos_da_puc.values()}
+    candidatos_da_puc = {
+        chave: grupo for chave, grupo in candidatos_da_puc.items()
+        if co_requisitos_cumpridos(grupo[0][0].disciplina.codigo, feitos, codigos_da_puc, tabela)
+    }
+    if not candidatos and not candidatos_da_puc:
         return []
 
-    atual, referencia = periodos_do_aluno(aluno, curriculo, pendentes_por_periodo, classes)
     dependentes = dependentes_pendentes(pendentes, tabela, classes)
-    elegiveis = []
-    for chave, grupo in candidatos.items():
+
+    def descrever(chave, grupo):
         codigo = grupo[0][0].disciplina.codigo
         periodo = periodo_no_curriculo.get(codigo)
         situacao = situacao_do_item(periodo, atual, referencia)
-        elegiveis.append({
+        return {
             "chave": chave, "codigo": codigo, "turmas": grupo, "periodo": periodo, "situacao": situacao,
             "dependentes": dependentes.get(codigo, 0),
             "importancia": PESO_DA_SITUACAO[situacao] + PESO_POR_DEPENDENTE * dependentes.get(codigo, 0),
             "nome": nome_no_curriculo.get(codigo) or grupo[0][0].disciplina.nome,
             "creditos": creditos_no_curriculo.get(codigo) or grupo[0][0].disciplina.creditos or 0,
-        })
+            "ordem": ordem_no_curriculo.get(codigo, 9999),
+        }
+
+    elegiveis = [descrever(chave, grupo) for chave, grupo in candidatos.items()]
     elegiveis.sort(key=lambda d: (-d["importancia"], ordem_do_item(d["periodo"]), d["codigo"]))
     todos = {d["codigo"]: d for d in elegiveis}
+    do_periodo_da_puc = [descrever(chave, grupo) for chave, grupo in candidatos_da_puc.items()]
 
     do_periodo = [d for d in elegiveis if d["situacao"] == "do período"]
     atrasadas = [d for d in elegiveis if d["situacao"] == "atrasada"]
@@ -358,11 +507,17 @@ def gerar_grades(aluno, preferencias, limite=4):
     def nomes(lista):
         return ", ".join(d["nome"] for d in lista[:2]) + ("..." if len(lista) > 2 else "")
 
+    # Adianta: 1 ou 2 disciplinas do período (as que destravam mais) + adiantadas
+    do_periodo_no_adianta = sorted(
+        do_periodo, key=lambda d: (-d["dependentes"], -d["importancia"], d["ordem"], d["codigo"])
+    )[:1 if quantidade <= 3 else 2]
+
+    def rotulo_do_adianta(disciplinas):
+        adiantou = [d for d in disciplinas if d["situacao"] == "adiantada"]
+        do_periodo_aqui = [d for d in disciplinas if d["situacao"] == "do período"]
+        return "Adianta: " + nomes(adiantou) + (" + " + nomes(do_periodo_aqui) if do_periodo_aqui else "")
+
     estrategias = [
-        # Segue a grade da PUC: o período de referência; atrasada/adiantada só se for gargalo
-        # (e, se faltar disciplina para a carga, o resto pela importância).
-        ("puc", por_importancia(do_periodo + gargalos) + resto, True,
-         lambda d_: f"Segue a grade da PUC ({referencia}º período)"),
         # Em dia + recupera atrasada
         ("recupera", por_importancia(atrasadas) + por_importancia(do_periodo + [g for g in gargalos if g not in atrasadas])
          + [d for d in resto if d not in atrasadas], True,
@@ -371,20 +526,20 @@ def gerar_grades(aluno, preferencias, limite=4):
         ("so_periodo", (do_periodo[:quantidade - 1] + do_periodo[quantidade:] + [do_periodo[quantidade - 1]])
          if len(do_periodo) > quantidade else list(do_periodo), False,
          lambda d_: f"Só o {referencia}º período, outra combinação"),
-        # Adianta: disciplinas de períodos à frente, as que destravam mais primeiro
-        ("adianta", por_importancia(adiantadas) + do_periodo, True,
-         lambda d_: "Variação: adianta " + nomes([d for d in d_ if d["situacao"] == "adiantada"])),
+        # Adianta: 1 ou 2 do período (as que destravam mais) e adiantadas, as que destravam mais primeiro
+        ("adianta", do_periodo_no_adianta + por_importancia(adiantadas), False, rotulo_do_adianta),
     ]
 
     resultados, vistos, turmas_usadas = [], set(), set()
+    por_chave_de_tudo = {d["chave"]: d for d in do_periodo_da_puc + elegiveis}
 
-    def registrar(estrategia, escolhidas, rotulo_de):
+    def registrar(estrategia, escolhidas, rotulo_de, aviso_pronto=None):
         if not escolhidas:
             return False
         chave = tuple(sorted(turma.id for turma, _ in escolhidas))
         if chave in vistos:
             return False
-        por_chave = {d["chave"]: d for d in elegiveis}
+        por_chave = por_chave_de_tudo
         disciplinas = [por_chave[turma.disciplina_id] for turma, _ in escolhidas]
         if estrategia == "recupera" and not any(d["situacao"] == "atrasada" for d in disciplinas):
             return False
@@ -394,7 +549,9 @@ def gerar_grades(aluno, preferencias, limite=4):
         turmas_usadas.update(turma.id for turma, _ in escolhidas)
         creditos = sum(d["creditos"] for d in disciplinas)
         aviso = ""
-        if len(escolhidas) < quantidade and estrategia == "so_periodo":
+        if aviso_pronto is not None:
+            aviso = aviso_pronto
+        elif len(escolhidas) < quantidade and estrategia == "so_periodo":
             # esta opção fica só no período de referência de propósito
             aviso = (f"Só há {len(escolhidas)} disciplina(s) do {referencia}º período que você pode cursar "
                      f"(você pediu {quantidade}); as outras opções completam com disciplinas de outros períodos.")
@@ -438,6 +595,33 @@ def gerar_grades(aluno, preferencias, limite=4):
         topo = max(c[1] for c in mesmas)
         perto = [c for c in mesmas if c[1] >= topo - 3]      # nunca troca um gargalo por créditos
         return min(perto, key=lambda c: (abs(c[2] - alvo_de_creditos), -pontuar_grade(c[0], preferencias)))[0]
+
+    def avisos_do_periodo(codigos_do_periodo, pool):
+        """Por que cada disciplina pendente do período de referência não pode entrar."""
+        no_pool = {d["codigo"] for d in pool}
+        motivos = []
+        for codigo in sorted(codigos_do_periodo - no_pool, key=lambda c: ordem_no_curriculo.get(c, 9999)):
+            todas = Turma.objects.filter(disciplina__codigo=codigo)
+            if not todas.exists():
+                motivo = "sem turma neste semestre"
+            elif not todas.filter(vagas__gt=0).exists():
+                motivo = "sem vaga"
+            elif not pre_requisitos_cumpridos(codigo, feitos, tabela):
+                motivo = "falta pré-requisito"
+            elif not co_requisitos_cumpridos(codigo, feitos, no_pool, tabela):
+                motivo = "falta co-requisito"
+            else:
+                motivo = "nenhuma turma no turno ou na modalidade escolhidos"
+            motivos.append(f"{nome_no_curriculo.get(codigo, codigo)} não entra: {motivo}")
+        return motivos
+
+    # Segue a grade da PUC: só disciplinas do período de referência, as mais importantes até a carga.
+    if do_periodo_da_puc:
+        escolhidas_da_puc, aviso_da_puc = montar_grade_da_puc(
+            do_periodo_da_puc, quantidade, preferencias, feitos, tabela, classes, referencia,
+            avisos_do_periodo(pendentes_por_periodo.get(referencia, set()), do_periodo_da_puc),
+        )
+        registrar("puc", escolhidas_da_puc, lambda d_: f"Segue a grade da PUC ({referencia}º período)", aviso_da_puc)
 
     for estrategia, ordem, extras, rotulo_de in estrategias:
         if len(resultados) >= limite or not ordem:

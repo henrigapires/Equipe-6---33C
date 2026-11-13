@@ -52,13 +52,19 @@ class GradesDaPucTestCase(SemCurriculosCarregados, TestCase):
         salvar_espelho(aluno, dados_espelho(linhas, curso="CEG", habilitacao="TST", enfase=""))
         return aluno
 
-    def grades(self, aluno, carga="media"):
-        preferencias = RotinaPreferencias(aluno=aluno, turno="sem_preferencia", modalidade="hibrido",
+    def grades(self, aluno, carga="media", turno="sem_preferencia", modalidade="hibrido"):
+        preferencias = RotinaPreferencias(aluno=aluno, turno=turno, modalidade=modalidade,
                                           distribuicao_aulas="tanto_faz", janelas="tanto_faz", carga_disciplinas=carga)
         return gerar_grades(aluno, preferencias)
 
     def codigos(self, grade):
         return [t.disciplina.codigo for t in grade["turmas"]]
+
+    def da_puc(self, grades):
+        """A grade "Segue a grade da PUC" (sem depender da posição na lista)."""
+        achadas = [g for g in grades if g["estrategia"] == "puc"]
+        self.assertEqual(len(achadas), 1, "sem grade da PUC")
+        return achadas[0]
 
     def conferir_basico(self, grades, quantidade):
         self.assertTrue(grades)
@@ -99,8 +105,7 @@ class AlunoEmDiaTests(GradesDaPucTestCase):
         aluno = self.aluno_com("9800010", cursadas=PERIODOS[1], em_andamento=PERIODOS[2])
         grades = self.grades(aluno, "media")
         self.conferir_basico(grades, 5)
-        puc = grades[0]
-        self.assertEqual(puc["estrategia"], "puc")
+        puc = self.da_puc(grades)
         self.assertEqual(puc["rotulo"], "Segue a grade da PUC (3º período)")
         self.assertEqual(sorted(self.codigos(puc)), PERIODOS[3])
         marcas = [m for g in grades for m in g["marcas"].values()]
@@ -111,13 +116,15 @@ class AlunoEmDiaTests(GradesDaPucTestCase):
         for carga, quantidade in (("leve", 3), ("media", 5)):
             grades = self.grades(aluno, carga)
             self.conferir_basico(grades, quantidade)
-            self.assertEqual(len(grades[0]["turmas"]), quantidade)
-            self.assertEqual(grades[0]["aviso"], "")
-        # pesada (7): só há 6 que ele pode cursar (5 do 3º + TST4005): grade menor com aviso
+            self.assertEqual(len(self.da_puc(grades)["turmas"]), quantidade)
+        self.assertEqual(self.da_puc(self.grades(aluno, "media"))["aviso"], "")
+        # pesada (7): a grade da PUC fica com as 5 do 3º período (não completa com outros);
+        # outra opção chega a 6 (5 do 3º + TST4005) e avisa que é menor que o pedido
         pesada = self.grades(aluno, "pesada")
         self.conferir_basico(pesada, 7)
-        self.assertEqual(len(pesada[0]["turmas"]), 6)
-        self.assertIn("Só encontramos 6 disciplina(s)", pesada[0]["aviso"])
+        self.assertEqual(sorted(self.codigos(self.da_puc(pesada))), PERIODOS[3])
+        self.assertIn("Só há 5 disciplina(s) do 3º período", self.da_puc(pesada)["aviso"])
+        self.assertTrue(any(len(g["turmas"]) == 6 and "Só encontramos 6" in g["aviso"] for g in pesada))
 
 
 class AlunoComAtrasadaTests(GradesDaPucTestCase):
@@ -136,11 +143,13 @@ class AlunoComAtrasadaTests(GradesDaPucTestCase):
         cursadas = [c for c in PERIODOS[1] if c != "TST1004"]
         aluno = self.aluno_com("9800021", cursadas=cursadas, em_andamento=PERIODOS[2])
         grades = self.grades(aluno, "leve")
-        self.assertEqual([g["estrategia"] for g in grades], ["puc", "recupera", "so_periodo", "adianta"])
-        self.assertEqual(grades[1]["rotulo"], "Em dia + recupera atrasada: Disciplina TST1004")
-        self.assertTrue(grades[3]["rotulo"].startswith("Variação: adianta "))
-        # "só o período" não tem atrasada nem adiantada
-        self.assertEqual(set(grades[2]["marcas"].values()), {"do período"})
+        por_estrategia = {g["estrategia"]: g for g in grades}
+        self.assertEqual(set(por_estrategia), {"puc", "recupera", "so_periodo", "adianta"})
+        self.assertEqual(por_estrategia["recupera"]["rotulo"], "Em dia + recupera atrasada: Disciplina TST1004")
+        self.assertTrue(por_estrategia["adianta"]["rotulo"].startswith("Adianta: "))
+        # "da PUC" e "só o período" não têm atrasada nem adiantada
+        self.assertEqual(set(por_estrategia["puc"]["marcas"].values()), {"do período"})
+        self.assertEqual(set(por_estrategia["so_periodo"]["marcas"].values()), {"do período"})
 
     def test_atrasada_sem_dependentes_pesa_menos_que_do_periodo_que_destrava_muito(self):
         cursadas = [c for c in PERIODOS[1] if c != "TST1004"]
@@ -150,15 +159,16 @@ class AlunoComAtrasadaTests(GradesDaPucTestCase):
         self.assertEqual(importancias["TST3002"], 10 + 4 * 3)           # do período, destrava 3
         self.assertLess(importancias["TST1004"], importancias["TST3002"])
 
-    def test_atrasada_gargalo_pesa_mais_e_entra_ate_na_grade_da_puc(self):
+    def test_atrasada_gargalo_pesa_mais_e_entra_na_que_recupera(self):
         # não fez TST1001 (destrava TST2001 -> TST3001 -> TST4001)
         cursadas = [c for c in PERIODOS[1] if c != "TST1001"]
         aluno = self.aluno_com("9800023", cursadas=cursadas, em_andamento=[c for c in PERIODOS[2] if c != "TST2001"])
         grades = self.grades(aluno, "leve")
         self.conferir_basico(grades, 3)
-        self.assertEqual(grades[0]["importancias"]["TST1001"], 6 + 4 * 3)
-        self.assertIn("TST1001", self.codigos(grades[0]))              # grade "da PUC"
-        self.assertGreater(sum("TST1001" in self.codigos(g) for g in grades), 1)
+        self.assertEqual(grades[0]["importancias"]["TST1001"], 6 + 4 * 3)   # atrasada sem dependentes: 6
+        self.assertNotIn("TST1001", self.codigos(self.da_puc(grades)))      # a da PUC é só do período
+        recupera = [g for g in grades if g["estrategia"] == "recupera"][0]
+        self.assertIn("TST1001", self.codigos(recupera))
 
 
 class AlunoAdiantadoTests(GradesDaPucTestCase):
@@ -200,3 +210,91 @@ class TelaDeGradesSugeridasTests(GradesDaPucTestCase):
         self.assertContains(resposta, 'class="marca marca-atrasada"')
         self.assertContains(resposta, 'class="marca marca-do-periodo"')
         self.assertContains(resposta, "Quantidade de créditos")
+
+
+class GradeDaPucAjustadaAoQuestionarioTests(GradesDaPucTestCase):
+    """A grade "Segue a grade da PUC": só disciplinas do período de referência, as mais
+    importantes até a carga. Estica só o turno manhã/tarde; noite e modalidade são filtro."""
+
+    def em_dia(self, matricula):
+        return self.aluno_com(matricula, cursadas=PERIODOS[1], em_andamento=PERIODOS[2])
+
+    def test_carga_leve_com_cinco_cursaveis_ficam_as_tres_mais_importantes(self):
+        puc = self.da_puc(self.grades(self.em_dia("9800060"), "leve"))
+        # TST3002 destrava 3 (22), TST3001 destrava 1 (14), depois a ordem do currículo
+        self.assertEqual(sorted(self.codigos(puc)), ["TST3001", "TST3002", "TST3003"])
+        self.assertIn("com as 3 disciplinas mais importantes; ficaram de fora: Disciplina TST3004, Disciplina TST3005",
+                      puc["aviso"])
+
+    def test_carga_pesada_com_quatro_cursaveis_nao_completa_com_outros_periodos(self):
+        aluno = self.aluno_com("9800061", cursadas=PERIODOS[1] + ["TST3005"], em_andamento=PERIODOS[2])
+        puc = self.da_puc(self.grades(aluno, "pesada"))
+        self.assertEqual(sorted(self.codigos(puc)), ["TST3001", "TST3002", "TST3003", "TST3004"])
+        self.assertEqual(set(puc["marcas"].values()), {"do período"})
+        self.assertIn("Só há 4 disciplina(s) do 3º período", puc["aviso"])
+
+    def test_turno_manha_estica_so_na_grade_da_puc_e_avisa(self):
+        # só TST3001 tem turma de manhã; as outras quatro só à tarde
+        grades = self.grades(self.em_dia("9800062"), "media", turno="manha")
+        puc = self.da_puc(grades)
+        self.assertEqual(sorted(self.codigos(puc)), PERIODOS[3])
+        self.assertIn("4 aula(s) fora do turno da manhã", puc["aviso"])
+        manha = [t for t in puc["turmas"] if t.disciplina.codigo == "TST3001"][0]
+        self.assertTrue(manha.dias_horarios.endswith("11-13"))
+        # as outras grades continuam com o turno como filtro
+        for grade in grades:
+            if grade["estrategia"] != "puc":
+                self.assertNotIn("TST3002", self.codigos(grade))
+
+    def test_turno_noite_e_online_nao_esticam_e_a_mensagem_continua_igual(self):
+        aluno = self.em_dia("9800063")
+        self.assertEqual(self.grades(aluno, "media", turno="noite"), [])
+        self.assertEqual(self.grades(aluno, "media", modalidade="online"), [])
+        RotinaPreferencias.objects.create(aluno=aluno, turno="noite", modalidade="hibrido",
+                                          distribuicao_aulas="tanto_faz", janelas="tanto_faz", carga_disciplinas="media")
+        self.client.force_login(aluno.usuario)
+        resposta = self.client.get("/grades-sugeridas/")
+        self.assertContains(resposta, "Não foi possível gerar grades")
+        self.assertContains(resposta, "Tente alterar o turno ou a modalidade para")
+
+    def test_conflito_inevitavel_sai_a_menos_importante_com_aviso(self):
+        # as duas turmas de TST3003 ocupam os dois horários de TST3002 (SEG e TER 13-15)
+        Turma.objects.filter(disciplina__codigo="TST3003").update(dias_horarios="SEG 13-15; TER 13-15")
+        puc = self.da_puc(self.grades(self.em_dia("9800064"), "media"))
+        self.assertIn("TST3002", self.codigos(puc))
+        self.assertNotIn("TST3003", self.codigos(puc))
+        self.assertIn("Disciplina TST3003 não entra: as turmas batem com Disciplina TST3002", puc["aviso"])
+
+    def test_troca_de_turma_para_as_duas_caberem(self):
+        # TST3003 só tem uma turma, no mesmo horário de uma das turmas de TST3002
+        Turma.objects.filter(disciplina__codigo="TST3003", codigo_turma="3VB").delete()
+        Turma.objects.filter(disciplina__codigo="TST3003").update(dias_horarios="SEG 13-15")
+        puc = self.da_puc(self.grades(self.em_dia("9800065"), "media"))
+        self.assertTrue({"TST3002", "TST3003"} <= set(self.codigos(puc)))
+        self.assertNotIn("não entra", puc["aviso"])
+
+    def test_disciplina_do_periodo_que_nao_pode_entrar_aparece_no_aviso(self):
+        Turma.objects.filter(disciplina__codigo="TST3005").update(vagas=0)
+        puc = self.da_puc(self.grades(self.em_dia("9800066"), "media"))
+        self.assertIn("Disciplina TST3005 não entra: sem vaga", puc["aviso"])
+
+
+class AdiantaTemDisciplinaDoPeriodoTests(GradesDaPucTestCase):
+    def adianta(self, carga):
+        aluno = self.aluno_com(f"98001{carga[:2]}", cursadas=PERIODOS[1], em_andamento=PERIODOS[2])
+        achadas = [g for g in self.grades(aluno, carga) if g["estrategia"] == "adianta"]
+        self.assertEqual(len(achadas), 1)
+        return achadas[0]
+
+    def test_leve_uma_do_periodo_a_que_destrava_mais(self):
+        grade = self.adianta("leve")
+        do_periodo = [t.disciplina.codigo for t in grade["turmas"] if grade["marcas"][t.id] == "do período"]
+        self.assertEqual(do_periodo, ["TST3002"])                       # destrava 3
+        self.assertIn("adiantada", grade["marcas"].values())
+        self.assertTrue(grade["rotulo"].startswith("Adianta: Disciplina TST4005 + Disciplina TST3002"))
+
+    def test_media_duas_do_periodo_e_nunca_so_adiantadas(self):
+        grade = self.adianta("media")
+        do_periodo = sorted(t.disciplina.codigo for t in grade["turmas"] if grade["marcas"][t.id] == "do período")
+        self.assertEqual(do_periodo, ["TST3001", "TST3002"])            # as de mais dependentes
+        self.assertGreaterEqual(list(grade["marcas"].values()).count("adiantada"), 1)

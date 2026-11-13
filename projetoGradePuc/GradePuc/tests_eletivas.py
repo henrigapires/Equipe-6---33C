@@ -330,8 +330,14 @@ class TelaDeEletivasTests(EletivasTestCase):
 		self.assertIn('Para a Grade sugerida 1', html)
 		self.assertIn('ENG9500', html)
 		self.assertIn('Item ENG0561', html)     # "Conta como": nome do grupo no currículo
-		self.assertNotIn('ENG9501', html)
 		self.assertNotIn('FIL9002', html)
+		# ENG9501 bate com ENG9001: não aparece nas grades que têm ENG9001
+		# (a grade "Adianta" pode não ter ENG9001, e aí ela cabe)
+		blocos = html.split('Para a Grade sugerida')[1:]
+		com_eng9001 = [b for b in blocos if 'ENG9001' in b.split('</p>')[0]]
+		self.assertTrue(com_eng9001)
+		for bloco in com_eng9001:
+			self.assertNotIn('ENG9501', bloco)
 
 	def test_sem_questionario_vai_para_o_questionario(self):
 		self.client.force_login(self.aluno.usuario)
