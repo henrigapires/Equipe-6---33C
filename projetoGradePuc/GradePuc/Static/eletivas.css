@@ -29,6 +29,11 @@ h1 {
   color: var(--cor-tinta-secundaria);
 }
 
+/* cabeçalho (título, subtítulo e busca) alinhado com a caixa "Para a Grade" e os cartões */
+.cabecalho-eletivas {
+  padding: var(--espaco-5) var(--espaco-7) 0;
+}
+
 .busca {
   display: flex;
   gap: var(--espaco-2);
@@ -170,6 +175,10 @@ h1 {
         min-width: 180px;
     }
 
+    .cabecalho-eletivas {
+        padding: var(--espaco-5) var(--espaco-4) 0;
+    }
+
     .eletivas {
         padding: 0 var(--espaco-4);
         gap: var(--espaco-4);
@@ -220,6 +229,10 @@ h1 {
         width: 100%;
         min-width: 0;
         padding: var(--espaco-3);
+    }
+
+    .cabecalho-eletivas {
+        padding: var(--espaco-4) var(--espaco-3) 0;
     }
 
     .eletivas {
