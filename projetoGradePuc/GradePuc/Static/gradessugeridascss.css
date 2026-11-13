@@ -187,3 +187,46 @@ h1 {
     }
 
 }
+
+/* Grades guiadas pela grade da PUC: aviso de grade menor e marca de cada disciplina */
+.aviso-grade {
+    margin: 0 0 var(--espaco-3);
+    padding: var(--espaco-2) var(--espaco-3);
+    border-left: 4px solid var(--cor-aviso);
+    border-radius: var(--raio-pequeno);
+    background-color: var(--cor-superficie-aviso);
+}
+
+.lista-marcas {
+    margin: var(--espaco-2) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lista-marcas li {
+    margin-bottom: var(--espaco-1);
+}
+
+.marca {
+    margin-left: var(--espaco-1);
+    padding: 0 var(--espaco-2);
+    border-radius: var(--raio-pequeno);
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.marca-do-periodo {
+    background-color: var(--cor-superficie-suave);
+    color: var(--cor-musgo);
+}
+
+.marca-atrasada {
+    background-color: var(--cor-superficie-aviso);
+    color: var(--cor-aviso);
+}
+
+.marca-adiantada {
+    background-color: var(--cor-superficie-suave);
+    color: var(--cor-terracota);
+}

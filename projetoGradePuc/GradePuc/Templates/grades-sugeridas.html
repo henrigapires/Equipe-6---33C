@@ -13,6 +13,12 @@
   <div>
     <h1>Grades sugeridas</h1>
     <p class="subtitulo">Com base nas suas preferências, geramos sugestões de grade que podem funcionar para você.</p>
+    {% if periodo_referencia %}
+    <p class="subtitulo">
+        <strong>Grades para o {{ periodo_referencia }}º período</strong>
+        · período atual detectado: {% if periodo_atual %}{{ periodo_atual }}º{% else %}nenhuma disciplina em andamento{% endif %}
+    </p>
+    {% endif %}
   </div>
   <a href="{% url 'questionario' %}" class="botao-borda">Refazer questionário</a>
 </div>
@@ -50,11 +56,21 @@
                 </div>
             </div>
             
+            {% if o.aviso %}<p class="aviso-grade">{{ o.aviso }}</p>{% endif %}
+
             <h2 class="titulo-horarios">Horários da semana</h2>
             {% include 'grade_semanal.html' with dias=o.dias grade_linhas=o.grade_linhas %}
 
             <div class="informacoes">
                 <p>Quantidade de créditos: <strong>{{ o.total_creditos }}</strong></p>
+                <ul class="lista-marcas">
+                    {% for item in o.disciplinas %}
+                    <li>
+                        <span class="hora">{{ item.turma.disciplina.codigo }}</span> {{ item.turma.disciplina.nome }}
+                        {% if item.marca %}<span class="marca marca-{{ item.marca|slugify }}">{{ item.marca }}</span>{% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
             </div>
 
             <div class="motivo">

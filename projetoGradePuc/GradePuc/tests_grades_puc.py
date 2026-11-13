@@ -184,3 +184,19 @@ class FimDoCursoTests(GradesDaPucTestCase):
         self.assertEqual(sorted(self.codigos(grades[0])), restantes)
         self.assertIn("você pediu 5", grades[0]["aviso"])
 
+
+class TelaDeGradesSugeridasTests(GradesDaPucTestCase):
+    def test_mostra_periodo_rotulo_marcas_e_creditos(self):
+        cursadas = [c for c in PERIODOS[1] if c != "TST1004"]
+        aluno = self.aluno_com("9800050", cursadas=cursadas, em_andamento=PERIODOS[2])
+        RotinaPreferencias.objects.create(aluno=aluno, turno="sem_preferencia", modalidade="hibrido",
+                                          distribuicao_aulas="tanto_faz", janelas="tanto_faz", carga_disciplinas="leve")
+        self.client.force_login(aluno.usuario)
+        resposta = self.client.get("/grades-sugeridas/")
+        self.assertContains(resposta, "Grades para o 3º período")
+        self.assertContains(resposta, "período atual detectado: 2º")
+        self.assertContains(resposta, "Segue a grade da PUC (3º período)")
+        self.assertContains(resposta, "Em dia + recupera atrasada")
+        self.assertContains(resposta, 'class="marca marca-atrasada"')
+        self.assertContains(resposta, 'class="marca marca-do-periodo"')
+        self.assertContains(resposta, "Quantidade de créditos")

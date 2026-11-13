@@ -697,9 +697,15 @@ def gradessugeridas(request):
     opcoes = [
         {
             'numero': str(indice),
-            'titulo': f'Grade sugerida {indice}',
+            # rótulo da estratégia ("Segue a grade da PUC (3º período)"...)
+            'titulo': grade.get('rotulo') or f'Grade sugerida {indice}',
             'turmas': grade['turmas'],
             'pontuacao': grade['pontuacao'],
+            'aviso': grade.get('aviso', ''),
+            'disciplinas': [
+                {'turma': turma, 'marca': grade.get('marcas', {}).get(turma.id, '')}
+                for turma in grade['turmas']
+            ],
         }
         for indice, grade in enumerate(grades, start=1)
     ]
@@ -732,6 +738,8 @@ def gradessugeridas(request):
 
     return render(request, 'grades-sugeridas.html', {
         'opcoes': opcoes,
+        'periodo_referencia': grades[0].get('periodo_referencia') if grades else None,
+        'periodo_atual': grades[0].get('periodo_atual') if grades else None,
     })
 
 
