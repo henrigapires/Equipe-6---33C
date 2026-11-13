@@ -88,32 +88,25 @@ h1 {
     background-color: var(--cor-terracota);
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
+/* A grade semanal usa os mesmos estilos da tela Minha grade. */
+.titulo-horarios {
+    margin: var(--espaco-4) 0;
+    font-size: 21px;
 }
 
-th {
-    padding: var(--espaco-2);
-    background-color: var(--cor-borda);
+.caixa {
+    min-width: 0;
+    border-radius: var(--raio-medio);
 }
 
-td {
-    height: 26px;
-    border: 1px solid var(--cor-borda);
+.etiqueta,
+.botao,
+.botao-borda {
+    border-radius: var(--raio-pequeno);
 }
 
-.hora {
-    color: var(--cor-tinta-secundaria);
-    text-align: center;
-}
-
-.aula {
-    border-left: 4px solid var(--cor-terracota);
-    background-color: var(--cor-superficie-suave);
-    font-weight: bold;
-    text-align: center;
+.botao {
+    cursor: pointer;
 }
 
 .motivo {
@@ -193,16 +186,4 @@ td {
         align-items: flex-start;
     }
 
-    table {
-        display: block;
-        width: 100%;
-        overflow-x: auto;
-        table-layout: auto;
-    }
-
-    th,
-    td {
-        padding: var(--espaco-2);
-        white-space: nowrap;
-    }
 }

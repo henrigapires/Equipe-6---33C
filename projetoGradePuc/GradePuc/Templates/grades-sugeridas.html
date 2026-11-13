@@ -4,6 +4,7 @@
 {% block title %}Grades sugeridas{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'resumo_da_grade.css' %}">
 <link rel="stylesheet" href="{% static 'gradessugeridascss.css' %}">
 {% endblock %}
 
@@ -49,23 +50,13 @@
                 </div>
             </div>
             
-            <table>
-                <tr>
-                    <th>Disciplina</th>
-                    <th>Horário</th>
-                    <th>Professor</th>
-                    <th>Sala</th>
-                </tr>
-                {% for t in o.turmas %}
-                <tr>
-                    <td>{{ t.disciplina.nome }}</td>
-                    <td>{{ t.dias_horarios }}</td>
-                    <td>{{ t.professor.nome }}</td>
-                    <td>{{ t.sala }}</td>
-                </tr>
-                {% endfor %}
-            </table>
-            
+            <h2 class="titulo-horarios">Horários da semana</h2>
+            {% include 'grade_semanal.html' with dias=o.dias grade_linhas=o.grade_linhas %}
+
+            <div class="informacoes">
+                <p>Quantidade de créditos: <strong>{{ o.total_creditos }}</strong></p>
+            </div>
+
             <div class="motivo">
                 <p><b>Por que sugerimos?</b> Esta combinação respeita seu turno e distribui bem as disciplinas durante a semana.</p>
             </div>

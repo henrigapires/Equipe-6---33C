@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from .gerador_grades import gerar_grades
 from .eletivas import sugerir_para_grades
+from .gerador_grades import gerar_grades, interpretar_horarios
 from django.contrib import messages
 from .espelho import EspelhoInvalido, EspelhoSemTexto, classificar_situacao, ler_espelho
 from .historico import curriculo_do_aluno, remover_historico, salvar_espelho
@@ -321,6 +322,57 @@ def api_disciplina(request, disciplina_id):
         ],
     })
 
+def montar_grade_semanal(turmas_lista):
+    dias = [
+        ('SEG', 'Segunda'),
+        ('TER', 'Terça'),
+        ('QUA', 'Quarta'),
+        ('QUI', 'Quinta'),
+        ('SEX', 'Sexta'),
+    ]
+
+    aulas = []
+    limites = set()
+    for turma in turmas_lista:
+        for dia, inicio, fim in interpretar_horarios(turma.dias_horarios) or []:
+            aulas.append((dia, inicio, fim, turma))
+            limites.update((inicio, fim))
+
+    if any(dia == 5 for dia, _, _, _ in aulas):
+        dias.append(('SAB', 'Sábado'))
+
+    if not limites:
+        return dias, []
+
+    # Mantém linhas de uma hora e inclui os minutos exatos de início e fim.
+    limites.update(range(min(limites) // 60 * 60, max(limites), 60))
+    horarios = sorted(limites)
+    indices = {hora: indice for indice, hora in enumerate(horarios)}
+    aulas_por_dia = [{} for _ in dias]
+    for dia, inicio, fim, turma in aulas:
+        aulas_por_dia[dia][inicio] = {
+            'turma': turma,
+            'rowspan': indices[fim] - indices[inicio],
+            'vazia': False,
+        }
+        for hora in horarios[indices[inicio] + 1:indices[fim]]:
+            aulas_por_dia[dia][hora] = None
+
+    def formatar(hora):
+        horas, minutos = divmod(hora, 60)
+        return f'{horas:02d}:{minutos:02d}' if minutos else f'{horas:02d}'
+
+    grade_linhas = [
+        {
+            'horario': f'{formatar(inicio)}-{formatar(fim)}',
+            'celulas': [dia.get(inicio, {'vazia': True}) for dia in aulas_por_dia],
+        }
+        for inicio, fim in zip(horarios, horarios[1:])
+    ]
+
+    return dias, grade_linhas
+
+
 @login_required
 def resumo_da_grade(request):
     aluno = obter_aluno(request)
@@ -347,69 +399,7 @@ def resumo_da_grade(request):
         t.pendente = not pre.issubset(cursadas)
         total_creditos += t.disciplina.creditos or 0
 
-    dias = [
-        ('SEG', 'Segunda'),
-        ('TER', 'Terça'), 
-        ('QUA', 'Quarta'),
-        ('QUI', 'Quinta'), 
-        ('SEX', 'Sexta'),
-    ]
-
-    aulas_por_dia = {sigla: {} for sigla, nome in dias}
-    limites_horarios = []
-
-    for turma in turmas_lista:
-        ocorrencias = (turma.dias_horarios or '').split(';')
-
-        for ocorrencia in ocorrencias:
-            partes = ocorrencia.strip().split()
-
-            if len(partes) != 2:
-                continue
-
-            dia, intervalo = partes
-
-            if dia not in aulas_por_dia:
-                continue
-
-            try:
-                inicio, fim = map(int, intervalo.split('-'))
-            except ValueError:
-                continue
-
-            if fim <= inicio:
-                continue
-            limites_horarios.extend([inicio, fim])
-
-            aulas_por_dia[dia][inicio] = {
-                'turma': turma,
-                'rowspan': fim - inicio,
-                'vazia': False,
-            }
-
-            for hora in range(inicio + 1, fim):
-                aulas_por_dia[dia][hora] = None
-
-    grade_linhas = []
-
-    if limites_horarios:
-        primeira_hora = min(limites_horarios)
-        ultima_hora = max(limites_horarios)
-
-        for hora in range(primeira_hora, ultima_hora):
-            celulas = []
-
-            for sigla, nome in dias:
-                celula = aulas_por_dia[sigla].get(
-                    hora,
-                    {'vazia': True}
-                )
-                celulas.append(celula)
-
-            grade_linhas.append({
-                'horario': f'{hora:02d}-{hora + 1:02d}',
-                'celulas': celulas,
-            })
+    dias, grade_linhas = montar_grade_semanal(turmas_lista)
 
     return render(request, 'resumo_da_grade.html', {
         'form': form,
@@ -697,6 +687,12 @@ def gradessugeridas(request):
                     )
 
                 return redirect('/resumodagrade/')
+
+    for opcao in opcoes:
+        opcao['dias'], opcao['grade_linhas'] = montar_grade_semanal(opcao['turmas'])
+        opcao['total_creditos'] = sum(
+            turma.disciplina.creditos or 0 for turma in opcao['turmas']
+        )
 
     return render(request, 'grades-sugeridas.html', {
         'opcoes': opcoes,
