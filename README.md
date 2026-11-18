@@ -26,8 +26,24 @@ No diretório `projetoGradePuc`:
 ```
 pip install -r requirements.txt
 python manage.py migrate
+python manage.py importar_microhorario
 python manage.py runserver
 ```
+
+**Turmas e horários:** o `migrate` **não** carrega as turmas. Sem rodar
+`python manage.py importar_microhorario`, o site abre, mas sem nenhuma turma para montar grades.
+O comando lê `Horario_das_Disciplinas_04112026.xlsx` (que já está em `projetoGradePuc`) e
+cadastra disciplinas, professores e turmas; pode ser rodado de novo sem duplicar.
+
+**Nomes de pastas:** `GradePuc/templates` e `GradePuc/static` ficam sempre em minúsculas. O
+Django procura exatamente esses nomes; em Windows e Mac as maiúsculas funcionavam por acaso,
+mas em Linux o site dava "template não encontrado" e ficava sem CSS. Ao criar uma tela ou um
+CSS novo, ponha em `templates/` e `static/`, e use `{% static 'arquivo.css' %}` nos templates.
+
+**Depois de dar `git pull` na versão com as pastas renomeadas** (Windows/Mac): se sobrar uma
+pasta `Templates` ou `Static` vazia em `GradePuc`, pode apagar; o que vale é a minúscula.
+Atualize a página com Ctrl+Shift+R, porque o endereço dos arquivos de estilo passou de
+`/Static/` para `/static/`.
 
 **Currículos dos cursos:** já vêm com o projeto. O `migrate` carrega
 `GradePuc/dados/curriculos.json` (cursos de graduação da PUC-Rio, com as disciplinas
